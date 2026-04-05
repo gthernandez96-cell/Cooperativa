@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Planillas de Prestamos Guardadas{% endblock %}
+{% block content %}
+<div class="container-fluid mt-4">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Planillas de Prestamos Guardadas</h1>
+      <p class="page-subtitle">Revise, retome o aplique planillas pendientes de prestamos cuando lo necesite</p>
+    </div>
+    <a href="{{ url_for('transacciones_masivas') }}" class="btn btn-outline">Volver</a>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h3 class="card-title">Filtros</h3>
+      <a href="{{ url_for('planillas_prestamos_pendientes') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
+    </div>
+    <div class="card-body">
+      <form method="GET" action="{{ url_for('planillas_prestamos_pendientes') }}">
+        <div class="row">
+          <div class="col-md-3 mb-3">
+            <label class="form-label">Nombre de Planilla</label>
+            <input type="text" class="form-control" name="nombre" value="{{ filtros.nombre }}" placeholder="Ej: Quincena Abril">
+          </div>
+          <div class="col-md-3 mb-3">
+            <label class="form-label">Frecuencia</label>
+            <select class="form-select" name="frecuencia">
+              <option value="" {% if not filtros.frecuencia %}selected{% endif %}>Todas</option>
+              <option value="Quincenal" {% if filtros.frecuencia == 'Quincenal' %}selected{% endif %}>Quincenal</option>
+              <option value="Catorcenal" {% if filtros.frecuencia == 'Catorcenal' %}selected{% endif %}>Catorcenal</option>
+            </select>
+          </div>
+          <div class="col-md-3 mb-3">
+            <label class="form-label">Estado</label>
+            <select class="form-select" name="estado">
+              <option value="" {% if not filtros.estado %}selected{% endif %}>Todos</option>
+              <option value="pendiente" {% if filtros.estado == 'pendiente' %}selected{% endif %}>Pendiente</option>
+              <option value="parcial" {% if filtros.estado == 'parcial' %}selected{% endif %}>Parcial</option>
+              <option value="aplicada" {% if filtros.estado == 'aplicada' %}selected{% endif %}>Aplicada</option>
+            </select>
+          </div>
+          <div class="col-md-3 mb-3">
+            <label class="form-label">Fecha Desde</label>
+            <input type="date" class="form-control" name="fecha_desde" value="{{ filtros.fecha_desde }}">
+          </div>
+          <div class="col-md-3 mb-3">
+            <label class="form-label">Fecha Hasta</label>
+            <input type="date" class="form-control" name="fecha_hasta" value="{{ filtros.fecha_hasta }}">
+          </div>
+        </div>
+        <div class="text-end">
+          <button type="submit" class="btn btn-warning">Aplicar Filtros</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="stats-grid mb-4">
+    <div class="stat-card">
+      <div class="stat-label">Planillas Encontradas</div>
+      <div class="stat-value">{{ total_planillas }}</div>
+    </div>
+    <div class="stat-card gold">
+      <div class="stat-label">Monto Total</div>
+      <div class="stat-value">Q{{ "{:,.2f}".format(total_monto) }}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h3 class="card-title">Listado de Planillas</h3>
+      <a href="{{ url_for('generar_planilla_prestamos') }}" class="btn btn-warning">Nueva Planilla</a>
+    </div>
+    <div class="card-body">
+      <div class="mb-3" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <input
+          type="text"
+          id="busquedaRapidaPlanillasPrestamos"
+          class="form-control"
+          placeholder="Busqueda rapida: nombre, boleta, estado o frecuencia..."
+          style="max-width: 460px;"
+        >
+        <button type="button" id="btnLimpiarBusquedaRapidaPlanillasPrestamos" class="btn btn-outline-secondary btn-sm">Limpiar</button>
+        <span id="contadorBusquedaPlanillasPrestamos" style="font-size:13px;color:#6b7280;"></span>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Fecha de Pago</th>
+              <th>Frecuencia</th>
+              <th>Registros</th>
+              <th>Total</th>
+              <th>Estado</th>
+              <th>Boleta</th>
+              <th>Accion</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in planillas %}
+            <tr class="fila-planilla-prestamo">
+              <td>{{ p.nombre }}</td>
+              <td>{{ p.fecha_pago }}</td>
+              <td>{{ p.frecuencia }}</td>
+              <td>{{ p.total_registros }}</td>
+              <td class="amount">Q{{ "{:,.2f}".format(p.total_monto or 0) }}</td>
+              <td>
+                <span class="badge {% if p.estado == 'aplicada' %}bg-success{% elif p.estado == 'parcial' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                  {{ p.estado.title() }}
+                </span>
+              </td>
+              <td>{{ p.boleta_deposito or 'Pendiente' }}</td>
+              <td>
+                <a href="{{ url_for('detalle_planilla_prestamos', planilla_id=p.id) }}" class="btn btn-sm btn-primary">
+                  {% if p.estado == 'aplicada' %}Ver{% else %}Abrir{% endif %}
+                </a>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="8" style="text-align:center;color:#9ca3af;padding:24px;">No hay planillas de prestamos guardadas.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function filtrarPlanillasPrestamosRapido() {
+  const input = document.getElementById('busquedaRapidaPlanillasPrestamos');
+  const filtro = (input?.value || '').trim().toLowerCase();
+  const filas = Array.from(document.querySelectorAll('.fila-planilla-prestamo'));
+  let visibles = 0;
+
+  filas.forEach((fila) => {
+    const texto = fila.innerText.toLowerCase();
+    const mostrar = !filtro || texto.includes(filtro);
+    fila.style.display = mostrar ? '' : 'none';
+    if (mostrar) visibles++;
+  });
+
+  const contador = document.getElementById('contadorBusquedaPlanillasPrestamos');
+  if (contador) {
+    contador.textContent = `${visibles} registro(s) visibles`;
+  }
+}
+
+const busquedaRapida = document.getElementById('busquedaRapidaPlanillasPrestamos');
+if (busquedaRapida) {
+  busquedaRapida.addEventListener('input', filtrarPlanillasPrestamosRapido);
+}
+
+const btnLimpiarBusquedaRapida = document.getElementById('btnLimpiarBusquedaRapidaPlanillasPrestamos');
+if (btnLimpiarBusquedaRapida && busquedaRapida) {
+  btnLimpiarBusquedaRapida.addEventListener('click', function() {
+    busquedaRapida.value = '';
+    filtrarPlanillasPrestamosRapido();
+    busquedaRapida.focus();
+  });
+}
+
+filtrarPlanillasPrestamosRapido();
+</script>
+{% endblock %}

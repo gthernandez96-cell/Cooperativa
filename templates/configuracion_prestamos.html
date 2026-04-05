@@ -1,0 +1,543 @@
+{% extends "base.html" %}
+
+{% block title %}Configuracion de Prestamos - Cooperativa{% endblock %}
+
+{% block extra_head %}
+<style>
+.cfg-shell {
+    max-width: 1180px;
+    margin: 0 auto;
+    display: grid;
+    gap: 16px;
+}
+
+.cfg-hero {
+    background: linear-gradient(125deg, #f9fcff 0%, #eef4fb 60%, #fff6de 100%);
+    border: 1px solid #d6e2f0;
+    border-radius: 16px;
+    padding: 18px 20px;
+    box-shadow: 0 8px 24px rgba(0, 42, 80, .08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.cfg-hero h1 {
+    margin: 0;
+    font-family: 'Fraunces', serif;
+    color: #012e58;
+    font-size: 28px;
+    line-height: 1.1;
+}
+
+.cfg-hero p {
+    margin: 6px 0 0;
+    color: #5c6f82;
+    font-size: 13px;
+}
+
+.cfg-pill {
+    background: #fff;
+    border: 1px solid #d9e6f3;
+    border-radius: 999px;
+    padding: 7px 12px;
+    color: #0a477d;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.cfg-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.cfg-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.cfg-card {
+    background: #fff;
+    border: 1px solid #dbe5ef;
+    border-radius: 14px;
+    box-shadow: 0 4px 16px rgba(0, 42, 80, .06);
+    overflow: hidden;
+}
+
+.cfg-card-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid #e4ecf4;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: #fbfdff;
+}
+
+.cfg-card-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: #0a3967;
+    letter-spacing: .2px;
+}
+
+.cfg-card-body {
+    padding: 14px 16px;
+}
+
+.cfg-help {
+    font-size: 12px;
+    color: #6f8193;
+}
+
+.cfg-table-wrap {
+    overflow-x: auto;
+}
+
+.cfg-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 860px;
+}
+
+.cfg-table th {
+    text-align: left;
+    font-size: 11px;
+    color: #5f7387;
+    text-transform: uppercase;
+    letter-spacing: .45px;
+    padding: 9px 8px;
+    border-bottom: 1px solid #dbe6f1;
+}
+
+.cfg-table td {
+    padding: 10px 8px;
+    border-bottom: 1px solid #edf2f7;
+    color: #19324a;
+    font-size: 13px;
+}
+
+.cfg-form-grid {
+    display: grid;
+    gap: 10px;
+}
+
+.cfg-field {
+    display: grid;
+    gap: 5px;
+}
+
+.cfg-label {
+    color: #294560;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .2px;
+}
+
+.cfg-input,
+.cfg-select,
+.cfg-textarea {
+    width: 100%;
+    border: 1px solid #cedbea;
+    border-radius: 10px;
+    padding: 9px 11px;
+    font: inherit;
+    font-size: 14px;
+    color: #182b3d;
+    background: #fff;
+}
+
+.cfg-input:focus,
+.cfg-select:focus,
+.cfg-textarea:focus {
+    outline: none;
+    border-color: #5f9dcf;
+    box-shadow: 0 0 0 3px rgba(59, 130, 186, .16);
+}
+
+.cfg-money-input {
+    display: flex;
+    align-items: center;
+    border: 1px solid #cedbea;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.cfg-money-input span {
+    background: #f1f6fb;
+    color: #4a647d;
+    font-weight: 700;
+    font-size: 12px;
+    padding: 0 10px;
+    align-self: stretch;
+    display: inline-flex;
+    align-items: center;
+}
+
+.cfg-money-input input {
+    border: 0;
+    width: 100%;
+    padding: 9px 10px;
+    font: inherit;
+}
+
+.cfg-money-input input:focus {
+    outline: none;
+}
+
+.cfg-mini-card {
+    border: 1px solid #e0e9f2;
+    border-radius: 11px;
+    padding: 11px;
+    background: #fbfdff;
+    display: grid;
+    gap: 8px;
+}
+
+.cfg-mini-title {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: #173451;
+}
+
+.cfg-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 14px 16px;
+    background: linear-gradient(100deg, #f7fbff 0%, #fffaf0 100%);
+    border: 1px solid #dce7f2;
+    border-radius: 14px;
+}
+
+.cfg-note {
+    margin: 0;
+    color: #4e6278;
+    font-size: 12px;
+}
+
+.cfg-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.cfg-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.cfg-tag-ok {
+    color: #0f766e;
+    background: #ccfbf1;
+    border: 1px solid #99f6e4;
+}
+
+@media (max-width: 980px) {
+    .cfg-grid-2 {
+        grid-template-columns: 1fr;
+    }
+
+    .cfg-grid-3 {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 760px) {
+    .cfg-hero {
+        padding: 14px;
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .cfg-hero h1 {
+        font-size: 24px;
+    }
+
+    .cfg-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .cfg-buttons {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cfg-shell">
+    <section class="cfg-hero">
+        <div>
+            <h1>Configuracion de prestamos</h1>
+            <p>Defina parametros de originacion, riesgo, cobranza y politicas de recuperacion.</p>
+        </div>
+        <div class="cfg-pill">Modulo de prestamos</div>
+    </section>
+
+    <section class="cfg-card">
+        <div class="cfg-card-header">
+            <h2 class="cfg-card-title">Tipos de prestamos</h2>
+            <button class="btn btn-primary btn-sm" type="button" onclick="agregarTipoPrestamo()">Agregar tipo</button>
+        </div>
+        <div class="cfg-card-body">
+            <div class="cfg-table-wrap">
+                <table class="cfg-table" id="tablaTiposPrestamo">
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Tasa interes (%)</th>
+                            <th>Plazo maximo (meses)</th>
+                            <th>Monto maximo</th>
+                            <th>Garantia requerida</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Prestamo Personal</td>
+                            <td>15.0</td>
+                            <td>60</td>
+                            <td>Q 50,000.00</td>
+                            <td>Fiador</td>
+                            <td><span class="cfg-tag cfg-tag-ok">Activo</span></td>
+                            <td><button class="btn btn-outline btn-sm" type="button" onclick="editarTipoPrestamo(1)">Editar</button></td>
+                        </tr>
+                        <tr>
+                            <td>Prestamo Hipotecario</td>
+                            <td>8.5</td>
+                            <td>240</td>
+                            <td>Q 500,000.00</td>
+                            <td>Propiedad</td>
+                            <td><span class="cfg-tag cfg-tag-ok">Activo</span></td>
+                            <td><button class="btn btn-outline btn-sm" type="button" onclick="editarTipoPrestamo(2)">Editar</button></td>
+                        </tr>
+                        <tr>
+                            <td>Prestamo Vehicular</td>
+                            <td>12.0</td>
+                            <td>72</td>
+                            <td>Q 150,000.00</td>
+                            <td>Vehiculo</td>
+                            <td><span class="cfg-tag cfg-tag-ok">Activo</span></td>
+                            <td><button class="btn btn-outline btn-sm" type="button" onclick="editarTipoPrestamo(3)">Editar</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section class="cfg-grid-2">
+        <article class="cfg-card">
+            <div class="cfg-card-header">
+                <h2 class="cfg-card-title">Configuracion general</h2>
+            </div>
+            <div class="cfg-card-body">
+                <form id="formConfigGeneralPrestamos" class="cfg-form-grid" method="POST" action="{{ url_for('configuracion_prestamos') }}">
+                    <div class="cfg-field">
+                        <label for="tasa_interes_default_prestamos" class="cfg-label">Tasa de interes predeterminada (%)</label>
+                        <input type="number" class="cfg-input" id="tasa_interes_default_prestamos" name="prestamo_tasa_interes_default" value="{{ prestamo_cfg.prestamo_tasa_interes_default }}" step="0.1">
+                    </div>
+                    <div class="cfg-field">
+                        <label for="plazo_maximo_default" class="cfg-label">Plazo maximo predeterminado (meses)</label>
+                        <input type="number" class="cfg-input" id="plazo_maximo_default" name="prestamo_plazo_maximo_default" value="{{ prestamo_cfg.prestamo_plazo_maximo_default }}" min="1">
+                    </div>
+                    <div class="cfg-field">
+                        <label for="monto_maximo_default" class="cfg-label">Monto maximo predeterminado</label>
+                        <div class="cfg-money-input">
+                            <span>Q</span>
+                            <input type="number" id="monto_maximo_default" name="prestamo_monto_maximo_default" value="{{ prestamo_cfg.prestamo_monto_maximo_default }}" step="0.01">
+                        </div>
+                    </div>
+                    <div class="cfg-field">
+                        <label for="edad_minima_prestamo" class="cfg-label">Edad minima para prestamos</label>
+                        <input type="number" class="cfg-input" id="edad_minima_prestamo" name="prestamo_edad_minima" value="{{ prestamo_cfg.prestamo_edad_minima }}" min="18">
+                    </div>
+                    <div class="cfg-field">
+                        <label for="edad_maxima_prestamo" class="cfg-label">Edad maxima para prestamos</label>
+                        <input type="number" class="cfg-input" id="edad_maxima_prestamo" name="prestamo_edad_maxima" value="{{ prestamo_cfg.prestamo_edad_maxima }}" min="18">
+                    </div>
+                    <p class="cfg-help">
+                        Para ajustar tasas vigentes de prestamo, utilice la configuracion global de tasas.
+                        <a href="{{ url_for('configuraciones') }}">Ir a configuracion global</a>
+                    </p>
+                    <button type="submit" class="btn btn-primary">Guardar configuracion general</button>
+                </form>
+            </div>
+        </article>
+
+        <article class="cfg-card">
+            <div class="cfg-card-header">
+                <h2 class="cfg-card-title">Intereses y cargos</h2>
+            </div>
+            <div class="cfg-card-body">
+                <form id="formConfigIntereses" class="cfg-form-grid" method="POST" action="{{ url_for('configuracion_prestamos') }}">
+                    <div class="cfg-field">
+                        <label for="tasa_mora_diaria" class="cfg-label">Tasa de interes moratorio diaria (%)</label>
+                        <input type="number" class="cfg-input" id="tasa_mora_diaria" name="prestamo_tasa_mora_diaria" value="{{ prestamo_cfg.prestamo_tasa_mora_diaria }}" step="0.01">
+                    </div>
+                    <div class="cfg-field">
+                        <label for="cargo_amortizacion" class="cfg-label">Cargo por amortizacion anticipada (%)</label>
+                        <input type="number" class="cfg-input" id="cargo_amortizacion" name="prestamo_cargo_amortizacion" value="{{ prestamo_cfg.prestamo_cargo_amortizacion }}" step="0.1">
+                    </div>
+                    <div class="cfg-field">
+                        <label for="cargo_refinanciamiento" class="cfg-label">Cargo por refinanciamiento (%)</label>
+                        <input type="number" class="cfg-input" id="cargo_refinanciamiento" name="prestamo_cargo_refinanciamiento" value="{{ prestamo_cfg.prestamo_cargo_refinanciamiento }}" step="0.1">
+                    </div>
+                    <div class="cfg-field">
+                        <label for="comision_desembolso" class="cfg-label">Comision por desembolso (%)</label>
+                        <input type="number" class="cfg-input" id="comision_desembolso" name="prestamo_comision_desembolso" value="{{ prestamo_cfg.prestamo_comision_desembolso }}" step="0.1">
+                    </div>
+                    <div class="cfg-field">
+                        <label for="seguro_vida" class="cfg-label">Seguro de vida (% anual)</label>
+                        <input type="number" class="cfg-input" id="seguro_vida" name="prestamo_seguro_vida" value="{{ prestamo_cfg.prestamo_seguro_vida }}" step="0.1">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Guardar intereses y cargos</button>
+                </form>
+            </div>
+        </article>
+    </section>
+
+    <section class="cfg-card">
+        <div class="cfg-card-header">
+            <h2 class="cfg-card-title">Evaluacion de riesgo y credito</h2>
+        </div>
+            <div class="cfg-card-body">
+                <form method="POST" action="{{ url_for('configuracion_prestamos') }}" class="cfg-form-grid">
+                <div class="cfg-grid-2">
+                <div class="cfg-mini-card">
+                    <h3 class="cfg-mini-title">Ratios de evaluacion</h3>
+                    <div class="cfg-field">
+                        <label class="cfg-label">Ratio deuda/ingreso maximo</label>
+                            <input type="number" class="cfg-input" name="prestamo_ratio_deuda_ingreso_max" value="{{ prestamo_cfg.prestamo_ratio_deuda_ingreso_max }}" step="0.01">
+                    </div>
+                    <div class="cfg-field">
+                        <label class="cfg-label">Ratio deuda/activos maximo</label>
+                            <input type="number" class="cfg-input" name="prestamo_ratio_deuda_activos_max" value="{{ prestamo_cfg.prestamo_ratio_deuda_activos_max }}" step="0.01">
+                    </div>
+                    <div class="cfg-field">
+                        <label class="cfg-label">Historial crediticio minimo (meses)</label>
+                            <input type="number" class="cfg-input" name="prestamo_historial_crediticio_min_meses" value="{{ prestamo_cfg.prestamo_historial_crediticio_min_meses }}" min="0">
+                    </div>
+                    <div class="cfg-field">
+                        <label class="cfg-label">Score crediticio minimo</label>
+                            <input type="number" class="cfg-input" name="prestamo_score_crediticio_min" value="{{ prestamo_cfg.prestamo_score_crediticio_min }}" min="300" max="850">
+                    </div>
+                </div>
+                <div class="cfg-mini-card">
+                    <h3 class="cfg-mini-title">Garantias requeridas</h3>
+                    <div class="cfg-field">
+                        <label class="cfg-label">Prestamos sin garantia maximo</label>
+                            <input type="number" class="cfg-input" name="prestamo_sin_garantia_max" value="{{ prestamo_cfg.prestamo_sin_garantia_max }}">
+                    </div>
+                    <div class="cfg-field">
+                        <label class="cfg-label">Cobertura de garantia minima (%)</label>
+                            <input type="number" class="cfg-input" name="prestamo_cobertura_garantia_min" value="{{ prestamo_cfg.prestamo_cobertura_garantia_min }}" min="100">
+                    </div>
+                    <div class="cfg-field">
+                        <label class="cfg-label">Fiadores requeridos minimo</label>
+                            <input type="number" class="cfg-input" name="prestamo_fiadores_min" value="{{ prestamo_cfg.prestamo_fiadores_min }}" min="0">
+                    </div>
+                    <div class="cfg-field">
+                        <label class="cfg-label">Fiadores requeridos maximo</label>
+                            <input type="number" class="cfg-input" name="prestamo_fiadores_max" value="{{ prestamo_cfg.prestamo_fiadores_max }}" min="1">
+                    </div>
+                </div>
+            </div>
+                <button type="submit" class="btn btn-primary">Guardar riesgo y garantia</button>
+                </form>
+        </div>
+    </section>
+
+    <section class="cfg-card">
+        <div class="cfg-card-header">
+            <h2 class="cfg-card-title">Configuracion de cobranza</h2>
+        </div>
+            <div class="cfg-card-body">
+                <form method="POST" action="{{ url_for('configuracion_prestamos') }}" class="cfg-form-grid">
+                <div class="cfg-grid-3">
+                <div class="cfg-mini-card">
+                    <h3 class="cfg-mini-title">Limites de morosidad</h3>
+                    <div class="cfg-field">
+                        <label class="cfg-label">Dias para primer recordatorio</label>
+                            <input type="number" class="cfg-input" name="prestamo_dias_primer_recordatorio" value="{{ prestamo_cfg.prestamo_dias_primer_recordatorio }}" min="1">
+                    </div>
+                    <div class="cfg-field">
+                        <label class="cfg-label">Dias para cobranza intensiva</label>
+                            <input type="number" class="cfg-input" name="prestamo_dias_cobranza_intensiva" value="{{ prestamo_cfg.prestamo_dias_cobranza_intensiva }}" min="1">
+                    </div>
+                    <div class="cfg-field">
+                        <label class="cfg-label">Dias para accion legal</label>
+                            <input type="number" class="cfg-input" name="prestamo_dias_accion_legal" value="{{ prestamo_cfg.prestamo_dias_accion_legal }}" min="1">
+                    </div>
+                </div>
+                <div class="cfg-mini-card">
+                    <h3 class="cfg-mini-title">Cargos por morosidad</h3>
+                    <div class="cfg-field">
+                        <label class="cfg-label">Cargo por recordatorio</label>
+                            <input type="number" class="cfg-input" name="prestamo_cargo_recordatorio" value="{{ prestamo_cfg.prestamo_cargo_recordatorio }}">
+                    </div>
+                    <div class="cfg-field">
+                        <label class="cfg-label">Cargo por carta de cobranza</label>
+                            <input type="number" class="cfg-input" name="prestamo_cargo_carta_cobranza" value="{{ prestamo_cfg.prestamo_cargo_carta_cobranza }}">
+                    </div>
+                    <div class="cfg-field">
+                        <label class="cfg-label">Cargo por gestion judicial</label>
+                            <input type="number" class="cfg-input" name="prestamo_cargo_gestion_judicial" value="{{ prestamo_cfg.prestamo_cargo_gestion_judicial }}">
+                    </div>
+                </div>
+                <div class="cfg-mini-card">
+                    <h3 class="cfg-mini-title">Politicas de recuperacion</h3>
+                    <div class="cfg-field">
+                        <label class="cfg-label">Dias para considerar perdida</label>
+                            <input type="number" class="cfg-input" name="prestamo_dias_considerar_perdida" value="{{ prestamo_cfg.prestamo_dias_considerar_perdida }}" min="90">
+                    </div>
+                    <div class="cfg-field">
+                        <label class="cfg-label">Porcentaje de recuperacion esperado</label>
+                            <input type="number" class="cfg-input" name="prestamo_pct_recuperacion_esperado" value="{{ prestamo_cfg.prestamo_pct_recuperacion_esperado }}" min="0" max="100">
+                    </div>
+                    <div class="cfg-field">
+                        <label class="cfg-label">Frecuencia de reportes (dias)</label>
+                            <input type="number" class="cfg-input" name="prestamo_frecuencia_reportes_dias" value="{{ prestamo_cfg.prestamo_frecuencia_reportes_dias }}" min="1">
+                    </div>
+                </div>
+            </div>
+                <button type="submit" class="btn btn-primary">Guardar cobranza</button>
+                </form>
+        </div>
+    </section>
+
+    <section class="cfg-actions">
+        <p class="cfg-note">Esta pantalla consolida las reglas internas de originacion y recuperacion de cartera.</p>
+        <div class="cfg-buttons">
+            <a href="{{ url_for('menu_prestamos') }}" class="btn btn-outline">Regresar al menu</a>
+        </div>
+    </section>
+</div>
+
+<script>
+function agregarTipoPrestamo() {
+    alert('La gestion detallada de tipos de prestamo estara disponible en una siguiente iteracion.');
+}
+
+function editarTipoPrestamo(id) {
+    alert('Edicion de tipo de prestamo ' + id + ' en preparacion.');
+}
+
+</script>
+{% endblock %}

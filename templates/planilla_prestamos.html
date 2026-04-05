@@ -1,0 +1,441 @@
+{% extends "base.html" %}
+
+{% block title %}Planilla de Préstamos - CoopAhorro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Planilla de Préstamos</h1>
+    <p class="page-subtitle">Pagos masivos de cuotas de préstamos</p>
+  </div>
+  <div style="display: flex; gap: 12px;">
+    <button class="btn btn-outline" onclick="exportarPlanilla()">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right: 6px;">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7,10 12,15 17,10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Exportar
+    </button>
+    {% if not planilla or planilla.estado != 'aplicada' %}
+    <button class="btn btn-gold" id="btnAbrirModalPagos" data-planilla-id="{{ planilla.id }}" data-detalle-url="{{ url_for('detalle_planilla_prestamos', planilla_id=planilla.id) }}">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right: 6px;">
+        <path d="M9 12l2 2 4-4M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"/>
+      </svg>
+      Procesar Pagos
+    </button>
+    {% endif %}
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card gold">
+    <div class="stat-label">Préstamos en Planilla</div>
+    <div class="stat-value">{{ detalles|length }}</div>
+  </div>
+  <div class="stat-card gold">
+    <div class="stat-label">Monto Total Programado</div>
+    <div class="stat-value amount">Q {{ "%.2f"|format(planilla.total_monto or 0) }}</div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom: 20px;">
+  <div class="card-header">
+    <h3 class="card-title">Datos de la Planilla</h3>
+  </div>
+  <div class="card-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
+    <div><strong>Planilla:</strong> {{ nombre_planilla }}</div>
+    <div><strong>Fecha de Pago:</strong> {{ fecha_pago }}</div>
+    <div><strong>No. Boleta:</strong> {{ boleta_deposito or 'Pendiente' }}</div>
+    <div><strong>Frecuencia:</strong> {{ frecuencia }}</div>
+    <div><strong>Estado:</strong> {{ planilla.estado.title() if planilla else 'Pendiente' }}</div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom: 20px;">
+  <div class="card-body">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <input
+        type="text"
+        id="buscarPrestamoPlanilla"
+        class="form-control"
+        placeholder="Buscar por codigo, socio o numero de prestamo..."
+        style="max-width: 460px;"
+      >
+      <span id="contadorResultadosPlanilla" style="font-size:13px;color:#6b7280;"></span>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Préstamos Activos - Pagos Masivos</h3>
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <label style="font-size: 14px; font-weight: 500;">Aplicar cuota completa:</label>
+      <button class="btn btn-sm" onclick="aplicarCuotasCompletas()">Aplicar Cuotas</button>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Código Socio</th>
+            <th>Nombre Completo</th>
+            <th>Número Préstamo</th>
+            <th>Monto Aprobado</th>
+            <th>Saldo Pendiente</th>
+            <th>Capital Pagado</th>
+            <th>Interés Pagado</th>
+            <th>Cuota Mensual</th>
+            <th>Monto a Pagar</th>
+            <th>Nuevo Saldo</th>
+            <th>Seleccionar</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for prestamo in detalles %}
+          <tr>
+            <td>{{ prestamo['socio_codigo'] }}</td>
+            <td>{{ prestamo['socio_nombre'] }}</td>
+            <td><code>{{ prestamo['numero_referencia'] }}</code></td>
+            <td class="amount">Q {{ "%.2f"|format(prestamo['monto_aprobado'] or 0) }}</td>
+            <td class="amount">Q {{ "%.2f"|format(prestamo['saldo_pendiente'] or 0) }}</td>
+            <td class="amount">Q {{ "%.2f"|format(prestamo['capital_pagado'] or 0) }}</td>
+            <td class="amount">Q {{ "%.2f"|format(prestamo['interes_pagado'] or 0) }}</td>
+            <td class="amount">Q {{ "%.2f"|format(prestamo['cuota_mensual'] or 0) }}</td>
+            <td>
+              <input type="number" 
+                     class="monto-input" 
+                     step="0.01" 
+                     min="0" 
+                     max="{{ prestamo['saldo_pendiente'] or 0 }}"
+                     placeholder="0.00"
+                     value="{{ '%.2f'|format(prestamo['monto'] or 0) }}"
+                     data-prestamo-id="{{ prestamo['referencia_id'] }}"
+                     data-detalle-id="{{ prestamo['id'] }}"
+                     data-numero="{{ prestamo['numero_referencia'] }}"
+                     data-saldo-pendiente="{{ prestamo['saldo_pendiente'] or 0 }}"
+                     data-cuota-mensual="{{ prestamo['cuota_mensual'] or 0 }}"
+                     {% if prestamo['estado'] == 'aplicado' %}disabled{% endif %}
+                     onchange="calcularNuevoSaldo(this)">
+            </td>
+            <td class="amount nuevo-saldo" id="nuevo-saldo-{{ prestamo['referencia_id'] }}">Q {{ "%.2f"|format(prestamo['saldo_pendiente'] or 0) }}</td>
+            <td>
+              <input type="checkbox" class="prestamo-checkbox" data-prestamo-id="{{ prestamo['referencia_id'] }}" {% if prestamo['estado'] == 'aplicado' %}checked disabled{% endif %}>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-top: 24px;">
+  <div class="card-header">
+    <h3 class="card-title">Resumen de Operación</h3>
+  </div>
+  <div class="card-body">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+      <div>
+        <strong>Préstamos Seleccionados:</strong> <span id="prestamos-seleccionados">0</span>
+      </div>
+      <div>
+        <strong>Total a Pagar:</strong> <span id="total-pagar" class="amount">Q 0.00</span>
+      </div>
+      <div>
+        <strong>Operaciones Válidas:</strong> <span id="operaciones-validas">0</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="modalBoletaPrestamo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:2000;align-items:center;justify-content:center;padding:16px;">
+  <div class="card shadow" style="width:100%;max-width:480px;">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Confirmar Aplicación de Planilla</h5>
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCerrarModalPrestamo">Cerrar</button>
+    </div>
+    <div class="card-body">
+      <p class="text-muted mb-3">Ingrese el número de boleta de pago para aplicar esta planilla de préstamos.</p>
+      <div class="mb-3">
+        <label for="inputBoletaPrestamo" class="form-label">Número de Boleta de Pago</label>
+        <input type="text" id="inputBoletaPrestamo" class="form-control" placeholder="Ej: BOL-009845" maxlength="50">
+        <div id="errorBoletaPrestamo" class="text-danger small mt-1" style="display:none;">Debe ingresar el número de boleta de pago.</div>
+      </div>
+      <div class="d-flex justify-content-end gap-2">
+        <button type="button" class="btn btn-outline-secondary" id="btnCancelarModalPrestamo">Cancelar</button>
+        <button type="button" class="btn btn-gold" id="btnConfirmarPagos">Aplicar Planilla</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const btnAbrirModalPagos = document.getElementById('btnAbrirModalPagos');
+const modalBoletaPrestamo = document.getElementById('modalBoletaPrestamo');
+const inputBoletaPrestamo = document.getElementById('inputBoletaPrestamo');
+const errorBoletaPrestamo = document.getElementById('errorBoletaPrestamo');
+const btnCerrarModalPrestamo = document.getElementById('btnCerrarModalPrestamo');
+const btnCancelarModalPrestamo = document.getElementById('btnCancelarModalPrestamo');
+const btnConfirmarPagos = document.getElementById('btnConfirmarPagos');
+const planillaPrestamoId = btnAbrirModalPagos ? btnAbrirModalPagos.dataset.planillaId : null;
+const detallePlanillaUrl = btnAbrirModalPagos ? btnAbrirModalPagos.dataset.detalleUrl : '';
+
+function calcularNuevoSaldo(input) {
+  const row = input.closest('tr');
+  const prestamoId = input.dataset.prestamoId;
+  const saldoPendiente = parseFloat(input.dataset.saldoPendiente);
+  const monto = parseFloat(input.value) || 0;
+  const nuevoSaldo = Math.max(0, saldoPendiente - monto);
+  
+  const nuevoSaldoElement = document.getElementById(`nuevo-saldo-${prestamoId}`);
+  nuevoSaldoElement.textContent = `Q ${nuevoSaldo.toFixed(2)}`;
+  
+  // Cambiar color si el pago excede el saldo pendiente
+  if (monto > saldoPendiente) {
+    input.style.borderColor = 'var(--c-danger)';
+    nuevoSaldoElement.style.color = 'var(--c-danger)';
+  } else {
+    input.style.borderColor = 'var(--c-border)';
+    nuevoSaldoElement.style.color = 'var(--c-dark)';
+  }
+  
+  actualizarResumen();
+}
+
+function aplicarCuotasCompletas() {
+  const inputs = document.querySelectorAll('.monto-input');
+  
+  inputs.forEach(input => {
+    const cuotaMensual = parseFloat(input.dataset.cuotaMensual);
+    const saldoPendiente = parseFloat(input.dataset.saldoPendiente);
+    
+    // Aplicar la cuota mensual o el saldo pendiente si es menor
+    const montoAAplicar = Math.min(cuotaMensual, saldoPendiente);
+    input.value = montoAAplicar.toFixed(2);
+    calcularNuevoSaldo(input);
+  });
+}
+
+function actualizarResumen() {
+  const inputs = document.querySelectorAll('.monto-input');
+  
+  let prestamosSeleccionados = 0;
+  let totalPagar = 0;
+  let operacionesValidas = 0;
+  
+  inputs.forEach((input) => {
+    const monto = parseFloat(input.value) || 0;
+    const saldoPendiente = parseFloat(input.dataset.saldoPendiente);
+    const checkbox = document.querySelector(`.prestamo-checkbox[data-prestamo-id="${input.dataset.prestamoId}"]`);
+    
+    if (monto > 0 && monto <= saldoPendiente) {
+      operacionesValidas++;
+      totalPagar += monto;
+    }
+    
+    if (checkbox && checkbox.checked) {
+      prestamosSeleccionados++;
+    }
+  });
+  
+  document.getElementById('prestamos-seleccionados').textContent = prestamosSeleccionados;
+  document.getElementById('total-pagar').textContent = `Q ${totalPagar.toFixed(2)}`;
+  document.getElementById('operaciones-validas').textContent = operacionesValidas;
+}
+
+function procesarPagos() {
+  const inputs = document.querySelectorAll('.monto-input');
+  const pagos = [];
+  
+  inputs.forEach(input => {
+    const monto = parseFloat(input.value) || 0;
+    const saldoPendiente = parseFloat(input.dataset.saldoPendiente);
+    
+    if (monto > 0 && monto <= saldoPendiente) {
+      pagos.push({
+        prestamo_id: parseInt(input.dataset.prestamoId),
+        detalle_id: parseInt(input.dataset.detalleId),
+        numero: input.dataset.numero,
+        monto: monto
+      });
+    }
+  });
+  
+  if (pagos.length === 0) {
+    alert('No hay pagos válidos para procesar. Verifique los montos.');
+    return;
+  }
+  
+  // Verificar si hay montos que exceden el saldo pendiente
+  const errores = [];
+  inputs.forEach(input => {
+    const monto = parseFloat(input.value) || 0;
+    const saldoPendiente = parseFloat(input.dataset.saldoPendiente);
+    if (monto > saldoPendiente) {
+      errores.push(`Préstamo ${input.dataset.numero}: Monto excede saldo pendiente`);
+    }
+  });
+  
+  if (errores.length > 0) {
+    alert('Errores encontrados:\n\n' + errores.join('\n'));
+    return;
+  }
+  
+  if (!confirm(`¿Está seguro de procesar ${pagos.length} pagos por un total de Q ${pagos.reduce((sum, p) => sum + p.monto, 0).toFixed(2)}?`)) {
+    return;
+  }
+  
+  // Mostrar loading
+  const button = btnConfirmarPagos;
+  const originalText = button.innerHTML;
+  button.textContent = 'Aplicando...';
+  button.disabled = true;
+  
+  fetch('/procesar_pagos_masivos', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      planilla_id: planillaPrestamoId,
+      pagos: pagos,
+      nombre_planilla: '{{ nombre_planilla }}',
+      fecha_pago: '{{ fecha_pago }}',
+      boleta_deposito: inputBoletaPrestamo.value.trim(),
+      frecuencia: '{{ frecuencia }}'
+    })
+  })
+  .then(async response => {
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'No fue posible aplicar la planilla.');
+    }
+    return data;
+  })
+  .then(data => {
+    cerrarModalPrestamo();
+    let mensaje = `Procesamiento completado:\n\n`;
+    mensaje += `✅ Procesados: ${data.procesados}\n`;
+    mensaje += `❌ Errores: ${data.errores.length}\n`;
+    mensaje += `📊 Total: ${data.total}\n\n`;
+    mensaje += `💰 Capital aplicado: Q ${Number(data.capital_total || 0).toFixed(2)}\n`;
+    mensaje += `📈 Interes aplicado: Q ${Number(data.interes_total || 0).toFixed(2)}\n\n`;
+
+    if (Array.isArray(data.resumen_aplicados) && data.resumen_aplicados.length > 0) {
+      mensaje += `Detalle aplicado:\n`;
+      data.resumen_aplicados.forEach((item) => {
+        mensaje += `- ${item.numero}: Capital Q ${Number(item.capital || 0).toFixed(2)} | Interes Q ${Number(item.interes || 0).toFixed(2)}\n`;
+      });
+      mensaje += `\n`;
+    }
+    
+    if (data.errores.length > 0) {
+      mensaje += `Errores encontrados:\n${data.errores.join('\n')}`;
+    }
+    
+    alert(mensaje);
+    
+    if (data.procesados > 0) {
+      window.location.href = detallePlanillaUrl;
+    }
+  })
+  .catch(error => {
+    alert(error.message || 'Error al procesar los pagos.');
+  })
+  .finally(() => {
+    button.innerHTML = originalText;
+    button.disabled = false;
+  });
+}
+
+function abrirModalPrestamo() {
+  modalBoletaPrestamo.style.display = 'flex';
+  inputBoletaPrestamo.value = '';
+  errorBoletaPrestamo.style.display = 'none';
+  inputBoletaPrestamo.classList.remove('is-invalid');
+  setTimeout(() => inputBoletaPrestamo.focus(), 50);
+}
+
+function cerrarModalPrestamo() {
+  modalBoletaPrestamo.style.display = 'none';
+}
+
+if (btnAbrirModalPagos) {
+  btnAbrirModalPagos.addEventListener('click', abrirModalPrestamo);
+}
+
+if (btnCerrarModalPrestamo) {
+  btnCerrarModalPrestamo.addEventListener('click', cerrarModalPrestamo);
+}
+
+if (btnCancelarModalPrestamo) {
+  btnCancelarModalPrestamo.addEventListener('click', cerrarModalPrestamo);
+}
+
+if (modalBoletaPrestamo) {
+  modalBoletaPrestamo.addEventListener('click', function(event) {
+    if (event.target === modalBoletaPrestamo) {
+      cerrarModalPrestamo();
+    }
+  });
+}
+
+if (btnConfirmarPagos) {
+  btnConfirmarPagos.addEventListener('click', function() {
+    if (!inputBoletaPrestamo.value.trim()) {
+      errorBoletaPrestamo.style.display = 'block';
+      inputBoletaPrestamo.classList.add('is-invalid');
+      inputBoletaPrestamo.focus();
+      return;
+    }
+
+    errorBoletaPrestamo.style.display = 'none';
+    inputBoletaPrestamo.classList.remove('is-invalid');
+    procesarPagos();
+  });
+}
+
+function exportarPlanilla() {
+  // Funcionalidad de exportación (placeholder)
+  alert('Funcionalidad de exportación próximamente disponible');
+}
+
+function filtrarTablaPlanillaPrestamos() {
+  const input = document.getElementById('buscarPrestamoPlanilla');
+  const filtro = (input?.value || '').trim().toLowerCase();
+  const filas = Array.from(document.querySelectorAll('.table-wrap table tbody tr'));
+  let visibles = 0;
+
+  filas.forEach((fila) => {
+    const texto = fila.innerText.toLowerCase();
+    const mostrar = !filtro || texto.includes(filtro);
+    fila.style.display = mostrar ? '' : 'none';
+    if (mostrar) visibles++;
+  });
+
+  const contador = document.getElementById('contadorResultadosPlanilla');
+  if (contador) {
+    contador.textContent = `${visibles} registro(s) visibles`;
+  }
+}
+
+// Actualizar resumen cuando cambien los checkboxes
+document.addEventListener('change', function(e) {
+  if (e.target.classList.contains('prestamo-checkbox')) {
+    actualizarResumen();
+  }
+});
+
+const buscarPrestamoPlanilla = document.getElementById('buscarPrestamoPlanilla');
+if (buscarPrestamoPlanilla) {
+  buscarPrestamoPlanilla.addEventListener('input', filtrarTablaPlanillaPrestamos);
+}
+
+document.querySelectorAll('.monto-input').forEach(input => calcularNuevoSaldo(input));
+filtrarTablaPlanillaPrestamos();
+</script>
+
+{% endblock %}

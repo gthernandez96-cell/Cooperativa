@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}Planilla de Ahorro - CoopAhorro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Planilla de Ahorro</h1>
+    <p class="page-subtitle">Abonos masivos a cuentas de ahorro</p>
+  </div>
+  <div style="display: flex; gap: 12px;">
+    <button class="btn btn-outline" onclick="exportarPlanilla()">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right: 6px;">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7,10 12,15 17,10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Exportar
+    </button>
+    <button class="btn btn-primary" onclick="procesarAbonos()">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right: 6px;">
+        <path d="M9 12l2 2 4-4M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"/>
+      </svg>
+      Procesar Abonos
+    </button>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Cuentas Activas</div>
+    <div class="stat-value">{{ cuentas|length }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Total Saldos</div>
+    <div class="stat-value amount">Q {{ "%.2f"|format(cuentas|sum(attribute='saldo')) }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Cuentas de Ahorro - Abonos Masivos</h3>
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <label style="font-size: 14px; font-weight: 500;">Monto fijo para todos:</label>
+      <input type="number" id="montoFijo" step="0.01" min="0" placeholder="0.00" style="width: 120px; padding: 6px 10px; border: 1px solid var(--c-border); border-radius: 6px;">
+      <button class="btn btn-sm" onclick="aplicarMontoFijo()">Aplicar</button>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Código Socio</th>
+            <th>Nombre Completo</th>
+            <th>Número de Cuenta</th>
+            <th>Saldo Actual</th>
+            <th>Monto a Abonar</th>
+            <th>Nuevo Saldo</th>
+            <th>Seleccionar</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cuenta in cuentas %}
+          <tr>
+            <td>{{ cuenta['codigo'] }}</td>
+            <td>{{ cuenta['nombre'] }} {{ cuenta['apellido'] }}</td>
+            <td><code>{{ cuenta['numero'] }}</code></td>
+            <td class="amount">Q {{ "%.2f"|format(cuenta['saldo']) }}</td>
+            <td>
+              <input type="number" 
+                     class="monto-input" 
+                     step="0.01" 
+                     min="0" 
+                     placeholder="0.00"
+                     data-cuenta-id="{{ cuenta['id'] }}"
+                     data-numero="{{ cuenta['numero'] }}"
+                     data-saldo-actual="{{ cuenta['saldo'] }}"
+                     onchange="calcularNuevoSaldo(this)">
+            </td>
+            <td class="amount nuevo-saldo" id="nuevo-saldo-{{ cuenta['id'] }}">Q {{ "%.2f"|format(cuenta['saldo']) }}</td>
+            <td>
+              <input type="checkbox" class="cuenta-checkbox" data-cuenta-id="{{ cuenta['id'] }}">
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-top: 24px;">
+  <div class="card-header">
+    <h3 class="card-title">Resumen de Operación</h3>
+  </div>
+  <div class="card-body">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+      <div>
+        <strong>Cuentas Seleccionadas:</strong> <span id="cuentas-seleccionadas">0</span>
+      </div>
+      <div>
+        <strong>Total a Abonar:</strong> <span id="total-abonar" class="amount">Q 0.00</span>
+      </div>
+      <div>
+        <strong>Operaciones Válidas:</strong> <span id="operaciones-validas">0</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function calcularNuevoSaldo(input) {
+  const row = input.closest('tr');
+  const cuentaId = input.dataset.cuentaId;
+  const saldoActual = parseFloat(input.dataset.saldoActual);
+  const monto = parseFloat(input.value) || 0;
+  const nuevoSaldo = saldoActual + monto;
+  
+  const nuevoSaldoElement = document.getElementById(`nuevo-saldo-${cuentaId}`);
+  nuevoSaldoElement.textContent = `Q ${nuevoSaldo.toFixed(2)}`;
+  
+  actualizarResumen();
+}
+
+function aplicarMontoFijo() {
+  const montoFijo = parseFloat(document.getElementById('montoFijo').value) || 0;
+  const inputs = document.querySelectorAll('.monto-input');
+  
+  inputs.forEach(input => {
+    input.value = montoFijo.toFixed(2);
+    calcularNuevoSaldo(input);
+  });
+}
+
+function actualizarResumen() {
+  const checkboxes = document.querySelectorAll('.cuenta-checkbox:checked');
+  const inputs = document.querySelectorAll('.monto-input');
+  
+  let cuentasSeleccionadas = 0;
+  let totalAbonar = 0;
+  let operacionesValidas = 0;
+  
+  inputs.forEach((input, index) => {
+    const monto = parseFloat(input.value) || 0;
+    const checkbox = checkboxes[index];
+    
+    if (monto > 0) {
+      operacionesValidas++;
+      totalAbonar += monto;
+    }
+    
+    if (checkbox && checkbox.checked) {
+      cuentasSeleccionadas++;
+    }
+  });
+  
+  document.getElementById('cuentas-seleccionadas').textContent = cuentasSeleccionadas;
+  document.getElementById('total-abonar').textContent = `Q ${totalAbonar.toFixed(2)}`;
+  document.getElementById('operaciones-validas').textContent = operacionesValidas;
+}
+
+function procesarAbonos() {
+  const inputs = document.querySelectorAll('.monto-input');
+  const abonos = [];
+  
+  inputs.forEach(input => {
+    const monto = parseFloat(input.value) || 0;
+    if (monto > 0) {
+      abonos.push({
+        cuenta_id: parseInt(input.dataset.cuentaId),
+        numero: input.dataset.numero,
+        monto: monto
+      });
+    }
+  });
+  
+  if (abonos.length === 0) {
+    alert('No hay abonos para procesar. Ingrese montos válidos.');
+    return;
+  }
+  
+  if (!confirm(`¿Está seguro de procesar ${abonos.length} abonos por un total de Q ${abonos.reduce((sum, a) => sum + a.monto, 0).toFixed(2)}?`)) {
+    return;
+  }
+  
+  // Mostrar loading
+  const button = document.querySelector('button[onclick="procesarAbonos()"]');
+  const originalText = button.innerHTML;
+  button.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right: 6px;"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Procesando...';
+  button.disabled = true;
+  
+  fetch('/procesar_abonos_masivos', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ abonos: abonos })
+  })
+  .then(response => response.json())
+  .then(data => {
+    let mensaje = `Procesamiento completado:\n\n`;
+    mensaje += `✅ Procesados: ${data.procesados}\n`;
+    mensaje += `❌ Errores: ${data.errores.length}\n`;
+    mensaje += `📊 Total: ${data.total}\n\n`;
+    
+    if (data.errores.length > 0) {
+      mensaje += `Errores encontrados:\n${data.errores.join('\n')}`;
+    }
+    
+    alert(mensaje);
+    
+    if (data.procesados > 0) {
+      location.reload();
+    }
+  })
+  .catch(error => {
+    alert('Error al procesar los abonos: ' + error.message);
+  })
+  .finally(() => {
+    button.innerHTML = originalText;
+    button.disabled = false;
+  });
+}
+
+function exportarPlanilla() {
+  // Funcionalidad de exportación (placeholder)
+  alert('Funcionalidad de exportación próximamente disponible');
+}
+
+// Actualizar resumen cuando cambien los checkboxes
+document.addEventListener('change', function(e) {
+  if (e.target.classList.contains('cuenta-checkbox')) {
+    actualizarResumen();
+  }
+});
+</script>
+
+{% endblock %}

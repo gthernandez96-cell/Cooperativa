@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Crear Rol — Cooperativa Quetzal{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Crear Rol</div>
+    <div class="page-subtitle">Definir nuevo rol para usuarios</div>
+  </div>
+  <a href="{{ url_for('roles') }}" class="btn btn-outline">← Volver</a>
+</div>
+
+<div class="card" style="max-width:700px;">
+  <div class="card-body">
+    <form method="post">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nombre de rol *</label>
+          <input name="nombre" required placeholder="Ej: Contador">
+        </div>
+        <div class="form-group" style="grid-column: span 2;">
+          <label>Descripción</label>
+          <input name="descripcion" placeholder="Ej: Gestiona reportes contables">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Guardar rol</button>
+        <a href="{{ url_for('roles') }}" class="btn btn-outline">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Generar Planilla de Ahorro{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="page-header mb-3">
+        <div>
+            <div class="page-title">Nueva Planilla de Ahorro</div>
+            <div class="page-subtitle">Configure nombre, fecha, frecuencia y tipo de cuenta para generar la planilla.</div>
+        </div>
+        <a href="{{ url_for('planillas_ahorro_pendientes') }}" class="btn btn-outline">Volver</a>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-header">
+            <h4 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i>Formulario de Planilla</h4>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('generar_planilla_cuotas_ahorro') }}" method="POST">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="nombre_planilla" class="form-label">Nombre de la Planilla</label>
+                        <input type="text" class="form-control" id="nombre_planilla" name="nombre_planilla" 
+                               placeholder="Ej: Ahorro Quincena 1 - Abril 2024" value="{{ form_data.nombre_planilla }}" required>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="fecha_pago" class="form-label">Fecha de Pago</label>
+                        <input type="date" class="form-control" id="fecha_pago" name="fecha_pago" value="{{ form_data.fecha_pago }}" required>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="frecuencia" class="form-label">Frecuencia</label>
+                        <select class="form-select" id="frecuencia" name="frecuencia" required>
+                            <option value="Catorcenal" {% if form_data.frecuencia == 'Catorcenal' %}selected{% endif %}>Catorcenal</option>
+                            <option value="Quincenal" {% if form_data.frecuencia == 'Quincenal' %}selected{% endif %}>Quincenal</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label for="tipo_cuenta" class="form-label">Tipo de Cuenta</label>
+                        <select class="form-select" id="tipo_cuenta" name="tipo_cuenta" required>
+                            <option value="ahorro_aportacion" {% if form_data.tipo_cuenta == 'ahorro_aportacion' %}selected{% endif %}>Aportación</option>
+                            <option value="ahorro_corriente" {% if form_data.tipo_cuenta == 'ahorro_corriente' %}selected{% endif %}>Ahorro corriente</option>
+                            <option value="ahorro_plazo_fijo" {% if form_data.tipo_cuenta == 'ahorro_plazo_fijo' %}selected{% endif %}>Plazo fijo</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="alert alert-info py-2 mt-2">
+                    <i class="fas fa-info-circle me-2"></i>Esta planilla incluirá a todos los socios activos con cuota de ahorro mayor a Q1.00 según el tipo de cuenta seleccionado.
+                </div>
+                <div class="text-end mt-3">
+                    <button type="submit" class="btn btn-success btn-lg">Generar Planilla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

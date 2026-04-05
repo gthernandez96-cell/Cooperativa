@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block title %}Planilla: {{ nombre_planilla }}{% endblock %}
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="card shadow mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Revisión de Planilla: <strong>{{ nombre_planilla }}</strong></h5>
+            <div class="d-flex gap-2 align-items-center">
+                <a href="{{ url_for('planillas_ahorro_pendientes') }}" class="btn btn-sm btn-outline-secondary">Regresar</a>
+                <span class="badge bg-info text-dark">Tipo: {{ tipo_cuenta_label }}</span>
+                <span class="badge bg-primary">Frecuencia: {{ frecuencia }}</span>
+                <span class="badge {% if planilla and planilla.estado == 'aplicada' %}bg-success{% elif planilla and planilla.estado == 'parcial' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                    Estado: {{ (planilla.estado if planilla else 'pendiente').title() }}
+                </span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="border rounded p-3 bg-light">
+                        <small class="text-muted d-block">Total de Asociados</small>
+                        <span class="h4">{{ detalles|length }}</span>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="border rounded p-3 bg-light">
+                        <small class="text-muted d-block">Monto Total a Abonar</small>
+                        <span class="h4 text-success">Q{{ "{:,.2f}".format(total_cuotas) }}</span>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="border rounded p-3 bg-light">
+                        <small class="text-muted d-block">Fecha de Registro</small>
+                        <span class="h4">{{ fecha_pago }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="tablaAbonos">
+                    <thead>
+                        <tr>
+                            <th>Socio</th>
+                            <th>Cuenta</th>
+                            <th class="text-end">Saldo Actual</th>
+                            <th class="text-end text-primary">Cuota Programada</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in detalles %}
+                        <tr data-id="{{ c.referencia_id }}" data-monto="{{ c.monto }}" data-num="{{ c.numero_referencia }}" data-detalle-id="{{ c.id }}">
+                            <td><strong>{{ c.socio_codigo }}</strong> - {{ c.socio_nombre }}</td>
+                            <td>{{ c.numero_referencia }}</td>
+                            <td class="text-end text-muted">
+                                {% if c.saldo_actual is not none %}
+                                    Q{{ "{:,.2f}".format(c.saldo_actual) }}
+                                {% else %}
+                                    Pendiente de aplicar
+                                {% endif %}
+                            </td>
+                            <td class="text-end"><strong>Q{{ "{:,.2f}".format(c.monto) }}</strong></td>
+                            <td>
+                                <span class="badge {% if c.estado == 'aplicado' %}bg-success{% else %}bg-secondary{% endif %}">{{ c.estado.title() }}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="text-center mt-4 d-flex justify-content-center gap-2 flex-wrap">
+                <a href="{{ url_for('planillas_ahorro_pendientes') }}" class="btn btn-outline-secondary btn-lg px-4">Ver Planillas Guardadas</a>
+                {% if not planilla or planilla.estado != 'aplicada' %}
+                <button type="button" class="btn btn-primary btn-lg px-5" id="btnAplicar" data-planilla-id="{{ planilla.id }}">
+                    <i class="fas fa-check-circle me-2"></i>Aplicar Planilla a las Cuentas
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="modalBoleta" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:2000;align-items:center;justify-content:center;padding:16px;">
+    <div class="card shadow" style="width:100%;max-width:480px;">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Confirmar Aplicación de Planilla</h5>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCerrarModal">Cerrar</button>
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-3">Ingrese el número de boleta de pago para aplicar los abonos masivos.</p>
+
+            <div class="mb-3">
+                <label for="inputBoleta" class="form-label">Número de Boleta de Pago</label>
+                <input type="text" id="inputBoleta" class="form-control" placeholder="Ej: BOL-001245" maxlength="50">
+                <div id="errorBoleta" class="text-danger small mt-1" style="display:none;">Debe ingresar el número de boleta de pago.</div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-outline-secondary" id="btnCancelarModal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnConfirmarAplicar">Aplicar Planilla</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const btnAplicar = document.getElementById('btnAplicar');
+const modalBoleta = document.getElementById('modalBoleta');
+const inputBoleta = document.getElementById('inputBoleta');
+const errorBoleta = document.getElementById('errorBoleta');
+const btnCerrarModal = document.getElementById('btnCerrarModal');
+const btnCancelarModal = document.getElementById('btnCancelarModal');
+const btnConfirmarAplicar = document.getElementById('btnConfirmarAplicar');
+const planillaId = btnAplicar ? btnAplicar.dataset.planillaId : null;
+
+function abrirModalBoleta() {
+    modalBoleta.style.display = 'flex';
+    inputBoleta.value = '';
+    errorBoleta.style.display = 'none';
+    inputBoleta.classList.remove('is-invalid');
+    setTimeout(() => inputBoleta.focus(), 50);
+}
+
+function cerrarModalBoleta() {
+    modalBoleta.style.display = 'none';
+}
+
+btnAplicar.addEventListener('click', function() {
+    abrirModalBoleta();
+});
+
+btnCerrarModal.addEventListener('click', cerrarModalBoleta);
+btnCancelarModal.addEventListener('click', cerrarModalBoleta);
+
+modalBoleta.addEventListener('click', function(event) {
+    if (event.target === modalBoleta) {
+        cerrarModalBoleta();
+    }
+});
+
+btnConfirmarAplicar.addEventListener('click', function() {
+    const boletaDeposito = inputBoleta.value.trim();
+
+    if (!boletaDeposito) {
+        errorBoleta.style.display = 'block';
+        inputBoleta.classList.add('is-invalid');
+        inputBoleta.focus();
+        return;
+    }
+
+    errorBoleta.style.display = 'none';
+    inputBoleta.classList.remove('is-invalid');
+
+    const abonos = Array.from(document.querySelectorAll('#tablaAbonos tbody tr')).map(tr => ({
+        cuenta_id: tr.dataset.id,
+        monto: tr.dataset.monto,
+        numero: tr.dataset.num,
+        detalle_id: tr.dataset.detalleId
+    }));
+
+    btnConfirmarAplicar.disabled = true;
+    btnConfirmarAplicar.textContent = 'Aplicando...';
+
+    fetch('{{ url_for("procesar_abonos_masivos") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            planilla_id: planillaId,
+            abonos,
+            nombre_planilla: "{{ nombre_planilla }}",
+            fecha: "{{ fecha_pago }}",
+            boleta_deposito: boletaDeposito,
+            frecuencia: "{{ frecuencia }}"
+        })
+    })
+    .then(async r => {
+        const data = await r.json();
+        if (!r.ok) {
+            throw new Error(data.error || 'No fue posible aplicar la planilla.');
+        }
+        return data;
+    })
+    .then(data => {
+        cerrarModalBoleta();
+        let mensaje = 'Resultado de la planilla:\n\n';
+        mensaje += 'Procesados: ' + data.procesados + '\n';
+        mensaje += 'Errores: ' + (data.errores ? data.errores.length : 0) + '\n';
+        mensaje += 'Total: ' + data.total + '\n\n';
+
+        if (data.errores && data.errores.length > 0) {
+            mensaje += 'Detalle de errores:\n' + data.errores.join('\n');
+        }
+
+        alert(mensaje);
+        window.location.href = "{{ url_for('detalle_planilla_ahorro', planilla_id=planilla.id if planilla else 0) }}";
+    })
+    .catch(err => {
+        alert(err.message || 'Ocurrio un error al procesar la planilla.');
+    })
+    .finally(() => {
+        btnConfirmarAplicar.disabled = false;
+        btnConfirmarAplicar.textContent = 'Aplicar Planilla';
+    });
+});
+</script>
+{% endblock %}

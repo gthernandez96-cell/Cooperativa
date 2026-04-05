@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Prestamo {{ prestamo.numero }} - {{ cooperativa_nombre }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Prestamo {{ prestamo.numero }}</div>
+    <div class="page-subtitle">{{ prestamo.socio_codigo }} · {{ prestamo.nombre_socio }}</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <a href="{{ url_for('prestamos') }}" class="btn btn-outline">Volver a prestamos</a>
+    <a href="{{ url_for('detalle_socio', sid=prestamo.socio_id) }}" class="btn btn-outline">Ver socio</a>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px;">
+  <div class="stat-card"><div class="stat-label">Monto solicitado</div><div class="stat-value">Q{{ '{:,.2f}'.format(prestamo.monto_solicitado or 0) }}</div></div>
+  <div class="stat-card"><div class="stat-label">Monto aprobado</div><div class="stat-value">Q{{ '{:,.2f}'.format(prestamo.monto_aprobado or prestamo.monto_solicitado or 0) }}</div></div>
+  <div class="stat-card"><div class="stat-label">Saldo pendiente</div><div class="stat-value">Q{{ '{:,.2f}'.format(prestamo.saldo_pendiente or 0) }}</div></div>
+  <div class="stat-card"><div class="stat-label">Cuotas pagadas</div><div class="stat-value">{{ prestamo.cuotas_pagadas_calendario }} / {{ prestamo.total_cuotas }}</div></div>
+</div>
+
+<div class="card" style="margin-bottom:16px;">
+  <div class="card-header">
+    <span class="card-title">Informacion del prestamo</span>
+  </div>
+  <div class="card-body">
+    <div class="form-grid">
+      <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Estado</div><div style="margin-top:4px;"><span class="badge {% if prestamo.estado=='aprobado' %}badge-green{% elif prestamo.estado=='pendiente' %}badge-gold{% elif prestamo.estado=='pagado' %}badge-gray{% elif prestamo.estado=='no_procede' %}badge-red{% else %}badge-red{% endif %}">{{ 'No procede' if prestamo.estado == 'no_procede' else prestamo.estado.capitalize() }}</span></div></div>
+      <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Categoria</div><div style="margin-top:4px;">{{ prestamo.categoria_nombre or 'General' }}</div></div>
+      <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Frecuencia</div><div style="margin-top:4px;">{{ prestamo.frecuencia or 'Quincenal' }}</div></div>
+      <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Tasa</div><div style="margin-top:4px;">{{ prestamo.tasa_interes }}%</div></div>
+      <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Plazo</div><div style="margin-top:4px;">{{ prestamo.plazo_meses }} meses</div></div>
+      <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Cuota</div><div style="margin-top:4px;">Q{{ '{:,.2f}'.format(prestamo.cuota_mensual or 0) }}</div></div>
+      <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Fecha solicitud</div><div style="margin-top:4px;">{{ prestamo.fecha_solicitud or '—' }}</div></div>
+      <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Fecha aprobacion</div><div style="margin-top:4px;">{{ prestamo.fecha_aprobacion or '—' }}</div></div>
+      <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Desembolso</div><div style="margin-top:4px;">{{ (prestamo.desembolso_tipo or '—')|capitalize }}{% if prestamo.desembolso_referencia %} · {{ prestamo.desembolso_referencia }}{% endif %}</div></div>
+      <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Ultimo pago</div><div style="margin-top:4px;">{{ prestamo.ultimo_pago or 'Sin pagos' }}</div></div>
+      <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Total pagado</div><div style="margin-top:4px;">Q{{ '{:,.2f}'.format(prestamo.monto_pagado or 0) }}</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:16px;">
+  <div class="card-header">
+    <span class="card-title">Cuotas pagadas ({{ pagos|length }})</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fecha</th><th>Monto</th><th>Capital</th><th>Interes</th><th>Saldo restante</th><th>Boleta</th><th>Comprobante</th></tr></thead>
+      <tbody>
+        {% for pago in pagos %}
+        <tr>
+          <td>{{ pago.fecha }}</td>
+          <td class="amount">Q{{ '{:,.2f}'.format(pago.monto or 0) }}</td>
+          <td class="amount">Q{{ '{:,.2f}'.format(pago.capital or 0) }}</td>
+          <td class="amount">Q{{ '{:,.2f}'.format(pago.interes or 0) }}</td>
+          <td class="amount">Q{{ '{:,.2f}'.format(pago.saldo_restante or 0) }}</td>
+          <td>
+            {% if pago.es_amortizacion %}
+            {% if pago.prestamo_origen_numero %}
+            Pagado con préstamo {{ pago.prestamo_origen_numero }} · Total préstamo: Q{{ '{:,.2f}'.format(pago.total_prestamo_origen or 0) }}
+            {% else %}
+            Amortización {{ pago.prestamo_amortizado_numero }} · Total préstamo: Q{{ '{:,.2f}'.format(pago.total_prestamo_amortizado or 0) }}
+            {% endif %}
+            {% else %}
+            {{ pago.boleta_deposito or '—' }}
+            {% endif %}
+          </td>
+          <td>
+            {% if pago.id %}
+            <a href="{{ url_for('comprobante_pago_prestamo', pago_id=pago.id) }}" class="btn btn-outline btn-sm">Ver</a>
+            {% elif pago.es_amortizacion %}
+            —
+            {% else %}
+            —
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:20px;">Este prestamo aun no tiene cuotas pagadas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">Calendario de cuotas</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Cuota</th><th>Fecha programada</th><th>Monto programado</th><th>Estado</th></tr></thead>
+      <tbody>
+        {% for cuota in calendario %}
+        <tr>
+          <td>{{ cuota.numero_cuota }}</td>
+          <td>{{ cuota.fecha_programada }}</td>
+          <td class="amount">Q{{ '{:,.2f}'.format(cuota.monto_programado or 0) }}</td>
+          <td>
+            <span class="badge {% if cuota.estado == 'pagado' %}badge-green{% else %}badge-gold{% endif %}">{{ cuota.estado.capitalize() }}</span>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" style="text-align:center;color:#9ca3af;padding:20px;">No hay calendario generado para este prestamo.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

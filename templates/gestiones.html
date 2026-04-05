@@ -1,0 +1,540 @@
+{% extends "base.html" %}
+{% block title %}Gestiones — {{ cooperativa_nombre }}{% endblock %}
+{% block content %}
+{% set resumen = namespace(total=solicitudes|length, retiros=0, prestamos=0, pendientes=0, aprobados=0, amortizaciones=0) %}
+{% for item in solicitudes %}
+  {% if item.tipo_solicitud == 'retiro' %}
+    {% set resumen.retiros = resumen.retiros + 1 %}
+  {% else %}
+    {% set resumen.prestamos = resumen.prestamos + 1 %}
+  {% endif %}
+  {% if item.estado == 'pendiente' %}
+    {% set resumen.pendientes = resumen.pendientes + 1 %}
+  {% endif %}
+  {% if item.estado == 'aprobado' %}
+    {% set resumen.aprobados = resumen.aprobados + 1 %}
+  {% endif %}
+  {% if item.tipo_solicitud == 'retiro' and item.destino == 'amortizacion_prestamo' %}
+    {% set resumen.amortizaciones = resumen.amortizaciones + 1 %}
+  {% endif %}
+{% endfor %}
+
+<style>
+/* ── Gestiones executive dashboard ────── */
+.g-shell { display:flex;flex-direction:column;gap:12px; }
+
+/* Page header */
+.g-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--c-border, #e5e7eb);
+}
+.g-header-left {}
+.g-header-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--c-blue, #003b74);
+  margin-bottom: 4px;
+}
+.g-header-title {
+  font-family: 'Fraunces', serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #0f1f32;
+  line-height: 1.2;
+  letter-spacing: -.02em;
+}
+.g-header-subtitle {
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 3px;
+}
+.g-header-actions { display:flex;gap:10px;flex-shrink:0; }
+.g-header-actions .btn { padding:7px 10px; font-size:12px; min-height:auto; }
+
+/* KPI strip */
+.g-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0,1fr));
+  gap: 8px;
+}
+.g-kpi {
+  background: #fff;
+  border: 1px solid var(--c-border, #e5e7eb);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: relative;
+  overflow: hidden;
+}
+.g-kpi::after {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--kpi-color, #003b74);
+  border-radius: 3px 0 0 3px;
+}
+.g-kpi-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+.g-kpi-value {
+  font-family: 'Fraunces', serif;
+  font-size: 23px;
+  font-weight: 700;
+  color: #0f1f32;
+  line-height: 1;
+}
+.g-kpi-note { font-size: 11px; color: #9ca3af; }
+
+/* Filter toolbar */
+.g-toolbar {
+  background: #fff;
+  border: 1px solid var(--c-border, #e5e7eb);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.g-toolbar-field { display:flex;flex-direction:column;gap:4px;flex:1;min-width:130px; }
+.g-toolbar-field label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+.g-toolbar-field select {
+  padding: 7px 9px;
+  border: 1px solid var(--c-border, #e5e7eb);
+  border-radius: 7px;
+  font-size: 12px;
+  background: #fafafa;
+  color: #0f1f32;
+  width: 100%;
+}
+.g-toolbar-field select:focus {
+  outline: none;
+  border-color: var(--c-blue, #003b74);
+  background: #fff;
+}
+.g-toolbar-sep {
+  width: 1px;
+  height: 36px;
+  background: var(--c-border, #e5e7eb);
+  align-self: flex-end;
+  flex-shrink: 0;
+}
+.g-toolbar-btns { display:flex;gap:8px;align-self:flex-end;flex-shrink:0; }
+.g-toolbar-btns .btn { padding:7px 10px; font-size:12px; min-height:auto; }
+
+/* Active-filter pills */
+.g-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.g-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #f0f4fa;
+  border: 1px solid #dbe4f0;
+  font-size: 12px;
+  color: #374151;
+}
+.g-pill strong { color: #0f1f32; font-weight: 600; }
+.g-pill-label { color: #6b7280; }
+.g-count-pill {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4b5563;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+/* Table card */
+.g-table-card {
+  background: #fff;
+  border: 1px solid var(--c-border, #e5e7eb);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.g-table-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--c-border, #e5e7eb);
+  background: #fafafa;
+}
+.g-table-head-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+  letter-spacing: .01em;
+}
+.g-table-scroll { overflow-x: auto; }
+
+.g-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 920px;
+}
+.g-table thead th {
+  padding: 8px 10px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #6b7280;
+  text-align: left;
+  white-space: nowrap;
+}
+.g-table tbody tr {
+  border-bottom: 1px solid #f3f4f6;
+  transition: background .1s;
+}
+.g-table tbody tr:last-child { border-bottom: none; }
+.g-table tbody tr:hover { background: #f8fafc; }
+.g-table tbody td {
+  padding: 8px 10px;
+  vertical-align: middle;
+  font-size: 12px;
+  color: #374151;
+}
+
+/* Cell helpers */
+.g-number {
+  font-family: 'Fraunces', serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c-blue, #003b74);
+}
+.g-date { font-size: 11px; color: #9ca3af; margin-top: 1px; }
+.g-name { font-weight: 600; color: #0f1f32; font-size: 12px; }
+.g-code { font-size: 11px; color: #9ca3af; margin-top: 1px; }
+.g-amount {
+  font-family: 'Fraunces', serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f1f32;
+}
+.g-sub { font-size: 11px; color: #9ca3af; margin-top: 1px; }
+
+/* Type badges */
+.g-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+.g-type-retiro  { background: #fef3c7; color: #92400e; }
+.g-type-prestamo { background: #dbeafe; color: #1e40af; }
+.g-amort-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  background: #f5f0ff;
+  color: #6d28d9;
+  margin-top: 4px;
+}
+
+/* Estado chips */
+.g-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.g-status::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+.gs-pendiente   { background:#fff7ed; color:#c2410c; }
+.gs-aprobado    { background:#f0fdf4; color:#15803d; }
+.gs-pagado      { background:#f1f5f9; color:#475569; }
+.gs-no_procede  { background:#fef2f2; color:#b91c1c; }
+
+/* Actions */
+.g-actions { display:flex;flex-direction:column;gap:6px; }
+.g-actions .btn { font-size: 11px; padding: 4px 8px; white-space: nowrap; min-height:auto; }
+.g-empty {
+  padding: 36px 20px;
+  text-align: center;
+}
+.g-empty-icon {
+  font-size: 36px;
+  color: #d1d5db;
+  margin-bottom: 12px;
+}
+.g-empty-title {
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+  color: #374151;
+  margin-bottom: 6px;
+}
+.g-empty-text { font-size: 13px; color: #9ca3af; }
+
+/* Responsive */
+@media(max-width: 1024px) { .g-kpi-row { grid-template-columns: repeat(3, 1fr); } }
+@media(max-width: 768px)  {
+  .g-header { flex-direction:column; align-items:flex-start; }
+  .g-kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .g-toolbar { flex-direction:column; }
+  .g-toolbar-sep { display:none; }
+  .g-table { min-width: 760px; font-size: 11px; }
+  .g-table thead th { padding: 7px 8px; font-size: 10px; }
+  .g-table tbody td { padding: 7px 8px; }
+}
+@media(max-width: 480px)  { .g-kpi-row { grid-template-columns: 1fr; } }
+</style>
+
+<div class="g-shell">
+
+  <!-- ── Header ─────────────────────────── -->
+  <header class="g-header">
+    <div class="g-header-left">
+      <div class="g-header-eyebrow">Centro Operativo</div>
+      <div class="g-header-title">Gestiones</div>
+      <div class="g-header-subtitle">Solicitudes de retiro y préstamo — vista consolidada</div>
+    </div>
+    <div class="g-header-actions">
+      <a href="{{ url_for('gestion_retiro') }}" class="btn btn-primary btn-sm">+ Nuevo retiro</a>
+      <a href="{{ url_for('gestion_solicitud_prestamo') }}" class="btn btn-outline btn-sm">+ Nuevo préstamo</a>
+    </div>
+  </header>
+
+  <!-- ── KPI strip ──────────────────────── -->
+  <div class="g-kpi-row">
+    <div class="g-kpi" style="--kpi-color:#003b74;">
+      <div class="g-kpi-label">Total visibles</div>
+      <div class="g-kpi-value">{{ resumen.total }}</div>
+      <div class="g-kpi-note">Con los filtros aplicados</div>
+    </div>
+    <div class="g-kpi" style="--kpi-color:#c2410c;">
+      <div class="g-kpi-label">Pendientes</div>
+      <div class="g-kpi-value">{{ resumen.pendientes }}</div>
+      <div class="g-kpi-note">Requieren una decisión</div>
+    </div>
+    <div class="g-kpi" style="--kpi-color:#15803d;">
+      <div class="g-kpi-label">Aprobados</div>
+      <div class="g-kpi-value">{{ resumen.aprobados }}</div>
+      <div class="g-kpi-note">Dentro del conjunto filtrado</div>
+    </div>
+    <div class="g-kpi" style="--kpi-color:#92400e;">
+      <div class="g-kpi-label">Retiros</div>
+      <div class="g-kpi-value">{{ resumen.retiros }}</div>
+      <div class="g-kpi-note">Normales + amortizaciones</div>
+    </div>
+    <div class="g-kpi" style="--kpi-color:#1e40af;">
+      <div class="g-kpi-label">Préstamos</div>
+      <div class="g-kpi-value">{{ resumen.prestamos }}</div>
+      <div class="g-kpi-note">Solicitudes de crédito</div>
+    </div>
+  </div>
+
+  <!-- ── Filter toolbar ────────────────── -->
+  <form method="get" action="{{ url_for('gestiones') }}" class="g-toolbar">
+    <div class="g-toolbar-field">
+      <label for="ft-tipo">Tipo</label>
+      <select id="ft-tipo" name="tipo">
+        <option value="todos"    {% if tipo_filtro == 'todos'    %}selected{% endif %}>Todos los tipos</option>
+        <option value="retiro"   {% if tipo_filtro == 'retiro'   %}selected{% endif %}>Retiro</option>
+        <option value="prestamo" {% if tipo_filtro == 'prestamo' %}selected{% endif %}>Préstamo</option>
+      </select>
+    </div>
+    <div class="g-toolbar-field">
+      <label for="ft-estado">Estado</label>
+      <select id="ft-estado" name="estado">
+        <option value="pendiente"  {% if estado_filtro == 'pendiente'  %}selected{% endif %}>Pendiente</option>
+        <option value="aprobado"   {% if estado_filtro == 'aprobado'   %}selected{% endif %}>Aprobado</option>
+        <option value="pagado"     {% if estado_filtro == 'pagado'     %}selected{% endif %}>Pagado</option>
+        <option value="no_procede" {% if estado_filtro == 'no_procede' %}selected{% endif %}>No procede</option>
+      </select>
+    </div>
+    <div class="g-toolbar-field">
+      <label for="ft-destino">Destino retiro</label>
+      <select id="ft-destino" name="destino">
+        <option value="todos"        {% if destino_filtro == 'todos'        %}selected{% endif %}>Todos los destinos</option>
+        <option value="retiro"       {% if destino_filtro == 'retiro'       %}selected{% endif %}>Retiro normal</option>
+        <option value="amortizacion" {% if destino_filtro == 'amortizacion' %}selected{% endif %}>Amortización</option>
+      </select>
+    </div>
+    <div class="g-toolbar-field">
+      <label for="ft-categoria">Categoría</label>
+      <select id="ft-categoria" name="categoria_id">
+        <option value="">Todas</option>
+        {% for cat in categorias_prestamo %}
+        <option value="{{ cat.id }}" {% if categoria_id_filtro == (cat.id|string) %}selected{% endif %}>{{ cat.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="g-toolbar-sep"></div>
+    <div class="g-toolbar-btns">
+      <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+      <a href="{{ url_for('gestiones') }}" class="btn btn-outline btn-sm">Limpiar</a>
+    </div>
+  </form>
+
+  <!-- Active filter pills + count -->
+  <div class="g-pills">
+    <span class="g-pill"><span class="g-pill-label">Tipo:</span> <strong>{{ 'Todos' if tipo_filtro == 'todos' else ('Retiros' if tipo_filtro == 'retiro' else 'Préstamos') }}</strong></span>
+    <span class="g-pill"><span class="g-pill-label">Estado:</span> <strong>{{ estado_filtro|replace('_',' ')|capitalize }}</strong></span>
+    {% if destino_filtro != 'todos' %}
+    <span class="g-pill"><span class="g-pill-label">Destino:</span> <strong>{% if destino_filtro == 'amortizacion' %}Amortización{% else %}Retiro normal{% endif %}</strong></span>
+    {% endif %}
+    {% if categoria_id_filtro %}
+    <span class="g-pill"><span class="g-pill-label">Categoría:</span> <strong>Filtrada</strong></span>
+    {% endif %}
+    <span class="g-count-pill">{{ solicitudes|length }} registro(s)</span>
+  </div>
+
+  <!-- ── Table ──────────────────────────── -->
+  <div class="g-table-card">
+    <div class="g-table-head">
+      <span class="g-table-head-title">Solicitudes</span>
+    </div>
+    <div class="g-table-scroll">
+      <table class="g-table">
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>N.º Solicitud</th>
+            <th>Asociado</th>
+            <th>Cuenta / Categoría</th>
+            <th>Detalle</th>
+            <th>Monto</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in solicitudes %}
+          <tr>
+            <td>
+              <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start;">
+                <span class="g-type-badge {% if item.tipo_solicitud == 'retiro' %}g-type-retiro{% else %}g-type-prestamo{% endif %}">
+                  {{ 'Retiro' if item.tipo_solicitud == 'retiro' else 'Préstamo' }}
+                </span>
+                {% if item.tipo_solicitud == 'retiro' and item.destino == 'amortizacion_prestamo' %}
+                <span class="g-amort-badge">Amortización</span>
+                {% endif %}
+              </div>
+            </td>
+            <td>
+              <div class="g-number">{{ item.numero }}</div>
+              <div class="g-date">{{ item.fecha_solicitud }}</div>
+            </td>
+            <td>
+              <div class="g-name">{{ item.socio_nombre }}</div>
+              <div class="g-code">{{ item.socio_codigo }}</div>
+            </td>
+            <td>
+              <div>{{ item.cuenta_numero or '—' }}</div>
+              {% if item.tipo_solicitud == 'retiro' and item.prestamo_numero %}
+              <div class="g-sub">Préstamo: {{ item.prestamo_numero }}</div>
+              {% elif item.categoria_prestamo %}
+              <div class="g-sub">{{ item.categoria_prestamo }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {% if item.tipo_solicitud == 'retiro' %}
+                {% if item.destino == 'amortizacion_prestamo' %}
+                <div>Aplicación a préstamo vigente</div>
+                {% elif item.metodo_retiro == 'deposito' %}
+                <div>Depósito bancario</div>
+                <div class="g-sub">{{ item.banco_tipo_cuenta or '' }}{% if item.banco_numero_cuenta %} · {{ item.banco_numero_cuenta }}{% endif %}</div>
+                {% elif item.metodo_retiro == 'cheque' %}
+                <div>Cheque</div>
+                {% else %}
+                <div style="color:#9ca3af;">Sin detalle</div>
+                {% endif %}
+              {% else %}
+              <div>Solicitud de crédito</div>
+              <div class="g-sub">{{ item.categoria_prestamo or '—' }}</div>
+              {% endif %}
+            </td>
+            <td>
+              <div class="g-amount">Q{{ "{:,.2f}".format(item.monto or 0) }}</div>
+            </td>
+            <td>
+              <span class="g-status gs-{{ item.estado }}">{{ item.estado|replace('_',' ')|capitalize }}</span>
+            </td>
+            <td>
+              <div class="g-actions">
+                {% if item.tipo_solicitud == 'retiro' and item.estado == 'pendiente' %}
+                <form method="post" action="{{ url_for('aprobar_solicitud_retiro', rid=item.id) }}">
+                  <button type="submit" class="btn btn-sm btn-primary" onclick="return confirm('¿Aprobar esta solicitud de retiro?')">Aprobar</button>
+                </form>
+                <form method="post" action="{{ url_for('marcar_solicitud_retiro_no_procede', rid=item.id) }}">
+                  <button type="submit" class="btn btn-sm btn-outline" onclick="return confirm('¿Marcar como no procede?')">No procede</button>
+                </form>
+                {% elif item.tipo_solicitud == 'prestamo' and item.estado == 'pendiente' %}
+                <a href="{{ url_for('aprobar_prestamo', pid=item.id) }}" class="btn btn-sm btn-primary">Revisar</a>
+                {% else %}
+                <span style="font-size:12px;color:#d1d5db;">—</span>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8">
+              <div class="g-empty">
+                <div class="g-empty-icon">○</div>
+                <div class="g-empty-title">Sin resultados</div>
+                <div class="g-empty-text">No hay solicitudes para los filtros seleccionados.</div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

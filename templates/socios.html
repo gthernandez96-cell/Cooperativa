@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Socios — {{ cooperativa_nombre }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Socios</div>
+    <div class="page-subtitle">{{ total or socios|length }} socio(s) encontrado(s)</div>
+  </div>
+  <a href="{{ url_for('nuevo_socio') }}" class="btn btn-primary">+ Nuevo Socio</a>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">Directorio de Socios</span>
+    <form method="get" style="display:flex; gap:8px;">
+      <input name="q" value="{{ q }}" placeholder="Buscar por nombre, código, DPI…"
+             style="padding:7px 12px; border:1px solid #e5e7eb; border-radius:8px; font-size:14px; width:260px;">
+      <select name="per_page" style="padding:7px 12px; border:1px solid #e5e7eb; border-radius:8px; font-size:14px;">
+        <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+        <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+        <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+        <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+      </select>
+      <button type="submit" class="btn btn-outline btn-sm">Buscar</button>
+      {% if q %}<a href="{{ url_for('socios') }}" class="btn btn-outline btn-sm">Limpiar</a>{% endif %}
+    </form>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Código</th><th>Nombre</th><th>Estado civil</th><th>Beneficiario</th><th>Banco</th><th>DPI</th><th>Teléfono</th><th>Fecha ingreso</th><th>Estado</th><th></th></tr></thead>
+      <tbody>
+        {% for s in socios %}
+        <tr>
+          <td style="font-family:'Fraunces',serif; color:#2d6a4f; font-weight:500;">{{ s.codigo }}</td>
+          <td><strong style="font-weight:500;">{{ s.nombre_completo or (s.nombre ~ ' ' ~ s.apellido) }}</strong></td>
+          <td style="font-size:13px; color:#6b7280;">{{ s.estado_civil or '—' }}{% if s.apellido_casada %}<br><span style="font-size:11px;color:#9ca3af;">{{ s.apellido_casada }}</span>{% endif %}</td>
+          <td style="font-size:13px;">{{ s.beneficiario or '—' }}</td>
+          <td style="font-size:13px; color:#6b7280;">{{ s.banco_nombre or '—' }}</td>
+          <td style="font-size:13px; color:#6b7280;">{{ s.dpi }}</td>
+          <td style="font-size:13px;">{{ s.telefono or '—' }}</td>
+          <td style="font-size:13px; color:#6b7280;">{{ s.fecha_ingreso }}</td>
+          <td><span class="badge {% if s.estado=='activo' %}badge-green{% else %}badge-gray{% endif %}">{{ s.estado.capitalize() }}</span></td>
+          <td style="display:flex; gap:6px;">
+            <a href="{{ url_for('detalle_socio', sid=s.id) }}" class="btn btn-outline btn-sm">Ver</a>
+            <a href="{{ url_for('editar_socio', sid=s.id) }}" class="btn btn-primary btn-sm">Editar</a>
+            {% if s.estado == 'activo' %}
+            <form action="{{ url_for('inactivar_socio', sid=s.id) }}" method="POST" style="margin:0;">
+              <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('Inactivar socio?')">Inactivar</button>
+            </form>
+            {% else %}
+            <form action="{{ url_for('activar_socio', sid=s.id) }}" method="POST" style="margin:0;">
+              <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Activar socio?')">Activar</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10" style="text-align:center; color:#9ca3af; padding:32px;">No se encontraron socios</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if total_pages and total_pages > 1 %}
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-top:1px solid #e5e7eb;">
+    <div style="font-size:13px;color:#6b7280;">Página {{ page }} de {{ total_pages }}</div>
+    <div style="display:flex;gap:8px;">
+      {% if page > 1 %}
+      <a class="btn btn-outline btn-sm" href="{{ url_for('socios', q=q, per_page=per_page, page=page-1) }}">Anterior</a>
+      {% endif %}
+      {% if page < total_pages %}
+      <a class="btn btn-outline btn-sm" href="{{ url_for('socios', q=q, per_page=per_page, page=page+1) }}">Siguiente</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

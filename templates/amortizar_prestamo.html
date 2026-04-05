@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}Amortizar Préstamo — {{ cooperativa_nombre }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Amortizar Préstamo</div>
+    <div class="page-subtitle">Asociado: {{ socio.codigo }} — {{ socio.nombre }} {{ socio.apellido }}</div>
+  </div>
+  <a href="{{ url_for('nuevo_prestamo') }}" class="btn btn-outline">← Cancelar</a>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start;">
+  <div class="card">
+    <div class="card-header"><span class="card-title">Préstamos Vigentes</span></div>
+    <div class="card-body">
+      <div style="margin-bottom:20px;">
+        <p style="color:#6b7280;margin-bottom:10px;font-size:14px;">El asociado tiene {{ prestamos_vigentes|length }} préstamo(s) vigente(s). Seleccione cuál desea amortizar:</p>
+          <div style="display:flex;flex-direction:column;gap:10px;" id="prestamos-container">
+            {% for prestamo in prestamos_vigentes %}
+            <div class="prestamo-item" 
+                 data-prestamo-id="{{ prestamo.id }}" 
+                 data-monto-amortizar="{{ prestamo.saldo_pendiente }}"
+                 data-numero="{{ prestamo.numero }}"
+                 style="padding:12px;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;transition:all 0.2s;background:#f9fafb;">
+              <div>Solicitado: <strong>Q{{ "{:,.2f}".format(prestamo.monto_solicitado) }}</strong></div>
+              <div>Pendiente: <strong style="color:#dc2626;">Q{{ "{:,.2f}".format(prestamo.saldo_pendiente) }}</strong></div>
+            </div>
+            <div style="font-size:12px;color:#9ca3af;margin-top:6px;">Solicitado: {{ prestamo.fecha_solicitud }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <form method="post" id="form-amortizacion" style="display:flex;flex-direction:column;gap:20px;">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Nuevo Préstamo</span></div>
+      <div class="card-body">
+        <div class="form-grid">
+          <input type="hidden" name="prestamo_id" id="inp-prestamo-id" required>
+          
+          <div class="form-group" style="grid-column:span 2;">
+            <label>Monto Total del Nuevo Préstamo (Q) *</label>
+            <input name="monto_nuevo" id="inp-monto-nuevo" type="number" step="100" min="500" required 
+                   placeholder="Ej: 15000" oninput="calcularDesembolso()">
+          </div>
+          
+          <div class="form-group" style="grid-column:span 2;">
+            <label style="font-size:13px;color:#6b7280;">Monto a Amortizar (del préstamo actual):</label>
+            <div id="out-monto-amortizar" style="font-size:14px;font-weight:bold;color:#dc2626;padding:8px;background:#fef2f2;border-radius:4px;">—</div>
+          </div>
+          
+          <div class="form-group" style="grid-column:span 2;">
+            <label style="font-size:13px;color:#6b7280;">Desembolso Real (diferencia):</label>
+            <div id="out-desembolso-real" style="font-size:18px;font-weight:bold;color:#059669;padding:12px;background:#f0fdf4;border-radius:4px;">—</div>
+          </div>
+          
+          <div class="form-group">
+            <label>Tasa de Interés Anual (%) *</label>
+            <input name="tasa_nueva" id="inp-tasa-nueva" type="number" step="0.1" min="1" max="50" required 
+                   placeholder="Ej: 18" oninput="calcularDesembolso()">
+          </div>
+          
+          <div class="form-group">
+            <label>Plazo (meses) *</label>
+            <select name="plazo_nuevo" id="inp-plazo-nuevo" required onchange="calcularDesembolso()">
+              <option value="">Seleccionar plazo…</option>
+              <option value="6">6 meses</option>
+              <option value="12" selected>12 meses</option>
+              <option value="18">18 meses</option>
+              <option value="24">24 meses</option>
+              <option value="36">36 meses</option>
+              <option value="48">48 meses</option>
+              <option value="60">60 meses</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label>Forma de desembolso *</label>
+            <select name="forma_desembolso" id="inp-forma-desembolso" required onchange="actualizarMetodoDesembolso()">
+              <option value="cheque">Cheque</option>
+              <option value="deposito">Deposito</option>
+            </select>
+          </div>
+          
+          <div class="form-group" id="grupo-banco" style="display:none;">
+            <label>Banco</label>
+            <input id="inp-banco-nombre" readonly placeholder="Se obtiene del perfil del asociado" value="{{ socio.banco_nombre or '' }}">
+          </div>
+          <div class="form-group" id="grupo-tipo-cuenta" style="display:none;">
+            <label>Tipo de cuenta bancaria *</label>
+            <input name="banco_tipo_cuenta" id="inp-banco-tipo-cuenta" readonly placeholder="Se obtiene del perfil del asociado" value="{{ socio.banco_tipo_cuenta or '' }}">
+          </div>
+          <div class="form-group" id="grupo-numero-cuenta" style="grid-column:span 2;display:none;">
+            <label>Número de cuenta bancaria *</label>
+            <input name="banco_numero_cuenta" id="inp-banco-numero-cuenta" readonly placeholder="Se obtiene del perfil del asociado" value="{{ socio.banco_numero_cuenta or '' }}">
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" id="btn-amortizar" disabled>Procesar Amortización</button>
+          <a href="{{ url_for('nuevo_prestamo') }}" class="btn btn-outline">Cancelar</a>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script>
+function fmt(n) {
+  return 'Q' + n.toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function seleccionarPrestamo(prestamo_id, monto_amortizar, numero) {
+  document.getElementById('inp-prestamo-id').value = prestamo_id;
+  document.getElementById('out-monto-amortizar').textContent = fmt(monto_amortizar);
+  document.getElementById('inp-monto-nuevo').focus();
+  
+  // Marcar visualmente el préstamo seleccionado
+  document.querySelectorAll('.prestamo-item').forEach(el => {
+    el.style.background = '#f9fafb';
+    el.style.borderColor = '#e5e7eb';
+  });
+  event.currentTarget.style.background = '#fef3c7';
+  event.currentTarget.style.borderColor = '#fbbf24';
+}
+
+// Event delegation para items de préstamo
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.prestamo-item').forEach(item => {
+    item.addEventListener('click', function() {
+      const prestamo_id = this.dataset.prestamoId;
+      const monto_amortizar = parseFloat(this.dataset.montoAmortizar);
+      const numero = this.dataset.numero;
+      seleccionarPrestamo(prestamo_id, monto_amortizar, numero);
+    });
+  });
+});
+
+function calcularDesembolso() {
+  const montoNuevo = parseFloat(document.getElementById('inp-monto-nuevo').value || '0');
+  const montoAmortizarText = document.getElementById('out-monto-amortizar').textContent.replace(/[^\d.-]/g, '') || '0';
+  const montoAmortizar = parseFloat(montoAmortizarText);
+  const desembolsoReal = montoNuevo - montoAmortizar;
+  
+  document.getElementById('out-desembolso-real').textContent = desembolsoReal > 0 ? fmt(desembolsoReal) : 'Q0.00';
+  
+  // Habilitar botón si todos los campos están completos
+  const prestamo_id = document.getElementById('inp-prestamo-id').value;
+  const tasa = document.getElementById('inp-tasa-nueva').value;
+  const plazo = document.getElementById('inp-plazo-nuevo').value;
+  const formaDesembolso = document.getElementById('inp-forma-desembolso').value;
+  
+  let bancoCompleto = true;
+  if (formaDesembolso === 'deposito') {
+    const tipoCuenta = document.getElementById('inp-banco-tipo-cuenta').value;
+    const numeroCuenta = document.getElementById('inp-banco-numero-cuenta').value;
+    bancoCompleto = tipoCuenta && numeroCuenta;
+  }
+  
+  const btnAmortizar = document.getElementById('btn-amortizar');
+  btnAmortizar.disabled = !(prestamo_id && montoNuevo > 0 && tasa && plazo && bancoCompleto);
+}
+
+function actualizarMetodoDesembolso() {
+  const metodo = document.getElementById('inp-forma-desembolso').value;
+  const grupoBanco = document.getElementById('grupo-banco');
+  const grupoTipoCuenta = document.getElementById('grupo-tipo-cuenta');
+  const grupoNumeroCuenta = document.getElementById('grupo-numero-cuenta');
+  const inputTipoCuenta = document.getElementById('inp-banco-tipo-cuenta');
+  const inputNumeroCuenta = document.getElementById('inp-banco-numero-cuenta');
+  const esDeposito = metodo === 'deposito';
+
+  grupoBanco.style.display = esDeposito ? '' : 'none';
+  grupoTipoCuenta.style.display = esDeposito ? '' : 'none';
+  grupoNumeroCuenta.style.display = esDeposito ? '' : 'none';
+  inputTipoCuenta.required = esDeposito;
+  inputNumeroCuenta.required = esDeposito;
+
+  if (!esDeposito) {
+    inputTipoCuenta.value = '';
+    inputNumeroCuenta.value = '';
+    document.getElementById('inp-banco-nombre').value = '';
+  }
+  
+  calcularDesembolso();
+}
+
+document.getElementById('form-amortizacion').addEventListener('submit', function(e) {
+  const prestamo_id = document.getElementById('inp-prestamo-id').value;
+  if (!prestamo_id) {
+    e.preventDefault();
+    alert('Debe seleccionar un préstamo para amortizar.');
+  }
+});
+</script>
+{% endblock %}

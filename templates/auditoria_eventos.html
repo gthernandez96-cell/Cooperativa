@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Bitacora de Auditoria{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Bitacora de Auditoria</div>
+    <div class="page-subtitle">Seguimiento de acciones del sistema por modulo y usuario</div>
+  </div>
+  <a href="{{ url_for('index') }}" class="btn btn-outline">Volver</a>
+</div>
+
+<div class="card" style="margin-bottom:16px;">
+  <div class="card-body">
+    <form method="GET" action="{{ url_for('auditoria_eventos') }}" class="form-grid" style="align-items:end;">
+      <div class="form-group">
+        <label>Modulo</label>
+        <select name="modulo">
+          <option value="" {% if not filtros.modulo %}selected{% endif %}>Todos</option>
+          <option value="ahorro" {% if filtros.modulo == 'ahorro' %}selected{% endif %}>Ahorro</option>
+          <option value="prestamos" {% if filtros.modulo == 'prestamos' %}selected{% endif %}>Prestamos</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Entidad</label>
+        <input type="text" name="entidad" value="{{ filtros.entidad }}" placeholder="planilla, pago, transaccion">
+      </div>
+      <div class="form-group">
+        <label>Usuario</label>
+        <input type="text" name="usuario" value="{{ filtros.usuario }}" placeholder="admin">
+      </div>
+      <div class="form-group">
+        <label>Fecha desde</label>
+        <input type="date" name="fecha_desde" value="{{ filtros.fecha_desde }}">
+      </div>
+      <div class="form-group">
+        <label>Fecha hasta</label>
+        <input type="date" name="fecha_hasta" value="{{ filtros.fecha_hasta }}">
+      </div>
+      <div class="form-group">
+        <button type="submit" class="btn btn-primary">Filtrar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">Eventos ({{ eventos|length }})</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fecha</th><th>Modulo</th><th>Entidad</th><th>ID</th><th>Accion</th><th>Descripcion</th><th>Usuario</th><th>Datos</th></tr></thead>
+      <tbody>
+        {% for e in eventos %}
+        <tr>
+          <td>{{ e.fecha }}</td>
+          <td>{{ e.modulo }}</td>
+          <td>{{ e.entidad }}</td>
+          <td>{{ e.entidad_id or '—' }}</td>
+          <td>{{ e.accion }}</td>
+          <td>{{ e.descripcion or '—' }}</td>
+          <td>{{ e.usuario or 'sistema' }}</td>
+          <td style="max-width:260px;white-space:normal;word-break:break-word;">{{ e.datos or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:20px;">No se encontraron eventos.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

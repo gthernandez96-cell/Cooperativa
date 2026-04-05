@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}{{ cuenta.numero }} — CoopAhorro{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">{{ cuenta.numero }}</div>
+    <div class="page-subtitle">{{ cuenta.socio }} · {{ cuenta.tipo.capitalize() }}</div>
+  </div>
+  <a href="{{ url_for('cuentas') }}" class="btn btn-outline">← Cuentas</a>
+</div>
+
+<div style="display:grid;grid-template-columns:300px 1fr;gap:20px;">
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <div class="stat-card accent" style="padding:24px;">
+      <div class="stat-label">Saldo Disponible</div>
+      <div class="stat-value" style="font-size:32px; margin-top:4px;">Q{{ "{:,.2f}".format(cuenta.saldo) }}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:8px;">Tasa: {{ cuenta.tasa_interes }}% anual</div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">Depósito</span></div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('hacer_transaccion', cid=cuenta.id) }}">
+          <input type="hidden" name="tipo" value="deposito">
+          <div class="form-group" style="margin-bottom:10px;">
+            <label>Monto (Q)</label>
+            <input name="monto" type="number" step="0.01" min="1" required placeholder="0.00">
+          </div>
+          <div class="form-group" style="margin-bottom:14px;">
+            <label>Descripción</label>
+            <input name="descripcion" placeholder="Ej: Depósito en efectivo">
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%;">Depositar</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">Retiro</span></div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('hacer_transaccion', cid=cuenta.id) }}">
+          <input type="hidden" name="tipo" value="retiro">
+          <div class="form-group" style="margin-bottom:10px;">
+            <label>Monto (Q)</label>
+            <input name="monto" type="number" step="0.01" min="1" max="{{ cuenta.saldo }}" required placeholder="0.00">
+          </div>
+          <div class="form-group" style="margin-bottom:14px;">
+            <label>Descripción</label>
+            <input name="descripcion" placeholder="Ej: Retiro en ventanilla">
+          </div>
+          <button type="submit" class="btn btn-danger" style="width:100%;background:#dc2626;color:#fff;">Retirar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Historial de Transacciones</span>
+      <span style="font-size:13px;color:#6b7280;">{{ transacciones|length }} movimiento(s)</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Fecha</th><th>Tipo</th><th>Monto</th><th>Saldo después</th><th>Descripción</th></tr></thead>
+        <tbody>
+          {% for t in transacciones %}
+          <tr>
+            <td style="font-size:13px;color:#6b7280;white-space:nowrap;">{{ t.fecha[:10] }}</td>
+            <td>
+              <span class="badge {% if t.tipo|es_transaccion_positiva %}badge-green{% else %}badge-red{% endif %}">
+                {% if t.tipo|es_transaccion_positiva %}▲{% else %}▼{% endif %} {{ t.tipo|tipo_transaccion }}
+              </span>
+            </td>
+            <td class="amount {% if t.tipo|es_transaccion_positiva %}amount-positive{% else %}amount-negative{% endif %}" style="font-weight:500;">
+              {% if t.tipo|es_transaccion_positiva %}+{% else %}-{% endif %}Q{{ "{:,.2f}".format(t.monto) }}
+            </td>
+            <td class="amount">Q{{ "{:,.2f}".format(t.saldo_despues) }}</td>
+            <td style="font-size:13px;color:#6b7280;">{{ t.descripcion or '—' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:32px;">Sin movimientos</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

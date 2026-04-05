@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Roles — Cooperativa Quetzal{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Roles</div>
+    <div class="page-subtitle">Administrar perfiles y permisos</div>
+  </div>
+  <a href="{{ url_for('nuevo_rol') }}" class="btn btn-primary">+ Nuevo Rol</a>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Nombre</th><th>Descripción</th><th>Estado</th></tr>
+        </thead>
+        <tbody>
+          {% for r in roles %}
+          <tr>
+            <td>{{ r.id }}</td>
+            <td>{{ r.nombre }}</td>
+            <td>{{ r.descripcion or '-' }}</td>
+            <td>{{ r.estado }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4" style="text-align:center; color:#9ca3af;">No hay roles registrados</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

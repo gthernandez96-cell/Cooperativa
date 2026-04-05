@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Cuentas — CoopAhorro{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Cuentas</div>
+    <div class="page-subtitle">{{ cuentas|length }} cuenta(s) registrada(s)</div>
+  </div>
+  <a href="{{ url_for('nueva_cuenta') }}" class="btn btn-primary">+ Nueva Cuenta</a>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Número</th><th>Socio</th><th>Tipo</th><th>Producto</th><th>Saldo</th><th>Tasa</th><th>Apertura</th><th>Estado</th><th></th></tr></thead>
+      <tbody>
+        {% for c in cuentas %}
+        <tr>
+          <td style="font-family:'Fraunces',serif;color:#2d6a4f;font-weight:500;">{{ c.numero }}</td>
+          <td style="font-size:14px;">{{ c.socio }}</td>
+          <td><span class="badge badge-gray">{{ c.tipo.capitalize() }}</span></td>
+          <td style="font-size:13px;color:#6b7280;">
+            {% if c.tipo == 'ahorro' %}
+              {% if c.producto_ahorro == 'ahorro_aportacion' %}
+                Aportación
+              {% elif c.producto_ahorro == 'ahorro_plazo_fijo' %}
+                Plazo fijo
+              {% else %}
+                Ahorro corriente
+              {% endif %}
+            {% elif c.tipo == 'corriente' %}
+              Corriente
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td class="amount" style="font-weight:500;">Q{{ "{:,.2f}".format(c.saldo) }}</td>
+          <td style="font-size:13px;color:#6b7280;">{{ c.tasa_interes }}%</td>
+          <td style="font-size:13px;color:#6b7280;">{{ c.fecha_apertura }}</td>
+          <td><span class="badge {% if c.estado=='activa' %}badge-green{% else %}badge-gray{% endif %}">{{ c.estado }}</span></td>
+          <td><a href="{{ url_for('detalle_cuenta', cid=c.id) }}" class="btn btn-outline btn-sm">Gestionar</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

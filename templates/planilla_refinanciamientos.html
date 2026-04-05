@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+
+{% block title %}Refinanciamientos de Préstamos - Cooperativa{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-redo me-2"></i>
+                        Refinanciamientos de Préstamos
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Instrucciones -->
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-info-circle me-2"></i>Instrucciones</h5>
+                        <ul class="mb-0">
+                            <li>Sube un archivo Excel (.xlsx) o CSV con las columnas: <strong>numero_prestamo, nuevo_plazo_meses, nueva_tasa_interes, descripcion</strong></li>
+                            <li>El préstamo debe estar activo y al día en sus pagos</li>
+                            <li>El nuevo plazo no puede ser menor al actual</li>
+                            <li>Se generará un nuevo cronograma de pagos</li>
+                        </ul>
+                    </div>
+
+                    <!-- Formulario de carga -->
+                    <form id="refinanciamientosForm" enctype="multipart/form-data">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="archivo" class="form-label">
+                                        <i class="fas fa-file-upload me-2"></i>Archivo de Refinanciamientos
+                                    </label>
+                                    <input type="file" class="form-control" id="archivo" name="archivo"
+                                           accept=".xlsx,.csv" required>
+                                    <div class="form-text">
+                                        Formatos soportados: Excel (.xlsx) o CSV
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="fecha_refinanciamiento" class="form-label">
+                                        <i class="fas fa-calendar me-2"></i>Fecha de Refinanciamiento
+                                    </label>
+                                    <input type="date" class="form-control" id="fecha_refinanciamiento"
+                                           name="fecha_refinanciamiento" value="{{ fecha_actual }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="tipo_refinanciamiento" class="form-label">
+                                        <i class="fas fa-tag me-2"></i>Tipo de Refinanciamiento
+                                    </label>
+                                    <select class="form-select" id="tipo_refinanciamiento" name="tipo_refinanciamiento" required>
+                                        <option value="plazo">Solo Plazo</option>
+                                        <option value="tasa">Solo Tasa</option>
+                                        <option value="ambos">Plazo y Tasa</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="aplicar_cargos" class="form-label">
+                                        <i class="fas fa-dollar-sign me-2"></i>Aplicar Cargos Adicionales
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">Q</span>
+                                        <input type="number" class="form-control" id="aplicar_cargos"
+                                               name="aplicar_cargos" value="0.00" step="0.01" min="0">
+                                    </div>
+                                    <div class="form-text">
+                                        Cargos por refinanciamiento (opcional)
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="generar_nuevo_prestamo" class="form-label">
+                                        <i class="fas fa-file-contract me-2"></i>Generar Nuevo Número
+                                    </label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="generar_nuevo_prestamo"
+                                               name="generar_nuevo_prestamo" checked>
+                                        <label class="form-check-label" for="generar_nuevo_prestamo">
+                                            Asignar nuevo número de préstamo
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <button type="button" class="btn btn-secondary" onclick="validarArchivo()">
+                                        <i class="fas fa-check-circle me-2"></i>Validar Archivo
+                                    </button>
+                                    <button type="submit" class="btn btn-info" id="btnProcesar" disabled>
+                                        <i class="fas fa-play me-2"></i>Procesar Refinanciamientos
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Resultados de validación -->
+                    <div id="resultadosValidacion" class="mt-4" style="display: none;">
+                        <h5><i class="fas fa-clipboard-check me-2"></i>Resultados de Validación</h5>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h3 class="text-success" id="totalValidos">0</h3>
+                                        <p class="card-text">Válidos</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h3 class="text-danger" id="totalErrores">0</h3>
+                                        <p class="card-text">Errores</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h3 class="text-info" id="totalPrestamos">0</h3>
+                                        <p class="card-text">Préstamos</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h3 class="text-warning" id="totalRegistros">0</h3>
+                                        <p class="card-text">Total Registros</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de errores -->
+                    <div id="erroresTable" class="mt-4" style="display: none;">
+                        <h5><i class="fas fa-exclamation-triangle me-2"></i>Errores Encontrados</h5>
+                        <div class="table-responsive">
+                            <table class="table table-striped" id="tablaErrores">
+                                <thead>
+                                    <tr>
+                                        <th>Fila</th>
+                                        <th>Número de Préstamo</th>
+                                        <th>Error</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Detalles de refinanciamiento -->
+                    <div id="detallesRefinanciamiento" class="mt-4" style="display: none;">
+                        <h5><i class="fas fa-info-circle me-2"></i>Detalles de Refinanciamiento</h5>
+                        <div class="alert alert-warning">
+                            <strong>Nota:</strong> Los refinanciamientos pueden afectar las cuotas mensuales y el costo total del préstamo.
+                            Se recomienda revisar los nuevos términos antes de procesar.
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-striped" id="tablaDetalles">
+                                <thead>
+                                    <tr>
+                                        <th>Número de Préstamo</th>
+                                        <th>Saldo Actual</th>
+                                        <th>Nuevo Plazo</th>
+                                        <th>Nueva Tasa</th>
+                                        <th>Nueva Cuota</th>
+                                        <th>Nuevo Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Botón de regreso -->
+                    <div class="text-center mt-4">
+                        <a href="{{ url_for('menu_prestamos') }}" class="btn btn-outline-info">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            Regresar al Menú de Préstamos
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let datosRefinanciamientos = [];
+
+function validarArchivo() {
+    const archivo = document.getElementById('archivo').files[0];
+    if (!archivo) {
+        alert('Por favor selecciona un archivo');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('archivo', archivo);
+
+    fetch('/validar_refinanciamientos', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        mostrarResultadosValidacion(data);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al validar el archivo');
+    });
+}
+
+function mostrarResultadosValidacion(data) {
+    document.getElementById('totalValidos').textContent = data.validos;
+    document.getElementById('totalErrores').textContent = data.errores;
+    document.getElementById('totalPrestamos').textContent = data.total_prestamos;
+    document.getElementById('totalRegistros').textContent = data.total_registros;
+
+    document.getElementById('resultadosValidacion').style.display = 'block';
+
+    if (data.errores_detalle && data.errores_detalle.length > 0) {
+        mostrarErrores(data.errores_detalle);
+        document.getElementById('btnProcesar').disabled = true;
+    } else {
+        document.getElementById('erroresTable').style.display = 'none';
+        document.getElementById('btnProcesar').disabled = false;
+        datosRefinanciamientos = data.datos_validos;
+        mostrarDetallesRefinanciamiento(data.detalles_refinanciamiento);
+    }
+}
+
+function mostrarErrores(errores) {
+    const tbody = document.querySelector('#tablaErrores tbody');
+    tbody.innerHTML = '';
+
+    errores.forEach(error => {
+        const row = tbody.insertRow();
+        row.insertCell(0).textContent = error.fila;
+        row.insertCell(1).textContent = error.numero_prestamo;
+        row.insertCell(2).textContent = error.error;
+    });
+
+    document.getElementById('erroresTable').style.display = 'block';
+}
+
+function mostrarDetallesRefinanciamiento(detalles) {
+    const tbody = document.querySelector('#tablaDetalles tbody');
+    tbody.innerHTML = '';
+
+    detalles.forEach(detalle => {
+        const row = tbody.insertRow();
+        row.insertCell(0).textContent = detalle.numero_prestamo;
+        row.insertCell(1).textContent = detalle.saldo_actual.toFixed(2);
+        row.insertCell(2).textContent = detalle.nuevo_plazo + ' meses';
+        row.insertCell(3).textContent = detalle.nueva_tasa.toFixed(2) + '%';
+        row.insertCell(4).textContent = detalle.nueva_cuota.toFixed(2);
+        row.insertCell(5).textContent = detalle.nuevo_total.toFixed(2);
+    });
+
+    document.getElementById('detallesRefinanciamiento').style.display = 'block';
+}
+
+document.getElementById('refinanciamientosForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    if (datosRefinanciamientos.length === 0) {
+        alert('No hay datos válidos para procesar');
+        return;
+    }
+
+    const fechaRefinanciamiento = document.getElementById('fecha_refinanciamiento').value;
+    const tipoRefinanciamiento = document.getElementById('tipo_refinanciamiento').value;
+    const aplicarCargos = parseFloat(document.getElementById('aplicar_cargos').value) || 0;
+    const generarNuevoPrestamo = document.getElementById('generar_nuevo_prestamo').checked;
+
+    fetch('/procesar_refinanciamientos', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            refinanciamientos: datosRefinanciamientos,
+            fecha_refinanciamiento: fechaRefinanciamiento,
+            tipo_refinanciamiento: tipoRefinanciamiento,
+            aplicar_cargos: aplicarCargos,
+            generar_nuevo_prestamo: generarNuevoPrestamo
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Refinanciamientos procesados exitosamente. ${data.total_refinanciados} préstamos refinanciados.`);
+            location.reload();
+        } else {
+            alert('Error al procesar los refinanciamientos: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al procesar los refinanciamientos');
+    });
+});
+</script>
+{% endblock %}

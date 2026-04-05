@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Planillas de Ahorro Guardadas{% endblock %}
+{% block content %}
+<div class="container-fluid mt-4">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Planillas de Ahorro Guardadas</h1>
+      <p class="page-subtitle">Revise, retome o aplique planillas pendientes cuando lo necesite</p>
+    </div>
+    <a href="{{ url_for('transacciones_masivas') }}" class="btn btn-outline">Volver</a>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h3 class="card-title">Filtros</h3>
+      <a href="{{ url_for('planillas_ahorro_pendientes') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
+    </div>
+    <div class="card-body">
+      <form method="GET" action="{{ url_for('planillas_ahorro_pendientes') }}">
+        <div class="row">
+          <div class="col-md-3 mb-3">
+            <label class="form-label">Nombre de Planilla</label>
+            <input type="text" class="form-control" name="nombre" value="{{ filtros.nombre }}" placeholder="Ej: Quincena Abril">
+          </div>
+          <div class="col-md-3 mb-3">
+            <label class="form-label">Frecuencia</label>
+            <select class="form-select" name="frecuencia">
+              <option value="" {% if not filtros.frecuencia %}selected{% endif %}>Todas</option>
+              <option value="Quincenal" {% if filtros.frecuencia == 'Quincenal' %}selected{% endif %}>Quincenal</option>
+              <option value="Catorcenal" {% if filtros.frecuencia == 'Catorcenal' %}selected{% endif %}>Catorcenal</option>
+            </select>
+          </div>
+          <div class="col-md-3 mb-3">
+            <label class="form-label">Estado</label>
+            <select class="form-select" name="estado">
+              <option value="" {% if not filtros.estado %}selected{% endif %}>Todos</option>
+              <option value="pendiente" {% if filtros.estado == 'pendiente' %}selected{% endif %}>Pendiente</option>
+              <option value="parcial" {% if filtros.estado == 'parcial' %}selected{% endif %}>Parcial</option>
+              <option value="aplicada" {% if filtros.estado == 'aplicada' %}selected{% endif %}>Aplicada</option>
+            </select>
+          </div>
+          <div class="col-md-3 mb-3">
+            <label class="form-label">Fecha Desde</label>
+            <input type="date" class="form-control" name="fecha_desde" value="{{ filtros.fecha_desde }}">
+          </div>
+          <div class="col-md-3 mb-3">
+            <label class="form-label">Fecha Hasta</label>
+            <input type="date" class="form-control" name="fecha_hasta" value="{{ filtros.fecha_hasta }}">
+          </div>
+        </div>
+        <div class="text-end">
+          <button type="submit" class="btn btn-success">Aplicar Filtros</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="stats-grid mb-4">
+    <div class="stat-card">
+      <div class="stat-label">Planillas Encontradas</div>
+      <div class="stat-value">{{ total_planillas }}</div>
+    </div>
+    <div class="stat-card gold">
+      <div class="stat-label">Monto Total</div>
+      <div class="stat-value">Q{{ "{:,.2f}".format(total_monto) }}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h3 class="card-title">Listado de Planillas</h3>
+      <a href="{{ url_for('generar_planilla_cuotas_ahorro') }}" class="btn btn-success">Nueva Planilla</a>
+    </div>
+    <div class="card-body">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Tipo de Cuenta</th>
+              <th>Fecha de Pago</th>
+              <th>Frecuencia</th>
+              <th>Registros</th>
+              <th>Total</th>
+              <th>Estado</th>
+              <th>Boleta</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in planillas %}
+            <tr>
+              <td>{{ p.nombre }}</td>
+              <td>{{ p.tipo_cuenta_label }}</td>
+              <td>{{ p.fecha_pago }}</td>
+              <td>{{ p.frecuencia }}</td>
+              <td>{{ p.total_registros }}</td>
+              <td class="amount">Q{{ "{:,.2f}".format(p.total_monto or 0) }}</td>
+              <td>
+                <span class="badge {% if p.estado == 'aplicada' %}bg-success{% elif p.estado == 'parcial' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                  {{ p.estado.title() }}
+                </span>
+              </td>
+              <td>{{ p.boleta_deposito or 'Pendiente' }}</td>
+              <td>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                  <a href="{{ url_for('detalle_planilla_ahorro', planilla_id=p.id) }}" class="btn btn-sm btn-primary">Abrir</a>
+                  {% if p.estado != 'aplicada' %}
+                  <a href="{{ url_for('editar_planilla_ahorro', planilla_id=p.id) }}" class="btn btn-sm btn-warning">Modificar</a>
+                  <form method="POST" action="{{ url_for('eliminar_planilla_ahorro', planilla_id=p.id) }}" onsubmit="return confirm('¿Desea eliminar esta planilla de ahorro?');" style="display:inline;">
+                    <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+                  </form>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="9" style="text-align:center;color:#9ca3af;padding:24px;">No hay planillas de ahorro guardadas.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

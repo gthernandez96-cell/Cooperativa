@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Modificar Planilla de Ahorro{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <div class="card shadow">
+    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+      <h4 class="mb-0">Modificar Planilla de Ahorro</h4>
+      <a href="{{ url_for('planillas_ahorro_pendientes') }}" class="btn btn-light btn-sm">Volver</a>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('editar_planilla_ahorro', planilla_id=planilla.id) }}">
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Nombre de la Planilla</label>
+            <input type="text" class="form-control" name="nombre_planilla" value="{{ planilla.nombre }}" required>
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Fecha de Pago</label>
+            <input type="date" class="form-control" name="fecha_pago" value="{{ planilla.fecha_pago }}" required>
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Frecuencia</label>
+            <select class="form-select" name="frecuencia" required>
+              <option value="Quincenal" {% if planilla.frecuencia == 'Quincenal' %}selected{% endif %}>Quincenal</option>
+              <option value="Catorcenal" {% if planilla.frecuencia == 'Catorcenal' %}selected{% endif %}>Catorcenal</option>
+            </select>
+          </div>
+        </div>
+        <div class="alert alert-warning mt-2">
+          Puede actualizar datos generales y la cuota programada por asociado. Los registros ya aplicados no se alteran.
+        </div>
+        <div class="alert alert-info mt-2">
+          Si usa Recalcular cuotas, se tomara la cuota de ahorro actual de cada asociado para los registros pendientes.
+        </div>
+
+        <div class="table-responsive mt-3">
+          <table class="table table-striped table-hover align-middle">
+            <thead>
+              <tr>
+                <th>Asociado</th>
+                <th>Cuenta</th>
+                <th style="width:180px;" class="text-end">Cuota Programada</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for d in detalles %}
+              <tr>
+                <td>
+                  <strong>{{ d.socio_codigo }}</strong> - {{ d.socio_nombre }}
+                  <input type="hidden" name="detalle_id[]" value="{{ d.id }}">
+                </td>
+                <td>{{ d.numero_referencia }}</td>
+                <td class="text-end">
+                  <div class="input-group input-group-sm justify-content-end" style="max-width:160px;margin-left:auto;">
+                    <span class="input-group-text">Q</span>
+                    <input
+                      type="number"
+                      class="form-control text-end"
+                      name="detalle_monto[]"
+                      value="{{ '%.2f'|format(d.monto or 0) }}"
+                      step="0.01"
+                      min="0"
+                      {% if d.estado != 'pendiente' %}readonly{% endif %}
+                      required
+                    >
+                  </div>
+                </td>
+                <td>
+                  <span class="badge {% if d.estado == 'aplicado' %}bg-success{% else %}bg-secondary{% endif %}">{{ d.estado.title() }}</span>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="4" class="text-center text-muted py-3">No hay registros en esta planilla.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="text-end mt-3">
+          <button type="submit" name="accion" value="recalcular" class="btn btn-outline-primary">Recalcular cuotas</button>
+          <button type="submit" name="accion" value="guardar" class="btn btn-success">Guardar Cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

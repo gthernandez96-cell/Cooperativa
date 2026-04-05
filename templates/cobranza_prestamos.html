@@ -1,0 +1,557 @@
+{% extends "base.html" %}
+
+{% block title %}Cobranza de Préstamos - Cooperativa{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-gavel me-2"></i>
+                        Gestión de Cobranza
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Resumen de cobranza -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card text-center border-danger">
+                                <div class="card-body">
+                                    <h3 class="text-danger" id="prestamos_morosos">0</h3>
+                                    <p class="card-text">Préstamos Morosos</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center border-warning">
+                                <div class="card-body">
+                                    <h3 class="text-warning" id="monto_moroso">0.00</h3>
+                                    <p class="card-text">Monto Moroso</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center border-info">
+                                <div class="card-body">
+                                    <h3 class="text-info" id="acciones_cobranza">0</h3>
+                                    <p class="card-text">Acciones Pendientes</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center border-success">
+                                <div class="card-body">
+                                    <h3 class="text-success" id="recuperado_mes">0.00</h3>
+                                    <p class="card-text">Recuperado este Mes</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filtros y acciones -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <label for="filtro_morosidad" class="form-label">Filtrar por Morosidad</label>
+                            <select class="form-select" id="filtro_morosidad">
+                                <option value="todos">Todos los morosos</option>
+                                <option value="1-30">1-30 días de atraso</option>
+                                <option value="31-60">31-60 días de atraso</option>
+                                <option value="61-90">61-90 días de atraso</option>
+                                <option value="90+">Más de 90 días</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="ordenar_por" class="form-label">Ordenar por</label>
+                            <select class="form-select" id="ordenar_por">
+                                <option value="dias_atraso">Días de atraso</option>
+                                <option value="monto_vencido">Monto vencido</option>
+                                <option value="fecha_ultimo_pago">Último pago</option>
+                                <option value="numero_prestamo">Número de préstamo</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="filtro_socio" class="form-label">Socio o Código</label>
+                            <input type="text" class="form-control" id="filtro_socio" placeholder="SOC-001 o nombre">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="filtro_responsable" class="form-label">Responsable</label>
+                            <input type="text" class="form-control" id="filtro_responsable" placeholder="Usuario responsable">
+                        </div>
+                        <div class="col-md-12 mt-2">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid gap-2 d-md-flex justify-content-end">
+                                <button type="button" class="btn btn-primary" onclick="cargarListaCobranza()">
+                                    <i class="fas fa-search me-2"></i>Buscar
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="limpiarFiltrosCobranza()">
+                                    Limpiar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lista de préstamos morosos -->
+                    <div id="listaCobranza" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5>Préstamos en Cobranza</h5>
+                            <div>
+                                <button type="button" class="btn btn-outline-primary btn-sm me-2" onclick="exportarListaCobranza()">
+                                    <i class="fas fa-file-excel me-2"></i>Exportar Lista
+                                </button>
+                                <button type="button" class="btn btn-outline-success btn-sm" onclick="generarRecordatorios()">
+                                    <i class="fas fa-envelope me-2"></i>Generar Recordatorios
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="tablaCobranza">
+                                <thead>
+                                    <tr>
+                                        <th>
+                                            <input type="checkbox" id="seleccionarTodos">
+                                        </th>
+                                        <th>Número Préstamo</th>
+                                        <th>Socio</th>
+                                        <th>Días Atraso</th>
+                                        <th>Monto Vencido</th>
+                                        <th>Último Pago</th>
+                                        <th>Último Contacto</th>
+                                        <th>Responsable</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cuerpoTablaCobranza"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Panel de acciones masivas -->
+                    <div id="panelAccionesMasivas" class="mt-4" style="display: none;">
+                        <div class="card border-warning">
+                            <div class="card-header bg-warning">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-tasks me-2"></i>
+                                    Acciones Masivas
+                                    <span class="badge bg-dark ms-2" id="contadorSeleccionados">0</span>
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <button type="button" class="btn btn-outline-primary btn-sm w-100" onclick="enviarRecordatorios()">
+                                            <i class="fas fa-envelope me-2"></i>Enviar Recordatorios
+                                        </button>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <button type="button" class="btn btn-outline-warning btn-sm w-100" onclick="programarLlamadas()">
+                                            <i class="fas fa-phone me-2"></i>Programar Llamadas
+                                        </button>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <button type="button" class="btn btn-outline-info btn-sm w-100" onclick="enviarNotificaciones()">
+                                            <i class="fas fa-bell me-2"></i>Notificaciones Push
+                                        </button>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="marcarRevisionLegal()">
+                                            <i class="fas fa-gavel me-2"></i>Revisión Legal
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Historial de acciones -->
+                    <div class="mt-4">
+                        <h5><i class="fas fa-history me-2"></i>Historial de Acciones de Cobranza</h5>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped" id="historialCobranza">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Préstamo</th>
+                                        <th>Acción</th>
+                                        <th>Resultado</th>
+                                        <th>Responsable</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cuerpoHistorial">
+                                    <!-- Historial se cargará dinámicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Botón de regreso -->
+                    <div class="text-center mt-4">
+                        <a href="{{ url_for('menu_prestamos') }}" class="btn btn-outline-dark">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            Regresar al Menú de Préstamos
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para registrar acción de cobranza -->
+<div class="modal fade" id="modalAccionCobranza" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalAccionTitle">Registrar Acción de Cobranza</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="prestamo_accion" class="form-label">Número de Préstamo</label>
+                        <input type="text" class="form-control" id="prestamo_accion" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="socio_accion" class="form-label">Socio</label>
+                        <input type="text" class="form-control" id="socio_accion" readonly>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="tipo_accion" class="form-label">Tipo de Acción</label>
+                        <select class="form-select" id="tipo_accion">
+                            <option value="llamada">Llamada telefónica</option>
+                            <option value="email">Correo electrónico</option>
+                            <option value="visita">Visita domiciliaria</option>
+                            <option value="whatsapp">Mensaje WhatsApp</option>
+                            <option value="acuerdo">Acuerdo de pago</option>
+                            <option value="negociacion">Negociación</option>
+                            <option value="legal">Acción legal</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="fecha_accion" class="form-label">Fecha de Acción</label>
+                        <input type="datetime-local" class="form-control" id="fecha_accion" value="{{ fecha_actual_datetime }}">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="resultado_accion" class="form-label">Resultado</label>
+                    <select class="form-select" id="resultado_accion">
+                        <option value="contactado">Cliente contactado</option>
+                        <option value="compromiso">Compromiso de pago</option>
+                        <option value="pago_parcial">Pago parcial realizado</option>
+                        <option value="rechaza_contacto">Rechaza contacto</option>
+                        <option value="numero_invalido">Número inválido</option>
+                        <option value="sin_respuesta">Sin respuesta</option>
+                        <option value="acuerdo_logrado">Acuerdo logrado</option>
+                        <option value="remitir_legal">Remitir a legal</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="monto_comprometido" class="form-label">Monto Comprometido (opcional)</label>
+                    <div class="input-group">
+                        <span class="input-group-text">Q</span>
+                        <input type="number" class="form-control" id="monto_comprometido" step="0.01" placeholder="0.00">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="fecha_compromiso" class="form-label">Fecha de Compromiso (opcional)</label>
+                    <input type="date" class="form-control" id="fecha_compromiso">
+                </div>
+
+                <div class="mb-3">
+                    <label for="notas_accion" class="form-label">Notas y Observaciones</label>
+                    <textarea class="form-control" id="notas_accion" rows="3" placeholder="Detalles de la conversación, acuerdos, observaciones..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="guardarAccionCobranza()">Guardar Acción</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let prestamosSeleccionados = [];
+let datosCobranza = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    cargarEstadisticasCobranza();
+    cargarListaCobranza();
+    cargarHistorialCobranza();
+});
+
+function cargarEstadisticasCobranza() {
+    fetch('/obtener_estadisticas_cobranza')
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('prestamos_morosos').textContent = data.prestamos_morosos;
+        document.getElementById('monto_moroso').textContent = data.monto_moroso.toFixed(2);
+        document.getElementById('acciones_cobranza').textContent = data.acciones_pendientes;
+        document.getElementById('recuperado_mes').textContent = data.recuperado_mes.toFixed(2);
+    })
+    .catch(error => {
+        console.error('Error cargando estadísticas:', error);
+    });
+}
+
+function cargarListaCobranza() {
+    const filtro = document.getElementById('filtro_morosidad').value;
+    const ordenar = document.getElementById('ordenar_por').value;
+    const filtroSocio = document.getElementById('filtro_socio').value;
+    const filtroResponsable = document.getElementById('filtro_responsable').value;
+
+    fetch('/obtener_lista_cobranza', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            filtro_morosidad: filtro,
+            ordenar_por: ordenar,
+            filtro_socio: filtroSocio,
+            filtro_responsable: filtroResponsable
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        mostrarListaCobranza(data.prestamos);
+        datosCobranza = data.prestamos;
+    })
+    .catch(error => {
+        console.error('Error cargando lista:', error);
+    });
+}
+
+function mostrarListaCobranza(prestamos) {
+    const cuerpoTabla = document.getElementById('cuerpoTablaCobranza');
+    cuerpoTabla.innerHTML = '';
+
+    prestamos.forEach(prestamo => {
+        const row = cuerpoTabla.insertRow();
+        const checkbox = `<input type="checkbox" class="checkbox-prestamo" value="${prestamo.numero_prestamo}" onchange="actualizarSeleccionados()">`;
+
+        row.innerHTML = `
+            <td>${checkbox}</td>
+            <td>${prestamo.numero_prestamo}</td>
+            <td>${prestamo.nombre_socio}</td>
+            <td><span class="badge bg-${getBadgeColorMorosidad(prestamo.dias_atraso)}">${prestamo.dias_atraso} días</span></td>
+            <td>Q${prestamo.monto_vencido.toFixed(2)}</td>
+            <td>${prestamo.ultimo_pago || 'Nunca'}</td>
+            <td>${prestamo.ultimo_contacto || 'Nunca'}</td>
+            <td>${prestamo.responsable || 'Sin asignar'}</td>
+            <td><span class="badge bg-${getBadgeEstadoCobranza(prestamo.estado_cobranza)}">${prestamo.estado_cobranza}</span></td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary" onclick="registrarAccion('${prestamo.numero_prestamo}', '${prestamo.nombre_socio}')">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-info" onclick="verHistorial('${prestamo.numero_prestamo}')">
+                    <i class="fas fa-history"></i>
+                </button>
+            </td>
+        `;
+    });
+
+    document.getElementById('listaCobranza').style.display = 'block';
+}
+
+function actualizarSeleccionados() {
+    const checkboxes = document.querySelectorAll('.checkbox-prestamo:checked');
+    prestamosSeleccionados = Array.from(checkboxes).map(cb => cb.value);
+
+    document.getElementById('contadorSeleccionados').textContent = prestamosSeleccionados.length;
+
+    if (prestamosSeleccionados.length > 0) {
+        document.getElementById('panelAccionesMasivas').style.display = 'block';
+    } else {
+        document.getElementById('panelAccionesMasivas').style.display = 'none';
+    }
+}
+
+document.getElementById('seleccionarTodos').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.checkbox-prestamo');
+    checkboxes.forEach(cb => cb.checked = this.checked);
+    actualizarSeleccionados();
+});
+
+function registrarAccion(numeroPrestamo, nombreSocio) {
+    document.getElementById('prestamo_accion').value = numeroPrestamo;
+    document.getElementById('socio_accion').value = nombreSocio;
+    document.getElementById('modalAccionTitle').textContent = `Registrar Acción - Préstamo ${numeroPrestamo}`;
+
+    new bootstrap.Modal(document.getElementById('modalAccionCobranza')).show();
+}
+
+function guardarAccionCobranza() {
+    const accion = {
+        numero_prestamo: document.getElementById('prestamo_accion').value,
+        tipo_accion: document.getElementById('tipo_accion').value,
+        fecha_accion: document.getElementById('fecha_accion').value,
+        resultado: document.getElementById('resultado_accion').value,
+        monto_comprometido: parseFloat(document.getElementById('monto_comprometido').value) || 0,
+        fecha_compromiso: document.getElementById('fecha_compromiso').value,
+        notas: document.getElementById('notas_accion').value
+    };
+
+    fetch('/guardar_accion_cobranza', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(accion)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Acción de cobranza registrada exitosamente.');
+            bootstrap.Modal.getInstance(document.getElementById('modalAccionCobranza')).hide();
+            cargarListaCobranza();
+            cargarHistorialCobranza();
+        } else {
+            alert('Error al guardar la acción: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al guardar la acción de cobranza');
+    });
+}
+
+function cargarHistorialCobranza() {
+    const filtroResponsable = document.getElementById('filtro_responsable').value;
+    const filtroNumero = document.getElementById('filtro_socio').value;
+    const params = new URLSearchParams({
+        responsable: filtroResponsable,
+        numero_prestamo: filtroNumero
+    });
+
+    fetch('/obtener_historial_cobranza?' + params.toString())
+    .then(response => response.json())
+    .then(data => {
+        const cuerpoHistorial = document.getElementById('cuerpoHistorial');
+        cuerpoHistorial.innerHTML = '';
+
+        data.historial.forEach(item => {
+            const row = cuerpoHistorial.insertRow();
+            row.innerHTML = `
+                <td>${item.fecha}</td>
+                <td>${item.numero_prestamo}</td>
+                <td>${item.tipo_accion}</td>
+                <td>${item.resultado}</td>
+                <td>${item.responsable}</td>
+            `;
+        });
+    })
+    .catch(error => {
+        console.error('Error cargando historial:', error);
+    });
+}
+
+function enviarRecordatorios() {
+    if (prestamosSeleccionados.length === 0) {
+        alert('Selecciona al menos un préstamo');
+        return;
+    }
+
+    if (confirm(`¿Enviar recordatorios a ${prestamosSeleccionados.length} clientes?`)) {
+        fetch('/enviar_recordatorios_cobranza', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ prestamos: prestamosSeleccionados })
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+        });
+    }
+}
+
+function programarLlamadas() {
+    if (prestamosSeleccionados.length === 0) {
+        alert('Selecciona al menos un préstamo');
+        return;
+    }
+
+    alert('Funcionalidad de programación de llamadas estará disponible próximamente.');
+}
+
+function enviarNotificaciones() {
+    if (prestamosSeleccionados.length === 0) {
+        alert('Selecciona al menos un préstamo');
+        return;
+    }
+
+    alert('Funcionalidad de notificaciones push estará disponible próximamente.');
+}
+
+function marcarRevisionLegal() {
+    if (prestamosSeleccionados.length === 0) {
+        alert('Selecciona al menos un préstamo');
+        return;
+    }
+
+    if (confirm(`¿Marcar ${prestamosSeleccionados.length} préstamos para revisión legal?`)) {
+        fetch('/marcar_revision_legal', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ prestamos: prestamosSeleccionados })
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            cargarListaCobranza();
+        });
+    }
+}
+
+function exportarListaCobranza() {
+    alert('Funcionalidad de exportación estará disponible próximamente.');
+}
+
+function limpiarFiltrosCobranza() {
+    document.getElementById('filtro_morosidad').value = 'todos';
+    document.getElementById('ordenar_por').value = 'dias_atraso';
+    document.getElementById('filtro_socio').value = '';
+    document.getElementById('filtro_responsable').value = '';
+    cargarListaCobranza();
+    cargarHistorialCobranza();
+}
+
+function generarRecordatorios() {
+    alert('Generando recordatorios masivos...');
+}
+
+function verHistorial(numeroPrestamo) {
+    // Aquí se podría abrir un modal con el historial específico del préstamo
+    alert(`Mostrando historial del préstamo ${numeroPrestamo}`);
+}
+
+function getBadgeColorMorosidad(dias) {
+    if (dias <= 30) return 'warning';
+    if (dias <= 60) return 'warning';
+    return 'danger';
+}
+
+function getBadgeEstadoCobranza(estado) {
+    switch(estado) {
+        case 'activo': return 'success';
+        case 'seguimiento': return 'warning';
+        case 'intensivo': return 'danger';
+        case 'legal': return 'dark';
+        default: return 'secondary';
+    }
+}
+</script>
+{% endblock %}

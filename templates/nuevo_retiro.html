@@ -1,0 +1,427 @@
+{% extends "base.html" %}
+{% block title %}Nueva Solicitud de Retiro — {{ cooperativa_nombre }}{% endblock %}
+{% block content %}
+<style>
+/* ── Nueva Solicitud Retiro ── */
+.nr-shell { display:flex;flex-direction:column;gap:20px; }
+
+.nr-header {
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+  padding-bottom:18px;border-bottom:2px solid var(--c-border,#e5e7eb);
+}
+.nr-header-eyebrow {
+  font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--c-blue,#003b74);margin-bottom:4px;
+}
+.nr-header-title {
+  font-family:'Fraunces',serif;font-size:24px;font-weight:700;
+  color:#0f1f32;line-height:1.2;letter-spacing:-.02em;
+}
+.nr-header-sub { font-size:13px;color:#6b7280;margin-top:3px; }
+.nr-header-actions { display:flex;gap:10px;flex-shrink:0; }
+
+.nr-mode-bar {
+  display:flex;align-items:center;gap:12px;padding:10px 16px;
+  border-radius:8px;background:#f8fafc;border:1px solid #e5e7eb;font-size:13px;
+}
+.nr-mode-bar .nr-mode-label { color:#6b7280; }
+.nr-mode-bar strong { color:#0f1f32; }
+.nr-mode-pill {
+  margin-left:auto;display:inline-flex;align-items:center;
+  padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;
+  letter-spacing:.05em;text-transform:uppercase;background:#dbeafe;color:#1e40af;
+}
+.nr-mode-pill.amort { background:#f5f0ff;color:#6d28d9; }
+
+.nr-main { display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start; }
+
+.nr-card {
+  background:#fff;border:1px solid var(--c-border,#e5e7eb);
+  border-radius:10px;overflow:hidden;
+}
+.nr-card-head {
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:14px 18px;background:#fafafa;border-bottom:1px solid var(--c-border,#e5e7eb);
+}
+.nr-card-head-title { font-size:13px;font-weight:700;color:#374151; }
+.nr-card-body { padding:18px; }
+
+.nr-grid { display:grid;grid-template-columns:1fr 1fr;gap:14px; }
+.nr-field { display:flex;flex-direction:column;gap:5px; }
+.nr-field-full { grid-column:span 2; }
+.nr-field label {
+  font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6b7280;
+}
+.nr-field input, .nr-field select {
+  width:100%;box-sizing:border-box;padding:9px 11px;
+  border:1px solid var(--c-border,#e5e7eb);border-radius:7px;
+  font-size:13px;background:#fafafa;color:#0f1f32;
+  transition:border-color .15s,background .15s;
+}
+.nr-field input:focus, .nr-field select:focus {
+  outline:none;border-color:var(--c-blue,#003b74);background:#fff;
+}
+.nr-field input[readonly] { background:#f3f4f6;color:#6b7280;cursor:default; }
+.nr-hint { font-size:12px;color:#9ca3af;margin-top:3px; }
+.nr-actions { display:flex;gap:10px;margin-top:16px; }
+
+.nr-side { display:flex;flex-direction:column;gap:14px; }
+.nr-summary-card { background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden; }
+.nr-summary-head { background:#03284c;padding:14px 18px;color:#fff; }
+.nr-summary-head .sh-label { font-size:11px;opacity:.65;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px; }
+.nr-summary-head .sh-value {
+  font-family:'Fraunces',serif;font-size:32px;font-weight:700;line-height:1;color:#f6c954;
+}
+.nr-summary-body { padding:0 18px 4px; }
+.nr-row {
+  display:flex;justify-content:space-between;align-items:center;
+  padding:9px 0;border-bottom:1px solid #f3f4f6;font-size:13px;
+}
+.nr-row:last-child { border-bottom:none; }
+.nr-row .r-label { color:#6b7280; }
+.nr-row .r-value { font-weight:600;color:#0f1f32; }
+.nr-row.danger .r-value { color:#c2410c; }
+
+.nr-tips { background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:12px; }
+.nr-tip-item { display:flex;flex-direction:column;gap:3px; }
+.nr-tip-item strong { font-size:12px;font-weight:700;color:#374151; }
+.nr-tip-item span { font-size:12px;color:#9ca3af;line-height:1.5; }
+
+@media(max-width:900px){ .nr-main{ grid-template-columns:1fr; } .nr-side{ order:-1; } }
+@media(max-width:640px){ .nr-grid{ grid-template-columns:1fr; } .nr-field-full{ grid-column:span 1; } }
+</style>
+
+<div class="nr-shell">
+
+  <header class="nr-header">
+    <div>
+      <div class="nr-header-eyebrow">Retiros / Ahorro</div>
+      <div class="nr-header-title">Nueva solicitud de retiro</div>
+      <div class="nr-header-sub">Retiro normal o amortización de préstamo</div>
+    </div>
+    <div class="nr-header-actions">
+      <a href="{{ url_for('gestiones') }}" class="btn btn-outline btn-sm">&#8592; Gestiones</a>
+    </div>
+  </header>
+
+  <div class="nr-mode-bar">
+    <span class="nr-mode-label">Modo:</span>
+    <strong id="out-destino-titulo">Retiro normal</strong>
+    <span id="out-destino-copy" style="color:#9ca3af;font-size:12px;">La solicitud queda pendiente de aprobación en Gestiones.</span>
+    <span class="nr-mode-pill" id="out-destino-pill">Retiro</span>
+  </div>
+
+  <div class="nr-main">
+    <div class="nr-card">
+      <div class="nr-card-head">
+        <span class="nr-card-head-title">Formulario de solicitud</span>
+      </div>
+      <div class="nr-card-body">
+        <form method="post" action="{{ url_for('nueva_solicitud_retiro') }}" id="form-retiro">
+          <div class="nr-grid">
+
+            <div class="nr-field nr-field-full">
+              <label for="busqueda-cuenta">Buscar cuenta</label>
+              <input type="text" id="busqueda-cuenta" placeholder="Buscar por socio, código o número" autocomplete="off">
+            </div>
+
+            <div class="nr-field nr-field-full">
+              <label for="inp-cuenta">Cuenta de ahorro *</label>
+              <select name="cuenta_id" id="inp-cuenta" required onchange="actualizarCuenta(); calcularRetiro()">
+                <option value="">Seleccionar cuenta&hellip;</option>
+                {% for c in cuentas %}
+                <option value="{{ c.id }}"
+                  data-saldo="{{ c.saldo }}"
+                  data-numero="{{ c.numero }}"
+                  data-socio="{{ c.socio_nombre }}"
+                  data-socio-id="{{ c.socio_id }}"
+                  data-codigo="{{ c.socio_codigo }}"
+                  data-banco="{{ c.banco_nombre or '' }}"
+                  data-banco-tipo="{{ c.banco_tipo_cuenta or '' }}"
+                  data-banco-numero="{{ c.banco_numero_cuenta or '' }}">
+                  {{ c.numero }} &mdash; {{ c.socio_codigo }} &mdash; {{ c.socio_nombre }} &mdash; Saldo Q{{ "{:,.2f}".format(c.saldo) }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="nr-field">
+              <label for="out-socio">Asociado</label>
+              <input id="out-socio" type="text" readonly placeholder="Se asigna automáticamente">
+            </div>
+
+            <div class="nr-field">
+              <label for="out-saldo">Saldo disponible</label>
+              <input id="out-saldo" type="text" readonly placeholder="Q0.00">
+            </div>
+
+            <div class="nr-field nr-field-full">
+              <label for="inp-monto">Monto solicitado (Q) *</label>
+              <input name="monto" id="inp-monto" type="number" step="0.01" min="1" required placeholder="Ej: 500.00" oninput="calcularRetiro()">
+            </div>
+
+            <div class="nr-field">
+              <label for="inp-metodo-retiro">Forma de retiro *</label>
+              <select name="metodo_retiro" id="inp-metodo-retiro" required onchange="actualizarMetodoRetiro()">
+                <option value="cheque">Cheque</option>
+                <option value="deposito">Depósito</option>
+              </select>
+            </div>
+
+            <div class="nr-field" style="justify-content:flex-end;">
+              <label>&nbsp;</label>
+              <button type="button" class="btn btn-outline btn-sm" id="btn-toggle-amortizacion" onclick="toggleAmortizacion()">
+                Amortizar préstamo vigente
+              </button>
+            </div>
+
+            <input type="hidden" name="destino" id="inp-destino" value="retiro">
+
+            <div class="nr-field nr-field-full" id="grupo-prestamo" style="display:none;">
+              <label for="inp-prestamo-id">Préstamo vigente a amortizar</label>
+              <select name="prestamo_id" id="inp-prestamo-id" onchange="actualizarPrestamoSeleccionado()">
+                <option value="">Seleccionar préstamo&hellip;</option>
+                {% for p in prestamos_vigentes %}
+                <option value="{{ p.id }}"
+                  data-socio-id="{{ p.socio_id }}"
+                  data-numero="{{ p.numero }}"
+                  data-saldo="{{ p.saldo_pendiente }}">
+                  {{ p.numero }} &mdash; Saldo pendiente Q{{ "{:,.2f}".format(p.saldo_pendiente) }}
+                </option>
+                {% endfor %}
+              </select>
+              <div class="nr-hint" id="hint-prestamo">Seleccione una cuenta para ver los préstamos vigentes del mismo socio.</div>
+            </div>
+
+            <div class="nr-field" id="grupo-banco" style="display:none;">
+              <label for="inp-banco-nombre">Banco</label>
+              <input id="inp-banco-nombre" readonly placeholder="Del perfil del asociado">
+            </div>
+
+            <div class="nr-field" id="grupo-tipo-cuenta" style="display:none;">
+              <label for="inp-banco-tipo-cuenta">Tipo de cuenta</label>
+              <input name="banco_tipo_cuenta" id="inp-banco-tipo-cuenta" readonly placeholder="Del perfil del asociado">
+            </div>
+
+            <div class="nr-field nr-field-full" id="grupo-numero-cuenta" style="display:none;">
+              <label for="inp-banco-numero-cuenta">Número de cuenta bancaria</label>
+              <input name="banco_numero_cuenta" id="inp-banco-numero-cuenta" readonly placeholder="Del perfil del asociado">
+            </div>
+
+            <div class="nr-field nr-field-full">
+              <label for="inp-descripcion">Descripción *</label>
+              <input id="inp-descripcion" name="descripcion" required maxlength="180" placeholder="Ej: Retiro en ventanilla">
+            </div>
+
+          </div>
+          <div class="nr-actions">
+            <button type="submit" class="btn btn-primary">Enviar solicitud</button>
+            <a href="{{ url_for('gestiones') }}" class="btn btn-outline">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <aside class="nr-side">
+      <div class="nr-summary-card">
+        <div class="nr-summary-head">
+          <div class="sh-label">Monto solicitado</div>
+          <div class="sh-value" id="out-monto">&mdash;</div>
+        </div>
+        <div class="nr-summary-body">
+          <div class="nr-row">
+            <span class="r-label">Cuenta</span>
+            <strong class="r-value" id="out-numero">&mdash;</strong>
+          </div>
+          <div class="nr-row">
+            <span class="r-label">Saldo actual</span>
+            <strong class="r-value" id="out-saldo-card">&mdash;</strong>
+          </div>
+          <div class="nr-row danger">
+            <span class="r-label">Saldo estimado</span>
+            <strong class="r-value" id="out-saldo-estimado">&mdash;</strong>
+          </div>
+          <div class="nr-row">
+            <span class="r-label">Préstamo</span>
+            <strong class="r-value" id="out-prestamo-numero">&mdash;</strong>
+          </div>
+          <div class="nr-row">
+            <span class="r-label">Saldo préstamo</span>
+            <strong class="r-value" id="out-prestamo-saldo">&mdash;</strong>
+          </div>
+        </div>
+      </div>
+      <div class="nr-tips">
+        <div class="nr-tip-item">
+          <strong>Aprobación centralizada</strong>
+          <span>La solicitud queda pendiente hasta ser aprobada desde Gestiones.</span>
+        </div>
+        <div class="nr-tip-item">
+          <strong>Amortización controlada</strong>
+          <span>Solo muestra préstamos del titular de la cuenta seleccionada.</span>
+        </div>
+        <div class="nr-tip-item">
+          <strong>Datos bancarios</strong>
+          <span>Para depósitos se usa la cuenta registrada en el perfil del asociado.</span>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+function fmt(n) {
+  return 'Q' + n.toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+const inputBusquedaCuenta = document.getElementById('busqueda-cuenta');
+const selectCuenta = document.getElementById('inp-cuenta');
+const selectPrestamo = document.getElementById('inp-prestamo-id');
+const opcionesCuenta = Array.from(selectCuenta.options).slice(1).map(option => ({
+  value: option.value, text: option.textContent,
+  saldo: parseFloat(option.dataset.saldo || '0'),
+  numero: option.dataset.numero || '', socio: option.dataset.socio || '',
+  socioId: option.dataset.socioId || '', codigo: option.dataset.codigo || '',
+  banco: option.dataset.banco || '', bancoTipo: option.dataset.bancoTipo || '',
+  bancoNumero: option.dataset.bancoNumero || ''
+}));
+const opcionesPrestamo = Array.from(selectPrestamo.options).slice(1).map(option => ({
+  value: option.value, text: option.textContent,
+  socioId: option.dataset.socioId || '', numero: option.dataset.numero || '',
+  saldo: parseFloat(option.dataset.saldo || '0')
+}));
+let amortizacionActiva = false;
+
+function actualizarModoDestino() {
+  const titulo = document.getElementById('out-destino-titulo');
+  const copy = document.getElementById('out-destino-copy');
+  const pill = document.getElementById('out-destino-pill');
+  if (amortizacionActiva) {
+    titulo.textContent = 'Amortización de préstamo';
+    copy.textContent = 'El ahorro se aplicará contra un préstamo vigente del asociado.';
+    pill.textContent = 'Amortización'; pill.className = 'nr-mode-pill amort';
+  } else {
+    titulo.textContent = 'Retiro normal';
+    copy.textContent = 'La solicitud queda pendiente de aprobación en Gestiones.';
+    pill.textContent = 'Retiro'; pill.className = 'nr-mode-pill';
+  }
+}
+function renderOpcionesCuenta(filtro) {
+  const actual = selectCuenta.value;
+  const texto = (filtro || '').trim().toLowerCase();
+  const filtradas = !texto ? opcionesCuenta : opcionesCuenta.filter(item =>
+    item.numero.toLowerCase().includes(texto) ||
+    item.socio.toLowerCase().includes(texto) ||
+    item.codigo.toLowerCase().includes(texto)
+  );
+  selectCuenta.innerHTML = '<option value="">Seleccionar cuenta\u2026</option>';
+  filtradas.forEach(item => {
+    const option = document.createElement('option');
+    option.value = item.value; option.textContent = item.text;
+    option.dataset.saldo = item.saldo; option.dataset.numero = item.numero;
+    option.dataset.socio = item.socio; option.dataset.socioId = item.socioId;
+    option.dataset.codigo = item.codigo; option.dataset.banco = item.banco;
+    option.dataset.bancoTipo = item.bancoTipo; option.dataset.bancoNumero = item.bancoNumero;
+    if (item.value === actual) option.selected = true;
+    selectCuenta.appendChild(option);
+  });
+  actualizarCuenta(); renderPrestamosCuenta(); calcularRetiro();
+}
+function actualizarCuenta() {
+  const option = selectCuenta.options[selectCuenta.selectedIndex];
+  if (!option || !option.value) {
+    document.getElementById('out-socio').value = '';
+    document.getElementById('out-saldo').value = '';
+    document.getElementById('out-numero').textContent = '\u2014';
+    document.getElementById('out-saldo-card').textContent = '\u2014';
+    document.getElementById('inp-banco-nombre').value = '';
+    document.getElementById('inp-banco-tipo-cuenta').value = '';
+    document.getElementById('inp-banco-numero-cuenta').value = '';
+    renderPrestamosCuenta(); return;
+  }
+  const saldo = parseFloat(option.dataset.saldo || '0');
+  document.getElementById('out-socio').value = option.dataset.codigo + ' \u2014 ' + option.dataset.socio;
+  document.getElementById('out-saldo').value = fmt(saldo);
+  document.getElementById('out-numero').textContent = option.dataset.numero || '\u2014';
+  document.getElementById('out-saldo-card').textContent = fmt(saldo);
+  document.getElementById('inp-banco-nombre').value = option.dataset.banco || '';
+  document.getElementById('inp-banco-tipo-cuenta').value = option.dataset.bancoTipo || '';
+  document.getElementById('inp-banco-numero-cuenta').value = option.dataset.bancoNumero || '';
+  renderPrestamosCuenta();
+}
+function renderPrestamosCuenta() {
+  const cuenta = selectCuenta.options[selectCuenta.selectedIndex];
+  const socioId = (cuenta && cuenta.value) ? (cuenta.dataset.socioId || '') : '';
+  const actual = selectPrestamo.value;
+  selectPrestamo.innerHTML = '<option value="">Seleccionar pr\u00e9stamo\u2026</option>';
+  opcionesPrestamo.filter(item => socioId && item.socioId === socioId).forEach(item => {
+    const option = document.createElement('option');
+    option.value = item.value; option.textContent = item.text;
+    option.dataset.socioId = item.socioId; option.dataset.numero = item.numero;
+    option.dataset.saldo = item.saldo;
+    if (item.value === actual) option.selected = true;
+    selectPrestamo.appendChild(option);
+  });
+  if (selectPrestamo.options.length <= 1) selectPrestamo.value = '';
+  actualizarPrestamoSeleccionado();
+}
+function toggleAmortizacion() {
+  amortizacionActiva = !amortizacionActiva;
+  const grupoPrestamo = document.getElementById('grupo-prestamo');
+  const boton = document.getElementById('btn-toggle-amortizacion');
+  const inputDestino = document.getElementById('inp-destino');
+  grupoPrestamo.style.display = amortizacionActiva ? '' : 'none';
+  selectPrestamo.required = amortizacionActiva;
+  inputDestino.value = amortizacionActiva ? 'amortizacion_prestamo' : 'retiro';
+  boton.className = amortizacionActiva ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm';
+  boton.textContent = amortizacionActiva ? 'Amortizaci\u00f3n activada' : 'Amortizar pr\u00e9stamo vigente';
+  actualizarModoDestino();
+  if (!amortizacionActiva) { selectPrestamo.value = ''; actualizarPrestamoSeleccionado(); }
+  else { renderPrestamosCuenta(); }
+}
+function actualizarPrestamoSeleccionado() {
+  const hint = document.getElementById('hint-prestamo');
+  const outNumero = document.getElementById('out-prestamo-numero');
+  const outSaldo = document.getElementById('out-prestamo-saldo');
+  const option = selectPrestamo.options[selectPrestamo.selectedIndex];
+  if (!option || !option.value) {
+    hint.textContent = 'Seleccione un pr\u00e9stamo vigente del titular de la cuenta.';
+    outNumero.textContent = '\u2014'; outSaldo.textContent = '\u2014'; return;
+  }
+  const saldo = parseFloat(option.dataset.saldo || '0');
+  hint.textContent = 'Pr\u00e9stamo ' + (option.dataset.numero || '\u2014') + ' \u2014 saldo pendiente ' + fmt(saldo) + '.';
+  outNumero.textContent = option.dataset.numero || '\u2014';
+  outSaldo.textContent = fmt(saldo);
+}
+function calcularRetiro() {
+  const option = selectCuenta.options[selectCuenta.selectedIndex];
+  const monto = parseFloat(document.getElementById('inp-monto').value || '0');
+  if (!option || !option.value || monto <= 0) {
+    document.getElementById('out-monto').textContent = '\u2014';
+    document.getElementById('out-saldo-estimado').textContent = '\u2014'; return;
+  }
+  const saldo = parseFloat(option.dataset.saldo || '0');
+  document.getElementById('out-monto').textContent = fmt(monto);
+  document.getElementById('out-saldo-estimado').textContent = fmt(saldo - monto);
+}
+function actualizarMetodoRetiro() {
+  const metodo = document.getElementById('inp-metodo-retiro').value;
+  const grupoBanco = document.getElementById('grupo-banco');
+  const grupoTipoCuenta = document.getElementById('grupo-tipo-cuenta');
+  const grupoNumeroCuenta = document.getElementById('grupo-numero-cuenta');
+  const inputTipoCuenta = document.getElementById('inp-banco-tipo-cuenta');
+  const inputNumeroCuenta = document.getElementById('inp-banco-numero-cuenta');
+  const esDeposito = metodo === 'deposito';
+  grupoBanco.style.display = esDeposito ? '' : 'none';
+  grupoTipoCuenta.style.display = esDeposito ? '' : 'none';
+  grupoNumeroCuenta.style.display = esDeposito ? '' : 'none';
+  inputTipoCuenta.required = esDeposito;
+  inputNumeroCuenta.required = esDeposito;
+  if (!esDeposito) {
+    inputTipoCuenta.value = ''; inputNumeroCuenta.value = '';
+    document.getElementById('inp-banco-nombre').value = '';
+  } else { actualizarCuenta(); }
+}
+inputBusquedaCuenta.addEventListener('input', event => renderOpcionesCuenta(event.target.value));
+actualizarCuenta(); renderPrestamosCuenta(); actualizarMetodoRetiro(); actualizarModoDestino();
+</script>
+{% endblock %}

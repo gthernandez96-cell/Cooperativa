@@ -1,0 +1,510 @@
+{% extends "base.html" %}
+
+{% block title %}Configuración General - {{ cooperativa_nombre }}{% endblock %}
+
+{% block extra_head %}
+<style>
+.cfg-shell {
+    max-width: 1180px;
+    margin: 0 auto;
+    display: grid;
+    gap: 16px;
+}
+
+.cfg-hero {
+    background: linear-gradient(125deg, #f9fcff 0%, #eef4fb 60%, #fff6de 100%);
+    border: 1px solid #d6e2f0;
+    border-radius: 16px;
+    padding: 18px 20px;
+    box-shadow: 0 8px 24px rgba(0, 42, 80, .08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.cfg-hero h1 {
+    margin: 0;
+    font-family: 'Fraunces', serif;
+    color: #012e58;
+    font-size: 29px;
+    line-height: 1.1;
+}
+
+.cfg-hero p {
+    margin: 6px 0 0;
+    color: #5c6f82;
+    font-size: 13px;
+}
+
+.cfg-pill {
+    background: #ffffff;
+    border: 1px solid #d9e6f3;
+    border-radius: 999px;
+    padding: 7px 12px;
+    color: #0a477d;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.cfg-card {
+    background: #ffffff;
+    border: 1px solid #dbe5ef;
+    border-radius: 14px;
+    box-shadow: 0 4px 16px rgba(0, 42, 80, .06);
+    overflow: hidden;
+}
+
+.cfg-card-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid #e4ecf4;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: #fbfdff;
+}
+
+.cfg-card-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: #0a3967;
+    letter-spacing: .2px;
+}
+
+.cfg-card-body {
+    padding: 14px 16px;
+}
+
+.cfg-identity-grid {
+    display: grid;
+    grid-template-columns: 210px minmax(0, 1fr);
+    gap: 16px;
+    align-items: center;
+}
+
+.cfg-photo-box {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 14px;
+    border: 1px solid #d8e3ef;
+    background: #f4f8fc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.cfg-photo-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.cfg-photo-empty {
+    color: #6f8193;
+    font-size: 13px;
+}
+
+.cfg-form-grid {
+    display: grid;
+    gap: 10px;
+}
+
+.cfg-field {
+    display: grid;
+    gap: 5px;
+}
+
+.cfg-label {
+    color: #294560;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .2px;
+}
+
+.cfg-input,
+.cfg-file,
+.cfg-textarea {
+    width: 100%;
+    border: 1px solid #cedbea;
+    border-radius: 10px;
+    padding: 9px 11px;
+    font: inherit;
+    font-size: 14px;
+    color: #182b3d;
+    background: #fff;
+}
+
+.cfg-input:focus,
+.cfg-file:focus,
+.cfg-textarea:focus {
+    outline: none;
+    border-color: #5f9dcf;
+    box-shadow: 0 0 0 3px rgba(59, 130, 186, .16);
+}
+
+.cfg-help {
+    font-size: 12px;
+    color: #6f8193;
+}
+
+.cfg-rates {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.cfg-rate-list {
+    display: grid;
+    gap: 12px;
+}
+
+.cfg-rate-item {
+    border: 1px solid #e3ebf3;
+    border-radius: 12px;
+    padding: 10px 11px;
+    background: #fcfdff;
+    display: grid;
+    gap: 6px;
+}
+
+.cfg-rate-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.cfg-rate-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #173451;
+}
+
+.cfg-rate-input {
+    width: 115px;
+    display: flex;
+    align-items: center;
+    border: 1px solid #ccd9e7;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.cfg-rate-input input {
+    width: 100%;
+    border: 0;
+    padding: 8px;
+    font: inherit;
+    text-align: right;
+}
+
+.cfg-rate-input input:focus {
+    outline: none;
+}
+
+.cfg-rate-input span {
+    background: #f1f6fb;
+    color: #4a647d;
+    font-weight: 700;
+    font-size: 12px;
+    padding: 0 9px;
+    height: 100%;
+    display: inline-flex;
+    align-items: center;
+}
+
+.cfg-categories-list {
+    display: grid;
+    gap: 10px;
+}
+
+.categoria-prestamo-item {
+    border: 1px solid #e0e9f2;
+    border-radius: 11px;
+    padding: 10px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr) auto;
+    gap: 8px;
+    align-items: end;
+    background: #fbfdff;
+}
+
+.cfg-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 14px 16px;
+    background: linear-gradient(100deg, #f7fbff 0%, #fffaf0 100%);
+    border: 1px solid #dce7f2;
+    border-radius: 14px;
+}
+
+.cfg-note {
+    margin: 0;
+    color: #4e6278;
+    font-size: 12px;
+}
+
+.cfg-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-danger-soft {
+    border: 1px solid #f2c7c7;
+    background: #fff4f4;
+    color: #9e1f1f;
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+@media (max-width: 960px) {
+    .cfg-rates {
+        grid-template-columns: 1fr;
+    }
+
+    .cfg-identity-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cfg-photo-box {
+        max-width: 240px;
+    }
+}
+
+@media (max-width: 760px) {
+    .cfg-hero {
+        padding: 14px;
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .cfg-hero h1 {
+        font-size: 24px;
+    }
+
+    .categoria-prestamo-item {
+        grid-template-columns: 1fr;
+    }
+
+    .cfg-rate-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .cfg-rate-input {
+        width: 100%;
+    }
+
+    .cfg-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .cfg-buttons {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cfg-shell">
+    <div class="cfg-hero">
+        <div>
+            <h1>Configuración General</h1>
+            <p>Panel centralizado para identidad institucional, tasas vigentes y parámetros operativos.</p>
+        </div>
+        <div class="cfg-pill">Aplicación inmediata</div>
+    </div>
+
+    <form action="{{ url_for('actualizar_configuraciones') }}" method="POST" enctype="multipart/form-data">
+        <section class="cfg-card">
+            <div class="cfg-card-header">
+                <h2 class="cfg-card-title">Identidad de la cooperativa</h2>
+            </div>
+            <div class="cfg-card-body">
+                <div class="cfg-identity-grid">
+                    <div class="cfg-photo-box">
+                        {% if cooperativa_foto %}
+                        <img src="{{ url_for('static', filename=cooperativa_foto) }}" alt="Foto institucional">
+                        {% else %}
+                        <div class="cfg-photo-empty">
+                            Sin foto
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="cfg-form-grid">
+                        <div class="cfg-field">
+                            <label class="cfg-label">Nombre de la cooperativa</label>
+                            <input type="text" name="cooperativa_nombre" class="cfg-input" value="{{ cooperativa_nombre }}" maxlength="120" required>
+                        </div>
+                        <div class="cfg-field">
+                            <label class="cfg-label">Foto institucional</label>
+                            <input type="file" name="cooperativa_foto" class="cfg-file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp">
+                        </div>
+                        <p class="cfg-help">Esta imagen se mostrará en la parte superior del sistema y en el inicio de sesión.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="cfg-rates">
+            <div class="cfg-card">
+                <div class="cfg-card-header">
+                    <h2 class="cfg-card-title">Tasas de Cuentas de Ahorro</h2>
+                </div>
+                <div class="cfg-card-body">
+                    <div class="cfg-rate-list">
+                        {% for config in configuraciones if 'ahorro' in config.tipo %}
+                        <div class="cfg-rate-item">
+                            <div class="cfg-rate-row">
+                                <div class="cfg-rate-name">
+                                    {% if config.tipo == 'ahorro_corriente' %}
+                                        Ahorro
+                                    {% elif config.tipo == 'ahorro_plazo_fijo' %}
+                                        Plazo fijo
+                                    {% elif config.tipo == 'ahorro_aportacion' %}
+                                        Aportación
+                                    {% else %}
+                                        Producto de ahorro
+                                    {% endif %}
+                                </div>
+                                <div class="cfg-rate-input">
+                                    <input type="number" step="0.01" name="{{ config.tipo }}" value="{{ config.tasa_interes }}" required>
+                                    <span>%</span>
+                                </div>
+                            </div>
+                            <div class="cfg-help">{{ config.descripcion }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="cfg-card">
+                <div class="cfg-card-header">
+                    <h2 class="cfg-card-title">Tasas de Préstamos</h2>
+                </div>
+                <div class="cfg-card-body">
+                    <div class="cfg-rate-list">
+                        {% for config in configuraciones if 'prestamo' in config.tipo %}
+                        <div class="cfg-rate-item">
+                            <div class="cfg-rate-row">
+                                <div class="cfg-rate-name">
+                                    {% if config.tipo == 'prestamo' %}
+                                        Préstamos
+                                    {% else %}
+                                        Producto de préstamos
+                                    {% endif %}
+                                </div>
+                                <div class="cfg-rate-input">
+                                    <input type="number" step="0.01" name="{{ config.tipo }}" value="{{ config.tasa_interes }}" required>
+                                    <span>%</span>
+                                </div>
+                            </div>
+                            <div class="cfg-help">{{ config.descripcion }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="cfg-card">
+            <div class="cfg-card-header">
+                <h2 class="cfg-card-title">Categorías de préstamos</h2>
+                <button type="button" class="btn btn-outline btn-sm" id="agregar-categoria-btn">+ Agregar categoría</button>
+            </div>
+            <div class="cfg-card-body">
+                <p class="cfg-help">Cree y edite las categorías disponibles para las nuevas solicitudes de préstamo.</p>
+                <div id="categorias-prestamo-lista" class="cfg-categories-list">
+                    {% for categoria in categorias_prestamo %}
+                    <div class="categoria-prestamo-item">
+                        <input type="hidden" name="categoria_id[]" value="{{ categoria.id }}">
+                        <div class="cfg-field">
+                            <label class="cfg-label">Nombre</label>
+                            <input type="text" name="categoria_nombre[]" class="cfg-input" value="{{ categoria.nombre }}" maxlength="80" required>
+                        </div>
+                        <div class="cfg-field">
+                            <label class="cfg-label">Descripción</label>
+                            <input type="text" name="categoria_descripcion[]" class="cfg-input" value="{{ categoria.descripcion or '' }}" maxlength="180">
+                        </div>
+                        <div></div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <section class="cfg-card">
+            <div class="cfg-card-header">
+                <h2 class="cfg-card-title">Formato de finiquito de préstamo</h2>
+            </div>
+            <div class="cfg-card-body">
+                <div class="cfg-field">
+                    <label class="cfg-label">Plantilla del finiquito</label>
+                    <textarea name="prestamo_finiquito_texto" class="cfg-textarea" rows="7" required>{{ prestamo_finiquito_texto }}</textarea>
+                </div>
+                <p class="cfg-help">
+                    Variables disponibles: {cooperativa_nombre}, {prestamo_numero}, {socio_nombre}, {socio_codigo}, {categoria_nombre}, {monto_aprobado}, {cuota}, {frecuencia}, {fecha_aprobacion}, {fecha_primer_pago}, {fecha_ultima_cuota}, {total_cuotas}, {estado}, {desembolso_tipo}, {desembolso_referencia}.
+                </p>
+            </div>
+        </section>
+
+        <section class="cfg-actions">
+            <p class="cfg-note">
+                Los cambios se aplican inmediatamente a nuevas cuentas y solicitudes de préstamo.
+            </p>
+            <div class="cfg-buttons">
+                <a href="{{ url_for('index') }}" class="btn btn-outline">
+                    Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    Guardar cambios
+                </button>
+            </div>
+        </section>
+    </form>
+</div>
+
+<script>
+const categoriasPrestamoLista = document.getElementById('categorias-prestamo-lista');
+const agregarCategoriaBtn = document.getElementById('agregar-categoria-btn');
+
+if (agregarCategoriaBtn && categoriasPrestamoLista) {
+    agregarCategoriaBtn.addEventListener('click', function () {
+        const row = document.createElement('div');
+        row.className = 'categoria-prestamo-item';
+        row.innerHTML = `
+            <input type="hidden" name="categoria_id[]" value="">
+            <div class="cfg-field">
+                <label class="cfg-label">Nombre</label>
+                <input type="text" name="categoria_nombre[]" class="cfg-input" maxlength="80" required>
+            </div>
+            <div class="cfg-field">
+                <label class="cfg-label">Descripción</label>
+                <input type="text" name="categoria_descripcion[]" class="cfg-input" maxlength="180">
+            </div>
+            <button type="button" class="btn-danger-soft quitar-categoria-btn" aria-label="Quitar categoría">Quitar</button>
+        `;
+        categoriasPrestamoLista.appendChild(row);
+    });
+
+    categoriasPrestamoLista.addEventListener('click', function (event) {
+        if (!event.target.classList.contains('quitar-categoria-btn')) return;
+        event.target.closest('.categoria-prestamo-item')?.remove();
+    });
+}
+</script>
+{% endblock %}

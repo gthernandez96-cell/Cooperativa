@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Historial de Planillas{% endblock %}
+{% block content %}
+<div class="container-fluid mt-4">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Historial de Planillas</h1>
+      <p class="page-subtitle">Consulta por nombre, fecha, boleta y frecuencia</p>
+    </div>
+    <a href="{{ url_for('transacciones_masivas') }}" class="btn btn-outline">Volver</a>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header">
+      <h3 class="card-title">Filtros</h3>
+    </div>
+    <div class="card-body">
+      <form method="GET" action="{{ url_for('historial_planillas') }}">
+        <div class="row">
+          <div class="col-md-2 mb-3">
+            <label class="form-label">Tipo</label>
+            <select class="form-select" name="tipo">
+              <option value="todos" {% if filtros.tipo == 'todos' %}selected{% endif %}>Todos</option>
+              <option value="ahorro" {% if filtros.tipo == 'ahorro' %}selected{% endif %}>Ahorro</option>
+              <option value="prestamo" {% if filtros.tipo == 'prestamo' %}selected{% endif %}>Prestamos</option>
+            </select>
+          </div>
+          <div class="col-md-3 mb-3">
+            <label class="form-label">Nombre de Planilla</label>
+            <input type="text" class="form-control" name="nombre" value="{{ filtros.nombre }}" placeholder="Ej: Quincena Abril">
+          </div>
+          <div class="col-md-2 mb-3">
+            <label class="form-label">No. Boleta</label>
+            <input type="text" class="form-control" name="boleta" value="{{ filtros.boleta }}" placeholder="Ej: BOL-0012">
+          </div>
+          <div class="col-md-2 mb-3">
+            <label class="form-label">Frecuencia</label>
+            <select class="form-select" name="frecuencia">
+              <option value="" {% if not filtros.frecuencia %}selected{% endif %}>Todas</option>
+              <option value="Quincenal" {% if filtros.frecuencia == 'Quincenal' %}selected{% endif %}>Quincenal</option>
+              <option value="Catorcenal" {% if filtros.frecuencia == 'Catorcenal' %}selected{% endif %}>Catorcenal</option>
+            </select>
+          </div>
+          <div class="col-md-3 mb-3">
+            <label class="form-label">Fecha Desde</label>
+            <input type="date" class="form-control" name="fecha_desde" value="{{ filtros.fecha_desde }}">
+          </div>
+          <div class="col-md-3 mb-3">
+            <label class="form-label">Fecha Hasta</label>
+            <input type="date" class="form-control" name="fecha_hasta" value="{{ filtros.fecha_hasta }}">
+          </div>
+        </div>
+        <div class="text-end">
+          <a href="{{ url_for('historial_planillas') }}" class="btn btn-outline-secondary">Limpiar</a>
+          <button type="submit" class="btn btn-primary">Buscar</button>
+        </div>
+      </form>
+
+      <div class="text-end mt-3" style="display:flex; gap:10px; justify-content:flex-end;">
+        <a class="btn btn-outline" href="{{ url_for('historial_planillas', tipo=filtros.tipo, nombre=filtros.nombre, boleta=filtros.boleta, frecuencia=filtros.frecuencia, fecha_desde=filtros.fecha_desde, fecha_hasta=filtros.fecha_hasta, export='csv') }}">
+          Exportar CSV
+        </a>
+        <a class="btn btn-gold" href="{{ url_for('historial_planillas', tipo=filtros.tipo, nombre=filtros.nombre, boleta=filtros.boleta, frecuencia=filtros.frecuencia, fecha_desde=filtros.fecha_desde, fecha_hasta=filtros.fecha_hasta, export='excel') }}">
+          Exportar Excel
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-grid mb-3">
+    <div class="stat-card">
+      <div class="stat-label">Planillas Encontradas</div>
+      <div class="stat-value">{{ planillas|length }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Registros Totales</div>
+      <div class="stat-value">{{ total_registros }}</div>
+    </div>
+    <div class="stat-card gold">
+      <div class="stat-label">Monto Total</div>
+      <div class="stat-value">Q{{ "{:,.2f}".format(total_general) }}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Resultados</h3>
+    </div>
+    <div class="card-body">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <th>Nombre Planilla</th>
+              <th>Fecha Pago</th>
+              <th>No. Boleta</th>
+              <th>Frecuencia</th>
+              <th>Registros</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in planillas %}
+            <tr>
+              <td>
+                <span class="badge {% if p.tipo == 'ahorro' %}badge-green{% else %}badge-gray{% endif %}">
+                  {{ 'Ahorro' if p.tipo == 'ahorro' else 'Prestamos' }}
+                </span>
+              </td>
+              <td>{{ p.nombre_planilla }}</td>
+              <td>{{ p.fecha }}</td>
+              <td>{{ p.boleta_deposito or 'N/A' }}</td>
+              <td>{{ p.frecuencia }}</td>
+              <td>{{ p.registros }}</td>
+              <td class="amount">Q{{ "{:,.2f}".format(p.total) }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="7" style="text-align:center; color:#9ca3af; padding:24px;">No se encontraron planillas con los filtros indicados.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

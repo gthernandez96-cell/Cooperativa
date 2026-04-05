@@ -1,0 +1,499 @@
+{% extends "base.html" %}
+
+{% block title %}Configuracion de Ahorro - Cooperativa{% endblock %}
+
+{% block extra_head %}
+<style>
+.cfg-shell {
+    max-width: 1180px;
+    margin: 0 auto;
+    display: grid;
+    gap: 16px;
+}
+
+.cfg-hero {
+    background: linear-gradient(125deg, #f9fcff 0%, #eef4fb 60%, #fff6de 100%);
+    border: 1px solid #d6e2f0;
+    border-radius: 16px;
+    padding: 18px 20px;
+    box-shadow: 0 8px 24px rgba(0, 42, 80, .08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.cfg-hero h1 {
+    margin: 0;
+    font-family: 'Fraunces', serif;
+    color: #012e58;
+    font-size: 28px;
+    line-height: 1.1;
+}
+
+.cfg-hero p {
+    margin: 6px 0 0;
+    color: #5c6f82;
+    font-size: 13px;
+}
+
+.cfg-pill {
+    background: #fff;
+    border: 1px solid #d9e6f3;
+    border-radius: 999px;
+    padding: 7px 12px;
+    color: #0a477d;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.cfg-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.cfg-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.cfg-card {
+    background: #fff;
+    border: 1px solid #dbe5ef;
+    border-radius: 14px;
+    box-shadow: 0 4px 16px rgba(0, 42, 80, .06);
+    overflow: hidden;
+}
+
+.cfg-card-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid #e4ecf4;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: #fbfdff;
+}
+
+.cfg-card-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: #0a3967;
+    letter-spacing: .2px;
+}
+
+.cfg-card-body {
+    padding: 14px 16px;
+}
+
+.cfg-help {
+    font-size: 12px;
+    color: #6f8193;
+}
+
+.cfg-table-wrap {
+    overflow-x: auto;
+}
+
+.cfg-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 680px;
+}
+
+.cfg-table th {
+    text-align: left;
+    font-size: 11px;
+    color: #5f7387;
+    text-transform: uppercase;
+    letter-spacing: .45px;
+    padding: 9px 8px;
+    border-bottom: 1px solid #dbe6f1;
+}
+
+.cfg-table td {
+    padding: 10px 8px;
+    border-bottom: 1px solid #edf2f7;
+    color: #19324a;
+    font-size: 13px;
+}
+
+.cfg-form-grid {
+    display: grid;
+    gap: 10px;
+}
+
+.cfg-field {
+    display: grid;
+    gap: 5px;
+}
+
+.cfg-label {
+    color: #294560;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .2px;
+}
+
+.cfg-input,
+.cfg-select,
+.cfg-textarea {
+    width: 100%;
+    border: 1px solid #cedbea;
+    border-radius: 10px;
+    padding: 9px 11px;
+    font: inherit;
+    font-size: 14px;
+    color: #182b3d;
+    background: #fff;
+}
+
+.cfg-input:focus,
+.cfg-select:focus,
+.cfg-textarea:focus {
+    outline: none;
+    border-color: #5f9dcf;
+    box-shadow: 0 0 0 3px rgba(59, 130, 186, .16);
+}
+
+.cfg-money-input {
+    display: flex;
+    align-items: center;
+    border: 1px solid #cedbea;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.cfg-money-input span {
+    background: #f1f6fb;
+    color: #4a647d;
+    font-weight: 700;
+    font-size: 12px;
+    padding: 0 10px;
+    align-self: stretch;
+    display: inline-flex;
+    align-items: center;
+}
+
+.cfg-money-input input {
+    border: 0;
+    width: 100%;
+    padding: 9px 10px;
+    font: inherit;
+}
+
+.cfg-money-input input:focus {
+    outline: none;
+}
+
+.cfg-mini-card {
+    border: 1px solid #e0e9f2;
+    border-radius: 11px;
+    padding: 11px;
+    background: #fbfdff;
+    display: grid;
+    gap: 8px;
+}
+
+.cfg-mini-title {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: #173451;
+}
+
+.cfg-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 14px 16px;
+    background: linear-gradient(100deg, #f7fbff 0%, #fffaf0 100%);
+    border: 1px solid #dce7f2;
+    border-radius: 14px;
+}
+
+.cfg-note {
+    margin: 0;
+    color: #4e6278;
+    font-size: 12px;
+}
+
+.cfg-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.cfg-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.cfg-tag-ok {
+    color: #0f766e;
+    background: #ccfbf1;
+    border: 1px solid #99f6e4;
+}
+
+@media (max-width: 980px) {
+    .cfg-grid-2 {
+        grid-template-columns: 1fr;
+    }
+
+    .cfg-grid-3 {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 760px) {
+    .cfg-hero {
+        padding: 14px;
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .cfg-hero h1 {
+        font-size: 24px;
+    }
+
+    .cfg-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .cfg-buttons {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cfg-shell">
+    <section class="cfg-hero">
+        <div>
+            <h1>Configuracion de ahorro</h1>
+            <p>Ajuste parametros operativos, limites de movimiento y periodicidad de capitalizacion.</p>
+        </div>
+        <div class="cfg-pill">Modulo de ahorro</div>
+    </section>
+
+    <section class="cfg-card">
+        <div class="cfg-card-header">
+            <h2 class="cfg-card-title">Tipos de cuentas de ahorro</h2>
+            <button class="btn btn-primary btn-sm" type="button" onclick="agregarTipoCuenta()">Agregar tipo</button>
+        </div>
+        <div class="cfg-card-body">
+            <div class="cfg-table-wrap">
+                <table class="cfg-table" id="tablaTiposCuenta">
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Tasa interes (%)</th>
+                            <th>Saldo minimo</th>
+                            <th>Comision mensual</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Cuenta Corriente</td>
+                            <td>2.5</td>
+                            <td>Q 100.00</td>
+                            <td>Q 5.00</td>
+                            <td><span class="cfg-tag cfg-tag-ok">Activo</span></td>
+                            <td><button class="btn btn-outline btn-sm" type="button" onclick="editarTipoCuenta(1)">Editar</button></td>
+                        </tr>
+                        <tr>
+                            <td>Cuenta de Ahorro</td>
+                            <td>4.0</td>
+                            <td>Q 50.00</td>
+                            <td>Q 0.00</td>
+                            <td><span class="cfg-tag cfg-tag-ok">Activo</span></td>
+                            <td><button class="btn btn-outline btn-sm" type="button" onclick="editarTipoCuenta(2)">Editar</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section class="cfg-grid-2">
+        <article class="cfg-card">
+            <div class="cfg-card-header">
+                <h2 class="cfg-card-title">Configuracion general</h2>
+            </div>
+            <div class="cfg-card-body">
+                <form id="formConfigGeneral" class="cfg-form-grid" method="POST" action="{{ url_for('configuracion_ahorro') }}">
+                    <div class="cfg-field">
+                        <label for="tasa_interes_default" class="cfg-label">Tasa de interes predeterminada (%)</label>
+                        <input type="number" class="cfg-input" id="tasa_interes_default" name="ahorro_tasa_interes_default" value="{{ ahorro_cfg.ahorro_tasa_interes_default }}" step="0.1">
+                    </div>
+                    <div class="cfg-field">
+                        <label for="saldo_minimo_default" class="cfg-label">Saldo minimo predeterminado</label>
+                        <div class="cfg-money-input">
+                            <span>Q</span>
+                            <input type="number" id="saldo_minimo_default" name="ahorro_saldo_minimo_default" value="{{ ahorro_cfg.ahorro_saldo_minimo_default }}" step="0.01">
+                        </div>
+                    </div>
+                    <div class="cfg-field">
+                        <label for="limite_retiro_diario" class="cfg-label">Limite de retiro diario</label>
+                        <div class="cfg-money-input">
+                            <span>Q</span>
+                            <input type="number" id="limite_retiro_diario" name="ahorro_limite_retiro_diario" value="{{ ahorro_cfg.ahorro_limite_retiro_diario }}" step="0.01">
+                        </div>
+                    </div>
+                    <div class="cfg-field">
+                        <label for="comision_transferencia" class="cfg-label">Comision por transferencia</label>
+                        <div class="cfg-money-input">
+                            <span>Q</span>
+                            <input type="number" id="comision_transferencia" name="ahorro_comision_transferencia" value="{{ ahorro_cfg.ahorro_comision_transferencia }}" step="0.01">
+                        </div>
+                    </div>
+                    <p class="cfg-help">
+                        Para ajustar tasas vigentes de ahorro, utilice la configuracion global de tasas.
+                        <a href="{{ url_for('configuraciones') }}">Ir a configuracion global</a>
+                    </p>
+                    <button type="submit" class="btn btn-primary">Guardar configuracion general</button>
+                </form>
+            </div>
+        </article>
+
+        <article class="cfg-card">
+            <div class="cfg-card-header">
+                <h2 class="cfg-card-title">Cierre de mes y capitalizacion</h2>
+            </div>
+            <div class="cfg-card-body">
+                <p class="cfg-help">
+                    Esta accion calcula el interes mensual acumulado de todas las cuentas de ahorro y lo aplica al saldo.
+                </p>
+                <form action="{{ url_for('aplicar_intereses') }}" method="POST" onsubmit="return confirm('Esta seguro de aplicar los intereses del mes? Esta accion no se puede deshacer.')">
+                    <button type="submit" class="btn btn-primary">Ejecutar capitalizacion mensual</button>
+                </form>
+                <p class="cfg-help" style="margin-top: 10px;">Se recomienda ejecutar este proceso el ultimo dia del mes.</p>
+            </div>
+        </article>
+    </section>
+
+    <section class="cfg-grid-2">
+        <article class="cfg-card">
+            <div class="cfg-card-header">
+                <h2 class="cfg-card-title">Configuracion de fechas</h2>
+            </div>
+            <div class="cfg-card-body">
+                <form id="formConfigFechas" class="cfg-form-grid" method="POST" action="{{ url_for('configuracion_ahorro') }}">
+                    <div class="cfg-field">
+                        <label for="dia_corte" class="cfg-label">Dia de corte mensual</label>
+                        <select class="cfg-select" id="dia_corte" name="ahorro_dia_corte">
+                            {% for dia in range(1, 32) %}
+                            <option value="{{ dia }}" {% if ahorro_cfg.ahorro_dia_corte|string == dia|string %}selected{% endif %}>{{ dia }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="cfg-field">
+                        <label for="dia_interes" class="cfg-label">Dia de aplicacion de interes</label>
+                        <select class="cfg-select" id="dia_interes" name="ahorro_dia_interes">
+                            {% for dia in range(1, 32) %}
+                            <option value="{{ dia }}" {% if ahorro_cfg.ahorro_dia_interes|string == dia|string %}selected{% endif %}>{{ dia }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="cfg-field">
+                        <label for="periodo_inactividad" class="cfg-label">Dias para cuenta inactiva</label>
+                        <input type="number" class="cfg-input" id="periodo_inactividad" name="ahorro_periodo_inactividad" value="{{ ahorro_cfg.ahorro_periodo_inactividad }}" min="30">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Guardar fechas</button>
+                </form>
+            </div>
+        </article>
+
+        <article class="cfg-card">
+            <div class="cfg-card-header">
+                <h2 class="cfg-card-title">Limites y restricciones</h2>
+            </div>
+            <div class="cfg-card-body">
+                <form method="POST" action="{{ url_for('configuracion_ahorro') }}" class="cfg-form-grid">
+                <div class="cfg-grid-3">
+                    <div class="cfg-mini-card">
+                        <h3 class="cfg-mini-title">Por transaccion</h3>
+                        <div class="cfg-field">
+                            <label class="cfg-label">Maximo deposito</label>
+                            <input type="number" class="cfg-input" name="ahorro_lim_tx_deposito_max" value="{{ ahorro_cfg.ahorro_lim_tx_deposito_max }}">
+                        </div>
+                        <div class="cfg-field">
+                            <label class="cfg-label">Maximo retiro</label>
+                            <input type="number" class="cfg-input" name="ahorro_lim_tx_retiro_max" value="{{ ahorro_cfg.ahorro_lim_tx_retiro_max }}">
+                        </div>
+                        <div class="cfg-field">
+                            <label class="cfg-label">Maximo transferencia</label>
+                            <input type="number" class="cfg-input" name="ahorro_lim_tx_transferencia_max" value="{{ ahorro_cfg.ahorro_lim_tx_transferencia_max }}">
+                        </div>
+                    </div>
+                    <div class="cfg-mini-card">
+                        <h3 class="cfg-mini-title">Por dia</h3>
+                        <div class="cfg-field">
+                            <label class="cfg-label">Total depositos</label>
+                            <input type="number" class="cfg-input" name="ahorro_lim_dia_depositos_max" value="{{ ahorro_cfg.ahorro_lim_dia_depositos_max }}">
+                        </div>
+                        <div class="cfg-field">
+                            <label class="cfg-label">Total retiros</label>
+                            <input type="number" class="cfg-input" name="ahorro_lim_dia_retiros_max" value="{{ ahorro_cfg.ahorro_lim_dia_retiros_max }}">
+                        </div>
+                        <div class="cfg-field">
+                            <label class="cfg-label">Total transferencias</label>
+                            <input type="number" class="cfg-input" name="ahorro_lim_dia_transferencias_max" value="{{ ahorro_cfg.ahorro_lim_dia_transferencias_max }}">
+                        </div>
+                    </div>
+                    <div class="cfg-mini-card">
+                        <h3 class="cfg-mini-title">Por mes</h3>
+                        <div class="cfg-field">
+                            <label class="cfg-label">Total depositos</label>
+                            <input type="number" class="cfg-input" name="ahorro_lim_mes_depositos_max" value="{{ ahorro_cfg.ahorro_lim_mes_depositos_max }}">
+                        </div>
+                        <div class="cfg-field">
+                            <label class="cfg-label">Total retiros</label>
+                            <input type="number" class="cfg-input" name="ahorro_lim_mes_retiros_max" value="{{ ahorro_cfg.ahorro_lim_mes_retiros_max }}">
+                        </div>
+                        <div class="cfg-field">
+                            <label class="cfg-label">Total transferencias</label>
+                            <input type="number" class="cfg-input" name="ahorro_lim_mes_transferencias_max" value="{{ ahorro_cfg.ahorro_lim_mes_transferencias_max }}">
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Guardar limites</button>
+                </form>
+            </div>
+        </article>
+    </section>
+
+    <section class="cfg-actions">
+        <p class="cfg-note">Esta pantalla concentra la operacion interna del modulo de ahorro.</p>
+        <div class="cfg-buttons">
+            <a href="{{ url_for('menu_ahorro') }}" class="btn btn-outline">Regresar al menu</a>
+        </div>
+    </section>
+</div>
+
+<script>
+function agregarTipoCuenta() {
+    alert('La gestion detallada de tipos de cuenta estara disponible en una siguiente iteracion.');
+}
+
+function editarTipoCuenta(id) {
+    alert('Edicion de tipo de cuenta ' + id + ' en preparacion.');
+}
+
+</script>
+{% endblock %}

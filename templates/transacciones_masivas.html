@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Transacciones Masivas - CoopAhorro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Transacciones Masivas</h1>
+    <p class="page-subtitle">Gestión de operaciones masivas separadas por tipo</p>
+  </div>
+  <div>
+    <a href="{{ url_for('historial_planillas') }}" class="btn btn-outline">
+      Ver Historial de Planillas
+    </a>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Módulos Disponibles</div>
+    <div class="stat-value">2</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Procesamiento Seguro</div>
+    <div class="stat-value">✓</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Módulos de Transacciones Masivas</h3>
+  </div>
+  <div class="card-body">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 30px;">
+
+      <!-- Módulo de Ahorro -->
+      <div class="card" style="border: 2px solid var(--c-blue-light); background: linear-gradient(135deg, rgba(0,91,116,0.05), rgba(0,59,116,0.02));">
+        <div class="card-header" style="background: linear-gradient(135deg, var(--c-blue-light), var(--c-blue)); color: white; border-bottom: none;">
+          <h4 style="margin: 0; font-size: 20px; display: flex; align-items: center; gap: 12px;">
+            <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <rect x="2" y="5" width="20" height="14" rx="2"/>
+              <path d="M2 10h20"/>
+            </svg>
+            Módulo de Ahorro
+          </h4>
+        </div>
+        <div class="card-body">
+          <p style="margin-bottom: 20px; color: var(--c-gray); font-size: 15px; line-height: 1.6;">
+            Gestiona todas las operaciones relacionadas con cuentas de ahorro: abonos masivos, planillas de cuotas por frecuencia, retiros, transferencias y reportes de saldos.
+          </p>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+            <div style="text-align: center; padding: 12px; background: rgba(0,91,116,0.1); border-radius: 8px;">
+              <div style="font-size: 18px; font-weight: 600; color: var(--c-blue);">Abonos</div>
+              <div style="font-size: 12px; color: var(--c-gray); margin-top: 4px;">Masivos</div>
+            </div>
+            <div style="text-align: center; padding: 12px; background: rgba(40,167,69,0.1); border-radius: 8px;">
+              <div style="font-size: 18px; font-weight: 600; color: #28a745;">Planillas</div>
+              <div style="font-size: 12px; color: var(--c-gray); margin-top: 4px;">Cuotas</div>
+            </div>
+            <div style="text-align: center; padding: 12px; background: rgba(0,91,116,0.1); border-radius: 8px;">
+              <div style="font-size: 18px; font-weight: 600; color: var(--c-blue);">Reportes</div>
+              <div style="font-size: 12px; color: var(--c-gray); margin-top: 4px;">Saldos</div>
+            </div>
+          </div>
+
+          <a href="{{ url_for('menu_ahorro') }}" class="btn btn-primary" style="width: 100%; text-align: center; display: block;">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right: 8px;">
+              <path d="M9 5l7 7-7 7"/>
+            </svg>
+            Acceder al Módulo de Ahorro
+          </a>
+
+          <a href="{{ url_for('generar_planilla_cuotas_ahorro') }}" class="btn btn-success" style="width: 100%; text-align: center; display: block; margin-top: 10px;">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right: 8px;">
+              <path d="M9 12h6M12 9v6"/>
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+            </svg>
+            Generar Planilla de Cuotas de Ahorro
+          </a>
+
+          <a href="{{ url_for('planillas_ahorro_pendientes') }}" class="btn btn-outline" style="width: 100%; text-align: center; display: block; margin-top: 10px;">
+            Ver Planillas de Ahorro Guardadas
+          </a>
+        </div>
+      </div>
+
+      <!-- Módulo de Préstamos -->
+      <div class="card" style="border: 2px solid var(--c-gold); background: linear-gradient(135deg, rgba(246,197,84,0.05), rgba(246,197,84,0.02));">
+        <div class="card-header" style="background: linear-gradient(135deg, var(--c-gold), #f39c12); color: white; border-bottom: none;">
+          <h4 style="margin: 0; font-size: 20px; display: flex; align-items: center; gap: 12px;">
+            <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+            Módulo de Préstamos
+          </h4>
+        </div>
+        <div class="card-body">
+          <p style="margin-bottom: 20px; color: var(--c-gray); font-size: 15px; line-height: 1.6;">
+            Gestiona todas las operaciones relacionadas con préstamos: pagos de cuotas masivos, amortizaciones y reportes de cartera.
+          </p>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+            <div style="text-align: center; padding: 12px; background: rgba(246,197,84,0.1); border-radius: 8px;">
+              <div style="font-size: 18px; font-weight: 600; color: #8b5a2b;">Cuotas</div>
+              <div style="font-size: 12px; color: var(--c-gray); margin-top: 4px;">Masivas</div>
+            </div>
+            <div style="text-align: center; padding: 12px; background: rgba(246,197,84,0.1); border-radius: 8px;">
+              <div style="font-size: 18px; font-weight: 600; color: #8b5a2b;">Cartera</div>
+              <div style="font-size: 12px; color: var(--c-gray); margin-top: 4px;">Activa</div>
+            </div>
+          </div>
+
+          <a href="{{ url_for('menu_prestamos') }}" class="btn btn-gold" style="width: 100%; text-align: center; display: block;">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right: 8px;">
+              <path d="M9 5l7 7-7 7"/>
+            </svg>
+            Acceder al Módulo de Préstamos
+          </a>
+
+          <a href="{{ url_for('generar_planilla_prestamos') }}" class="btn btn-warning" style="width: 100%; text-align: center; display: block; margin-top: 10px; color: #212529;">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right: 8px;">
+              <path d="M9 12h6M12 9v6"/>
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+            </svg>
+            Generar Planilla de Cuotas de Préstamo
+          </a>
+
+          <a href="{{ url_for('planillas_prestamos_pendientes') }}" class="btn btn-outline" style="width: 100%; text-align: center; display: block; margin-top: 10px;">
+            Ver Planillas de Préstamos Guardadas
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-top: 24px;">
+  <div class="card-header">
+    <h3 class="card-title">Información Importante</h3>
+  </div>
+  <div class="card-body">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+      <div style="display: flex; align-items: flex-start; gap: 16px;">
+        <svg width="24" height="24" fill="none" stroke="var(--c-blue)" stroke-width="2" viewBox="0 0 24 24" style="margin-top: 2px; flex-shrink: 0;">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M9 12l2 2 4-4M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"/>
+        </svg>
+        <div>
+          <strong>Separación por Módulos</strong>
+          <p style="margin: 6px 0 0 0; font-size: 14px; color: var(--c-gray); line-height: 1.5;">
+            Cada módulo maneja operaciones específicas de manera independiente, facilitando la gestión y reduciendo errores.
+          </p>
+        </div>
+      </div>
+      <div style="display: flex; align-items: flex-start; gap: 16px;">
+        <svg width="24" height="24" fill="none" stroke="var(--c-green)" stroke-width="2" viewBox="0 0 24 24" style="margin-top: 2px; flex-shrink: 0;">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+        <div>
+          <strong>Especialización</strong>
+          <p style="margin: 6px 0 0 0; font-size: 14px; color: var(--c-gray); line-height: 1.5;">
+            Cada módulo está optimizado para su tipo específico de operación, mejorando la eficiencia y precisión.
+          </p>
+        </div>
+      </div>
+      <div style="display: flex; align-items: flex-start; gap: 16px;">
+        <svg width="24" height="24" fill="none" stroke="var(--c-danger)" stroke-width="2" viewBox="0 0 24 24" style="margin-top: 2px; flex-shrink: 0;">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        <div>
+          <strong>Controles Independientes</strong>
+          <p style="margin: 6px 0 0 0; font-size: 14px; color: var(--c-gray); line-height: 1.5;">
+            Los permisos y controles de acceso se gestionan por separado en cada módulo para mayor seguridad.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

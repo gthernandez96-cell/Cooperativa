@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login — {{ cooperativa_nombre }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,500;0,700;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; font-family: 'DM Sans', sans-serif; background: linear-gradient(135deg, #e5f1ff 0%, #d9e8fb 45%, #f2f6fb 100%); color: #1f2937; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .login-box { width: min(460px, 100%); background: white; border-radius: 14px; box-shadow: 0 12px 30px rgba(32, 62, 99, .25); padding: 22px 24px; }
+    .login-brand { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 18px; }
+    .login-brand-photo { width: 74px; height: 74px; object-fit: cover; border-radius: 18px; margin-bottom: 10px; border: 3px solid rgba(0, 59, 116, .1); box-shadow: 0 8px 20px rgba(32, 62, 99, .16); }
+    h1 { font-family: 'Fraunces', serif; margin:0 0 4px; color:#003b74; font-size: 32px; line-height: 1.08; }
+    p { margin:6px 0 0; color:#555; }
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; }
+    input { width: 100%; padding: 11px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; }
+    button { width: 100%; background: #003b74; color: #fff; border: none; border-radius: 8px; padding: 11px 14px; font-weight: 600; cursor: pointer; }
+    button:hover { background: #0057a3; }
+    .alert { margin-bottom: 14px; padding: 10px 12px; border-radius: 8px; font-size: 14px; }
+    .alert-danger { background: #fee2e2; color: #991b1b; }
+    .alert-info { background: #dbecff; color: #1d4ed8; }
+  </style>
+</head>
+<body>
+<div class="login-box">
+  <div class="login-brand">
+    {% if cooperativa_foto %}
+    <img src="{{ url_for('static', filename=cooperativa_foto) }}" alt="Foto institucional" class="login-brand-photo">
+    {% endif %}
+    <h1>{{ cooperativa_nombre }}</h1>
+    <p>Inicia sesión para continuar</p>
+  </div>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="alert alert-{{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group">
+      <label>Usuario</label>
+      <input name="username" required autofocus>
+    </div>
+    <div class="form-group">
+      <label>Contraseña</label>
+      <input name="password" type="password" required>
+    </div>
+    <button type="submit">Entrar</button>
+  </form>
+</div>
+</body>
+</html>

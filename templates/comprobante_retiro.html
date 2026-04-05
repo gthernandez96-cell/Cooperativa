@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Comprobante de Retiro{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Comprobante de Retiro</div>
+    <div class="page-subtitle">{{ retiro.numero or ('RET-' ~ '%06d'|format(retiro.id)) }}</div>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <a href="{{ url_for('gestiones', tipo='retiro', estado='pendiente') }}" class="btn btn-outline">Volver a Gestiones</a>
+    <button type="button" class="btn btn-gold" onclick="window.print()">Imprimir</button>
+  </div>
+</div>
+
+<div class="alert alert-success" style="max-width:760px;margin:0 auto 12px;">
+  Retiro realizado con exito.
+</div>
+
+<div class="card" style="max-width:760px;margin:0 auto;">
+  <div class="card-body">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+      <div>
+        <div style="font-size:12px;color:#6b7280;">Socio</div>
+        <div style="font-weight:600;">{{ retiro.socio_codigo }} · {{ retiro.socio_nombre }}</div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:#6b7280;">Cuenta ahorro</div>
+        <div style="font-weight:600;">{{ retiro.cuenta_numero }}</div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:#6b7280;">Fecha aprobación</div>
+        <div style="font-weight:600;">{{ retiro.fecha_aprobacion or retiro.fecha_solicitud }}</div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Concepto</th><th>Detalle</th></tr></thead>
+        <tbody>
+          <tr><td>Monto retirado</td><td class="amount">Q{{ '{:,.2f}'.format(retiro.monto) }}</td></tr>
+          <tr><td>Metodo de retiro</td><td>{{ (retiro.metodo_retiro or 'cheque')|replace('_', ' ')|title }}</td></tr>
+          <tr><td>Destino</td><td>{{ 'Amortizacion de prestamo' if (retiro.destino or '') == 'amortizacion_prestamo' else 'Retiro normal' }}</td></tr>
+          <tr><td>Prestamo aplicado</td><td>{{ retiro.prestamo_numero or 'N/A' }}</td></tr>
+          <tr><td>Tipo de cuenta banco</td><td>{{ retiro.banco_tipo_cuenta or 'N/A' }}</td></tr>
+          <tr><td>Numero de cuenta banco</td><td>{{ retiro.banco_numero_cuenta or 'N/A' }}</td></tr>
+          <tr><td>Descripcion</td><td>{{ retiro.descripcion or 'Retiro aprobado en gestiones' }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% if auto_print %}
+<script>
+window.addEventListener('load', () => window.print());
+</script>
+{% endif %}
+{% endblock %}

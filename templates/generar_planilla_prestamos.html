@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Generar Planilla de Prestamos{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="page-header mb-3">
+        <div>
+            <div class="page-title">Nueva Planilla de Prestamos</div>
+            <div class="page-subtitle">Genere una planilla masiva con prestamos activos segun frecuencia.</div>
+        </div>
+        <a href="{{ url_for('planillas_prestamos_pendientes') }}" class="btn btn-outline">Regresar</a>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-header">
+            <h4 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i>Formulario de Planilla</h4>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('generar_planilla_prestamos') }}" method="POST">
+                <div class="row">
+                    <div class="col-md-5 mb-3">
+                        <label for="nombre_planilla" class="form-label">Nombre de la Planilla</label>
+                        <input type="text" class="form-control" id="nombre_planilla" name="nombre_planilla"
+                               placeholder="Ej: Cuotas Quincena 1 - Abril 2026" value="{{ form_data.nombre_planilla }}" required>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="frecuencia" class="form-label">Frecuencia</label>
+                        <select class="form-select" id="frecuencia" name="frecuencia" required>
+                            <option value="Quincenal" {% if form_data.frecuencia == 'Quincenal' %}selected{% endif %}>Quincenal</option>
+                            <option value="Catorcenal" {% if form_data.frecuencia == 'Catorcenal' %}selected{% endif %}>Catorcenal</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="fecha_pago" class="form-label">Fecha de Pago</label>
+                        <input type="date" class="form-control" id="fecha_pago" name="fecha_pago" value="{{ form_data.fecha_pago }}" required>
+                    </div>
+                </div>
+                <div class="alert alert-info py-2 mt-2">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Se incluiran unicamente prestamos aprobados y con saldo pendiente de socios activos en la frecuencia seleccionada.
+                </div>
+                <div class="text-end mt-3 d-flex justify-content-end gap-2 flex-wrap">
+                    <a href="{{ url_for('planillas_prestamos_pendientes') }}" class="btn btn-outline-secondary">Ver Planillas Guardadas</a>
+                    <button type="submit" class="btn btn-warning btn-lg">Generar Planilla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

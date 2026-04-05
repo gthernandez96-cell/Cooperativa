@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}Menú de Préstamos - Cooperativa{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">
+                        <i class="fas fa-hand-holding-usd me-2"></i>
+                        Operaciones de Préstamos
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Pagos Masivos -->
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card h-100 border-warning">
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <i class="fas fa-credit-card fa-3x text-warning"></i>
+                                    </div>
+                                    <h5 class="card-title">Pagos Masivos</h5>
+                                    <p class="card-text text-muted">
+                                        Procesar pagos simultáneos de múltiples préstamos.
+                                        Ideal para cuotas programadas o pagos masivos.
+                                    </p>
+                                    <a href="{{ url_for('planilla_prestamos') }}" class="btn btn-warning btn-lg">
+                                        <i class="fas fa-money-bill-wave me-2"></i>
+                                        Iniciar Pagos
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Amortizaciones -->
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card h-100 border-danger">
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <i class="fas fa-calculator fa-3x text-danger"></i>
+                                    </div>
+                                    <h5 class="card-title">Amortizaciones</h5>
+                                    <p class="card-text text-muted">
+                                        Calcular y aplicar amortizaciones anticipadas
+                                        a préstamos existentes con recálculo de cuotas.
+                                    </p>
+                                    <a href="{{ url_for('planilla_amortizaciones') }}" class="btn btn-danger btn-lg">
+                                        <i class="fas fa-percentage me-2"></i>
+                                        Amortizar Préstamos
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Refinanciamientos -->
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card h-100 border-info">
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <i class="fas fa-sync-alt fa-3x text-info"></i>
+                                    </div>
+                                    <h5 class="card-title">Refinanciamientos</h5>
+                                    <p class="card-text text-muted">
+                                        Procesar refinanciamientos de préstamos existentes,
+                                        modificando plazos, tasas o montos.
+                                    </p>
+                                    <a href="{{ url_for('planilla_refinanciamientos') }}" class="btn btn-info btn-lg">
+                                        <i class="fas fa-redo me-2"></i>
+                                        Refinanciar
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Reportes de Préstamos -->
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card h-100 border-success">
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <i class="fas fa-chart-bar fa-3x text-success"></i>
+                                    </div>
+                                    <h5 class="card-title">Reportes de Préstamos</h5>
+                                    <p class="card-text text-muted">
+                                        Generar reportes del portafolio de préstamos,
+                                        morosidad, rendimiento y análisis de riesgo.
+                                    </p>
+                                    <a href="{{ url_for('reportes_prestamos') }}" class="btn btn-success btn-lg">
+                                        <i class="fas fa-file-alt me-2"></i>
+                                        Ver Reportes
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Configuración de Préstamos -->
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card h-100 border-secondary">
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <i class="fas fa-cogs fa-3x text-secondary"></i>
+                                    </div>
+                                    <h5 class="card-title">Configuración</h5>
+                                    <p class="card-text text-muted">
+                                        Configurar tipos de préstamos, tasas de interés,
+                                        plazos, garantías y políticas de crédito.
+                                    </p>
+                                    <a href="{{ url_for('configuracion_prestamos') }}" class="btn btn-secondary btn-lg">
+                                        <i class="fas fa-sliders-h me-2"></i>
+                                        Configurar
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cobranza -->
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card h-100 border-dark">
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <i class="fas fa-gavel fa-3x text-dark"></i>
+                                    </div>
+                                    <h5 class="card-title">Cobranza</h5>
+                                    <p class="card-text text-muted">
+                                        Gestionar procesos de cobranza para préstamos en mora,
+                                        incluyendo recordatorios y acciones legales.
+                                    </p>
+                                    <a href="{{ url_for('cobranza_prestamos') }}" class="btn btn-dark btn-lg">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        Gestionar Cobranza
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card h-100 border-secondary">
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <i class="fas fa-lock fa-3x text-secondary"></i>
+                                    </div>
+                                    <h5 class="card-title">Cierres de Periodo</h5>
+                                    <p class="card-text text-muted">
+                                        Cierre operativo por rango de fechas para bloquear
+                                        movimientos históricos en ahorro y préstamos.
+                                    </p>
+                                    <a href="{{ url_for('cierres_periodo') }}" class="btn btn-secondary btn-lg">
+                                        <i class="fas fa-calendar-check me-2"></i>
+                                        Gestionar Cierres
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botón de Regreso -->
+                    <div class="text-center mt-4">
+                        <a href="{{ url_for('transacciones_masivas') }}" class="btn btn-outline-warning">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            Regresar al Menú Principal
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

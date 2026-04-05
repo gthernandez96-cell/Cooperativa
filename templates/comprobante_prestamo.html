@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Comprobante de Pago{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Comprobante de Pago</div>
+    <div class="page-subtitle">{{ pago.numero_comprobante or ('REC-' ~ '%06d'|format(pago.id)) }}</div>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <a href="{{ url_for('prestamos') }}" class="btn btn-outline" onclick="history.back();return false;">Volver</a>
+    <button type="button" class="btn btn-gold" onclick="window.print()">Imprimir</button>
+  </div>
+</div>
+
+<div class="card" style="max-width:760px;margin:0 auto;">
+  <div class="card-body">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+      <div>
+        <div style="font-size:12px;color:#6b7280;">Prestamo</div>
+        <div style="font-weight:600;">{{ pago.numero_prestamo }}</div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:#6b7280;">Socio</div>
+        <div style="font-weight:600;">{{ pago.socio_codigo }} · {{ pago.socio_nombre }}</div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:#6b7280;">Fecha</div>
+        <div style="font-weight:600;">{{ pago.fecha }}</div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Concepto</th><th>Monto</th></tr></thead>
+        <tbody>
+          <tr><td>Pago Total</td><td class="amount">Q{{ '{:,.2f}'.format(pago.monto) }}</td></tr>
+          <tr><td>Capital</td><td class="amount">Q{{ '{:,.2f}'.format(pago.capital) }}</td></tr>
+          <tr><td>Interes</td><td class="amount">Q{{ '{:,.2f}'.format(pago.interes) }}</td></tr>
+          <tr><td>Saldo Restante</td><td class="amount">Q{{ '{:,.2f}'.format(pago.saldo_restante) }}</td></tr>
+          <tr><td>No. Boleta</td><td>{{ pago.boleta_deposito or '—' }}</td></tr>
+          <tr><td>Descripcion</td><td>{{ pago.descripcion or 'Pago de cuota' }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

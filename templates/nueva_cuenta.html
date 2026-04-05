@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block title %}Nueva Cuenta - {{ cooperativa_nombre }}{% endblock %}
+
+{% block extra_head %}
+<style>
+.ncue-shell {
+  max-width: 980px;
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+}
+
+.ncue-hero {
+  background: linear-gradient(120deg, #f8fcff 0%, #eef4fb 65%, #fff8e8 100%);
+  border: 1px solid #d9e4f0;
+  border-radius: 16px;
+  padding: 16px 18px;
+  box-shadow: 0 8px 22px rgba(0, 42, 80, .08);
+}
+
+.ncue-hero h1 {
+  margin: 0;
+  font-family: 'Fraunces', serif;
+  font-size: 30px;
+  color: #032f58;
+}
+
+.ncue-hero p {
+  margin: 6px 0 0;
+  color: #5e7388;
+  font-size: 13px;
+}
+
+.ncue-card {
+  border: 1px solid #dbe5ef;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 4px 15px rgba(0, 42, 80, .06);
+  overflow: hidden;
+}
+
+.ncue-card-head {
+  padding: 12px 15px;
+  border-bottom: 1px solid #e5edf5;
+  background: #fbfdff;
+  color: #0c3f6f;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.ncue-card-body {
+  padding: 14px 15px;
+}
+
+.ncue-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.ncue-field {
+  display: grid;
+  gap: 6px;
+}
+
+.ncue-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .2px;
+  color: #274560;
+}
+
+.ncue-input,
+.ncue-select {
+  width: 100%;
+  border: 1px solid #cad9e8;
+  border-radius: 10px;
+  padding: 10px 11px;
+  font: inherit;
+  font-size: 14px;
+  color: #17293a;
+  background: #fff;
+}
+
+.ncue-input:focus,
+.ncue-select:focus {
+  outline: none;
+  border-color: #659dca;
+  box-shadow: 0 0 0 3px rgba(70, 132, 186, .16);
+}
+
+.ncue-help {
+  font-size: 12px;
+  color: #6b7f93;
+}
+
+.ncue-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.ncue-option {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ncue-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eef5fc;
+  color: #1e4f7a;
+  border: 1px solid #d6e6f5;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ncue-shell">
+  <div class="page-header" style="margin-bottom:0;">
+    <div>
+      <div class="page-title">Nueva Cuenta</div>
+      <div class="page-subtitle">Crear cuenta de ahorro para asociado activo con control de duplicados por producto.</div>
+    </div>
+    <a href="{{ url_for('cuentas') }}" class="btn btn-outline">Volver</a>
+  </div>
+
+  <section class="ncue-hero">
+    <h1>Apertura de cuenta</h1>
+    <p>Tipos disponibles: Aportacion, Ahorro corriente y Plazo fijo. No se permiten cuentas duplicadas del mismo tipo por asociado.</p>
+  </section>
+
+  <section class="ncue-card">
+    <div class="ncue-card-head">Datos de la cuenta</div>
+    <div class="ncue-card-body">
+      <form method="post" class="ncue-grid" autocomplete="off">
+        <div class="ncue-field">
+          <label class="ncue-label" for="buscar-asociado">Buscar asociado activo</label>
+          <input id="buscar-asociado" type="text" class="ncue-input" placeholder="Buscar por codigo, nombre o apellido...">
+          <div class="ncue-help">Solo se listan asociados activos.</div>
+        </div>
+
+        <div class="ncue-field">
+          <label class="ncue-label" for="socio_id">Asociado *</label>
+          <select id="socio_id" name="socio_id" class="ncue-select" required>
+            <option value="">Seleccionar asociado...</option>
+            {% for s in socios %}
+            <option
+              value="{{ s.id }}"
+              data-search="{{ (s.codigo ~ ' ' ~ s.nombre ~ ' ' ~ s.apellido)|lower }}"
+              {% if selected_socio_id|string == s.id|string %}selected{% endif %}
+            >
+              {{ s.codigo }} - {{ s.nombre }} {{ s.apellido }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="ncue-field">
+          <label class="ncue-label" for="producto_ahorro">Tipo de cuenta *</label>
+          <select id="producto_ahorro" name="producto_ahorro" class="ncue-select" required>
+            {% for t in tipos_ahorro %}
+            {% set nombre_tipo = 'Aportacion' if t.tipo == 'ahorro_aportacion' else ('Ahorro corriente' if t.tipo == 'ahorro_corriente' else ('Plazo fijo' if t.tipo == 'ahorro_plazo_fijo' else t.tipo)) %}
+            <option value="{{ t.tipo }}" {% if selected_producto == t.tipo %}selected{% endif %}>
+              {{ nombre_tipo }} ({{ '%.2f'|format(t.tasa_interes) }}%)
+            </option>
+            {% endfor %}
+          </select>
+          <div class="ncue-help">Si el asociado ya tiene ese tipo, el sistema bloqueara la apertura.</div>
+        </div>
+
+        <div class="ncue-actions">
+          <a href="{{ url_for('cuentas') }}" class="btn btn-outline">Cancelar</a>
+          <button type="submit" class="btn btn-primary">Abrir cuenta</button>
+        </div>
+      </form>
+    </div>
+  </section>
+</div>
+
+<script>
+const buscarAsociadoInput = document.getElementById('buscar-asociado');
+const asociadoSelect = document.getElementById('socio_id');
+
+if (buscarAsociadoInput && asociadoSelect) {
+  buscarAsociadoInput.addEventListener('input', function () {
+    const term = (buscarAsociadoInput.value || '').trim().toLowerCase();
+
+    for (const option of asociadoSelect.options) {
+      if (!option.value) {
+        option.hidden = false;
+        continue;
+      }
+
+      const searchable = (option.dataset.search || '').toLowerCase();
+      option.hidden = term && !searchable.includes(term);
+    }
+
+    if (asociadoSelect.selectedOptions.length && asociadoSelect.selectedOptions[0].hidden) {
+      asociadoSelect.value = '';
+    }
+  });
+}
+</script>
+{% endblock %}

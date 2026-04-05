@@ -1,0 +1,444 @@
+{% extends "base.html" %}
+
+{% block title %}Reportes de Préstamos - Cooperativa{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        Reportes de Cartera de Préstamos
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Filtros de reporte -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <label for="tipo_reporte_prestamos" class="form-label">Tipo de Reporte</label>
+                            <select class="form-select" id="tipo_reporte_prestamos">
+                                <option value="cartera_activa">Cartera Activa</option>
+                                <option value="morosidad">Morosidad</option>
+                                <option value="pagos_vencidos">Pagos Vencidos</option>
+                                <option value="rendimiento">Rendimiento</option>
+                                <option value="comparativo">Comparativo Mensual</option>
+                                <option value="riesgo">Análisis de Riesgo</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="fecha_inicio_prestamos" class="form-label">Fecha Inicio</label>
+                            <input type="date" class="form-control" id="fecha_inicio_prestamos" value="{{ fecha_mes_anterior }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="fecha_fin_prestamos" class="form-label">Fecha Fin</label>
+                            <input type="date" class="form-control" id="fecha_fin_prestamos" value="{{ fecha_actual }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button type="button" class="btn btn-success" onclick="generarReportePrestamos()">
+                                    <i class="fas fa-search me-2"></i>Generar Reporte
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Estadísticas rápidas -->
+                    <div class="row mb-4" id="estadisticas_prestamos" style="display: none;">
+                        <div class="col-md-2">
+                            <div class="card text-center border-primary">
+                                <div class="card-body">
+                                    <h4 class="text-primary" id="total_prestamos">0</h4>
+                                    <p class="card-text small">Total Préstamos</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card text-center border-success">
+                                <div class="card-body">
+                                    <h4 class="text-success" id="cartera_total">0.00</h4>
+                                    <p class="card-text small">Cartera Total</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card text-center border-info">
+                                <div class="card-body">
+                                    <h4 class="text-info" id="promedio_prestamo">0.00</h4>
+                                    <p class="card-text small">Promedio</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card text-center border-warning">
+                                <div class="card-body">
+                                    <h4 class="text-warning" id="prestamos_vencidos">0</h4>
+                                    <p class="card-text small">Vencidos</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card text-center border-danger">
+                                <div class="card-body">
+                                    <h4 class="text-danger" id="tasa_morosidad">0.0%</h4>
+                                    <p class="card-text small">Morosidad</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card text-center border-secondary">
+                                <div class="card-body">
+                                    <h4 class="text-secondary" id="rendimiento_cartera">0.0%</h4>
+                                    <p class="card-text small">Rendimiento</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Área de resultados -->
+                    <div id="resultadosReportePrestamos" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 id="tituloReportePrestamos">Resultados del Reporte</h5>
+                            <div>
+                                <button type="button" class="btn btn-outline-primary btn-sm me-2" onclick="exportarExcelPrestamos()">
+                                    <i class="fas fa-file-excel me-2"></i>Exportar Excel
+                                </button>
+                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="exportarPDFPrestamos()">
+                                    <i class="fas fa-file-pdf me-2"></i>Exportar PDF
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="tablaReportePrestamos">
+                                <thead id="encabezadoTablaPrestamos">
+                                    <tr>
+                                        <th>Número Préstamo</th>
+                                        <th>Socio</th>
+                                        <th>Monto Original</th>
+                                        <th>Saldo Actual</th>
+                                        <th>Cuotas Pendientes</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cuerpoTablaPrestamos"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Gráfico de morosidad (placeholder) -->
+                    <div id="graficoMorosidad" class="mt-4" style="display: none;">
+                        <h5>Distribución de Morosidad</h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h3 class="text-success" id="al_dia">0</h3>
+                                        <p class="card-text">Al Día</p>
+                                        <div class="progress mt-2">
+                                            <div class="progress-bar bg-success" id="barra_al_dia" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h3 class="text-warning" id="atraso_1_30">0</h3>
+                                        <p class="card-text">1-30 días</p>
+                                        <div class="progress mt-2">
+                                            <div class="progress-bar bg-warning" id="barra_atraso_1_30" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h3 class="text-danger" id="atraso_31_mas">0</h3>
+                                        <p class="card-text">31+ días</p>
+                                        <div class="progress mt-2">
+                                            <div class="progress-bar bg-danger" id="barra_atraso_31_mas" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botón de regreso -->
+                    <div class="text-center mt-4">
+                        <a href="{{ url_for('menu_prestamos') }}" class="btn btn-outline-success">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            Regresar al Menú de Préstamos
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function generarReportePrestamos() {
+    const tipoReporte = document.getElementById('tipo_reporte_prestamos').value;
+    const fechaInicio = document.getElementById('fecha_inicio_prestamos').value;
+    const fechaFin = document.getElementById('fecha_fin_prestamos').value;
+
+    // Mostrar loading
+    document.getElementById('resultadosReportePrestamos').style.display = 'none';
+
+    fetch('/generar_reporte_prestamos', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            tipo_reporte: tipoReporte,
+            fecha_inicio: fechaInicio,
+            fecha_fin: fechaFin
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            mostrarEstadisticasPrestamos(data.estadisticas);
+            mostrarResultadosPrestamos(data.resultados, tipoReporte);
+
+            if (tipoReporte === 'morosidad') {
+                mostrarGraficoMorosidad(data.morosidad);
+            }
+        } else {
+            alert('Error al generar el reporte: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al generar el reporte');
+    });
+}
+
+function mostrarEstadisticasPrestamos(estadisticas) {
+    document.getElementById('total_prestamos').textContent = estadisticas.total_prestamos;
+    document.getElementById('cartera_total').textContent = estadisticas.cartera_total.toFixed(2);
+    document.getElementById('promedio_prestamo').textContent = estadisticas.promedio_prestamo.toFixed(2);
+    document.getElementById('prestamos_vencidos').textContent = estadisticas.prestamos_vencidos;
+    document.getElementById('tasa_morosidad').textContent = estadisticas.tasa_morosidad.toFixed(1) + '%';
+    document.getElementById('rendimiento_cartera').textContent = estadisticas.rendimiento_cartera.toFixed(1) + '%';
+
+    document.getElementById('estadisticas_prestamos').style.display = 'block';
+}
+
+function mostrarResultadosPrestamos(resultados, tipoReporte) {
+    const encabezadoTabla = document.getElementById('encabezadoTablaPrestamos');
+    const cuerpoTabla = document.getElementById('cuerpoTablaPrestamos');
+    const tituloReporte = document.getElementById('tituloReportePrestamos');
+
+    // Limpiar tabla anterior
+    cuerpoTabla.innerHTML = '';
+
+    // Configurar encabezado según tipo de reporte
+    switch(tipoReporte) {
+        case 'cartera_activa':
+            tituloReporte.textContent = 'Cartera Activa de Préstamos';
+            encabezadoTabla.innerHTML = `
+                <tr>
+                    <th>Número Préstamo</th>
+                    <th>Socio</th>
+                    <th>Monto Original</th>
+                    <th>Saldo Actual</th>
+                    <th>Cuotas Pendientes</th>
+                    <th>Próximo Pago</th>
+                    <th>Estado</th>
+                </tr>
+            `;
+            break;
+        case 'morosidad':
+            tituloReporte.textContent = 'Análisis de Morosidad';
+            encabezadoTabla.innerHTML = `
+                <tr>
+                    <th>Número Préstamo</th>
+                    <th>Socio</th>
+                    <th>Días de Atraso</th>
+                    <th>Monto Vencido</th>
+                    <th>Último Pago</th>
+                    <th>Estado</th>
+                </tr>
+            `;
+            break;
+        case 'pagos_vencidos':
+            tituloReporte.textContent = 'Pagos Vencidos';
+            encabezadoTabla.innerHTML = `
+                <tr>
+                    <th>Número Préstamo</th>
+                    <th>Socio</th>
+                    <th>Fecha Vencimiento</th>
+                    <th>Monto Vencido</th>
+                    <th>Días de Atraso</th>
+                    <th>Estado</th>
+                </tr>
+            `;
+            break;
+        case 'rendimiento':
+            tituloReporte.textContent = 'Rendimiento de Cartera';
+            encabezadoTabla.innerHTML = `
+                <tr>
+                    <th>Mes</th>
+                    <th>Intereses Cobrados</th>
+                    <th>Morosidad</th>
+                    <th>Cartera Promedio</th>
+                    <th>Rendimiento</th>
+                </tr>
+            `;
+            break;
+        case 'comparativo':
+            tituloReporte.textContent = 'Comparativo Mensual';
+            encabezadoTabla.innerHTML = `
+                <tr>
+                    <th>Mes</th>
+                    <th>Nuevos Préstamos</th>
+                    <th>Cartera Anterior</th>
+                    <th>Cartera Actual</th>
+                    <th>Crecimiento</th>
+                </tr>
+            `;
+            break;
+        case 'riesgo':
+            tituloReporte.textContent = 'Análisis de Riesgo';
+            encabezadoTabla.innerHTML = `
+                <tr>
+                    <th>Número Préstamo</th>
+                    <th>Socio</th>
+                    <th>Score de Riesgo</th>
+                    <th>Historial Pagos</th>
+                    <th>Capacidad de Pago</th>
+                    <th>Nivel de Riesgo</th>
+                </tr>
+            `;
+            break;
+    }
+
+    // Llenar tabla con datos
+    resultados.forEach(item => {
+        const row = cuerpoTabla.insertRow();
+
+        switch(tipoReporte) {
+            case 'cartera_activa':
+                row.innerHTML = `
+                    <td>${item.numero_prestamo}</td>
+                    <td>${item.nombre_socio}</td>
+                    <td>Q${item.monto_original.toFixed(2)}</td>
+                    <td>Q${item.saldo_actual.toFixed(2)}</td>
+                    <td>${item.cuotas_pendientes}</td>
+                    <td>${item.proximo_pago || 'N/A'}</td>
+                    <td><span class="badge bg-${item.estado === 'activo' ? 'success' : 'secondary'}">${item.estado}</span></td>
+                `;
+                break;
+            case 'morosidad':
+                row.innerHTML = `
+                    <td>${item.numero_prestamo}</td>
+                    <td>${item.nombre_socio}</td>
+                    <td><span class="badge bg-${getBadgeColorMorosidad(item.dias_atraso)}">${item.dias_atraso} días</span></td>
+                    <td>Q${item.monto_vencido.toFixed(2)}</td>
+                    <td>${item.ultimo_pago}</td>
+                    <td><span class="badge bg-${getBadgeColorMorosidad(item.dias_atraso)}">${getEstadoMorosidad(item.dias_atraso)}</span></td>
+                `;
+                break;
+            case 'pagos_vencidos':
+                row.innerHTML = `
+                    <td>${item.numero_prestamo}</td>
+                    <td>${item.nombre_socio}</td>
+                    <td>${item.fecha_vencimiento}</td>
+                    <td>Q${item.monto_vencido.toFixed(2)}</td>
+                    <td><span class="badge bg-danger">${item.dias_atraso} días</span></td>
+                    <td><span class="badge bg-danger">Vencido</span></td>
+                `;
+                break;
+            case 'rendimiento':
+                row.innerHTML = `
+                    <td>${item.mes}</td>
+                    <td>Q${item.intereses_cobrados.toFixed(2)}</td>
+                    <td>${item.morosidad.toFixed(1)}%</td>
+                    <td>Q${item.cartera_promedio.toFixed(2)}</td>
+                    <td><span class="badge bg-${item.rendimiento >= 2 ? 'success' : 'warning'}">${item.rendimiento.toFixed(1)}%</span></td>
+                `;
+                break;
+            case 'comparativo':
+                const crecimiento = ((item.cartera_actual - item.cartera_anterior) / item.cartera_anterior * 100);
+                row.innerHTML = `
+                    <td>${item.mes}</td>
+                    <td>${item.nuevos_prestamos}</td>
+                    <td>Q${item.cartera_anterior.toFixed(2)}</td>
+                    <td>Q${item.cartera_actual.toFixed(2)}</td>
+                    <td class="${crecimiento >= 0 ? 'text-success' : 'text-danger'}">
+                        ${crecimiento >= 0 ? '+' : ''}${crecimiento.toFixed(1)}%
+                    </td>
+                `;
+                break;
+            case 'riesgo':
+                row.innerHTML = `
+                    <td>${item.numero_prestamo}</td>
+                    <td>${item.nombre_socio}</td>
+                    <td>${item.score_riesgo}/100</td>
+                    <td><span class="badge bg-${item.historial_pagos === 'excelente' ? 'success' : item.historial_pagos === 'bueno' ? 'info' : 'warning'}">${item.historial_pagos}</span></td>
+                    <td><span class="badge bg-${item.capacidad_pago === 'alta' ? 'success' : item.capacidad_pago === 'media' ? 'warning' : 'danger'}">${item.capacidad_pago}</span></td>
+                    <td><span class="badge bg-${item.nivel_riesgo === 'bajo' ? 'success' : item.nivel_riesgo === 'medio' ? 'warning' : 'danger'}">${item.nivel_riesgo}</span></td>
+                `;
+                break;
+        }
+    });
+
+    document.getElementById('resultadosReportePrestamos').style.display = 'block';
+}
+
+function mostrarGraficoMorosidad(morosidad) {
+    document.getElementById('al_dia').textContent = morosidad.al_dia;
+    document.getElementById('atraso_1_30').textContent = morosidad.atraso_1_30;
+    document.getElementById('atraso_31_mas').textContent = morosidad.atraso_31_mas;
+
+    const total = morosidad.al_dia + morosidad.atraso_1_30 + morosidad.atraso_31_mas;
+    if (total > 0) {
+        document.getElementById('barra_al_dia').style.width = (morosidad.al_dia / total * 100) + '%';
+        document.getElementById('barra_atraso_1_30').style.width = (morosidad.atraso_1_30 / total * 100) + '%';
+        document.getElementById('barra_atraso_31_mas').style.width = (morosidad.atraso_31_mas / total * 100) + '%';
+    }
+
+    document.getElementById('graficoMorosidad').style.display = 'block';
+}
+
+function getBadgeColorMorosidad(dias) {
+    if (dias === 0) return 'success';
+    if (dias <= 30) return 'warning';
+    return 'danger';
+}
+
+function getEstadoMorosidad(dias) {
+    if (dias === 0) return 'Al día';
+    if (dias <= 30) return 'Atraso leve';
+    return 'Moroso';
+}
+
+function exportarExcelPrestamos() {
+    const tipoReporte = document.getElementById('tipo_reporte_prestamos').value;
+    const fechaInicio = document.getElementById('fecha_inicio_prestamos').value;
+    const fechaFin = document.getElementById('fecha_fin_prestamos').value;
+    const url = `/reporte_prestamos/export?formato=excel&tipo_reporte=${encodeURIComponent(tipoReporte)}&fecha_inicio=${encodeURIComponent(fechaInicio)}&fecha_fin=${encodeURIComponent(fechaFin)}`;
+    window.location.href = url;
+}
+
+function exportarPDFPrestamos() {
+    const tipoReporte = document.getElementById('tipo_reporte_prestamos').value;
+    const fechaInicio = document.getElementById('fecha_inicio_prestamos').value;
+    const fechaFin = document.getElementById('fecha_fin_prestamos').value;
+    const url = `/reporte_prestamos/export?formato=pdf&tipo_reporte=${encodeURIComponent(tipoReporte)}&fecha_inicio=${encodeURIComponent(fechaInicio)}&fecha_fin=${encodeURIComponent(fechaFin)}`;
+    window.location.href = url;
+}
+
+// Cargar datos iniciales al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    // Aquí se podrían cargar estadísticas generales al inicio
+});
+</script>
+{% endblock %}

@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}Retiros Masivos de Ahorro - Cooperativa{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">
+                        <i class="fas fa-minus-circle me-2"></i>
+                        Retiros Masivos de Cuentas de Ahorro
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Instrucciones -->
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-info-circle me-2"></i>Instrucciones</h5>
+                        <ul class="mb-0">
+                            <li>Sube un archivo Excel (.xlsx) o CSV con las columnas: <strong>numero_cuenta, monto_retiro, descripcion</strong></li>
+                            <li>El número de cuenta debe existir en el sistema</li>
+                            <li>El monto no puede exceder el saldo disponible de la cuenta</li>
+                            <li>La descripción es opcional pero recomendada</li>
+                        </ul>
+                    </div>
+
+                    <!-- Formulario de carga -->
+                    <form id="retirosForm" enctype="multipart/form-data">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="archivo" class="form-label">
+                                        <i class="fas fa-file-upload me-2"></i>Archivo de Retiros
+                                    </label>
+                                    <input type="file" class="form-control" id="archivo" name="archivo"
+                                           accept=".xlsx,.csv" required>
+                                    <div class="form-text">
+                                        Formatos soportados: Excel (.xlsx) o CSV
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="fecha_retiro" class="form-label">
+                                        <i class="fas fa-calendar me-2"></i>Fecha de Retiro
+                                    </label>
+                                    <input type="date" class="form-control" id="fecha_retiro"
+                                           name="fecha_retiro" value="{{ fecha_actual }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <button type="button" class="btn btn-secondary" onclick="validarArchivo()">
+                                        <i class="fas fa-check-circle me-2"></i>Validar Archivo
+                                    </button>
+                                    <button type="submit" class="btn btn-warning" id="btnProcesar" disabled>
+                                        <i class="fas fa-play me-2"></i>Procesar Retiros
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Resultados de validación -->
+                    <div id="resultadosValidacion" class="mt-4" style="display: none;">
+                        <h5><i class="fas fa-clipboard-check me-2"></i>Resultados de Validación</h5>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h3 class="text-success" id="totalValidos">0</h3>
+                                        <p class="card-text">Válidos</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h3 class="text-danger" id="totalErrores">0</h3>
+                                        <p class="card-text">Errores</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h3 class="text-info" id="totalMonto">0.00</h3>
+                                        <p class="card-text">Monto Total</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h3 class="text-warning" id="totalRegistros">0</h3>
+                                        <p class="card-text">Total Registros</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de errores -->
+                    <div id="erroresTable" class="mt-4" style="display: none;">
+                        <h5><i class="fas fa-exclamation-triangle me-2"></i>Errores Encontrados</h5>
+                        <div class="table-responsive">
+                            <table class="table table-striped" id="tablaErrores">
+                                <thead>
+                                    <tr>
+                                        <th>Fila</th>
+                                        <th>Número de Cuenta</th>
+                                        <th>Error</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Botón de regreso -->
+                    <div class="text-center mt-4">
+                        <a href="{{ url_for('menu_ahorro') }}" class="btn btn-outline-warning">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            Regresar al Menú de Ahorro
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let datosRetiros = [];
+
+function validarArchivo() {
+    const archivo = document.getElementById('archivo').files[0];
+    if (!archivo) {
+        alert('Por favor selecciona un archivo');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('archivo', archivo);
+
+    fetch('/validar_retiros_ahorro', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        mostrarResultadosValidacion(data);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al validar el archivo');
+    });
+}
+
+function mostrarResultadosValidacion(data) {
+    document.getElementById('totalValidos').textContent = data.validos;
+    document.getElementById('totalErrores').textContent = data.errores;
+    document.getElementById('totalMonto').textContent = data.monto_total.toFixed(2);
+    document.getElementById('totalRegistros').textContent = data.total_registros;
+
+    document.getElementById('resultadosValidacion').style.display = 'block';
+
+    if (data.errores_detalle && data.errores_detalle.length > 0) {
+        mostrarErrores(data.errores_detalle);
+        document.getElementById('btnProcesar').disabled = true;
+    } else {
+        document.getElementById('erroresTable').style.display = 'none';
+        document.getElementById('btnProcesar').disabled = false;
+        datosRetiros = data.datos_validos;
+    }
+}
+
+function mostrarErrores(errores) {
+    const tbody = document.querySelector('#tablaErrores tbody');
+    tbody.innerHTML = '';
+
+    errores.forEach(error => {
+        const row = tbody.insertRow();
+        row.insertCell(0).textContent = error.fila;
+        row.insertCell(1).textContent = error.numero_cuenta;
+        row.insertCell(2).textContent = error.error;
+    });
+
+    document.getElementById('erroresTable').style.display = 'block';
+}
+
+document.getElementById('retirosForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    if (datosRetiros.length === 0) {
+        alert('No hay datos válidos para procesar');
+        return;
+    }
+
+    const fechaRetiro = document.getElementById('fecha_retiro').value;
+
+    fetch('/procesar_retiros_ahorro', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            retiros: datosRetiros,
+            fecha_retiro: fechaRetiro
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Retiros procesados exitosamente. Total: Q${data.monto_total.toFixed(2)}`);
+            location.reload();
+        } else {
+            alert('Error al procesar los retiros: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al procesar los retiros');
+    });
+});
+</script>
+{% endblock %}

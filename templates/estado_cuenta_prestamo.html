@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Estado de Cuenta de Prestamo{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Estado de Cuenta de Prestamo</div>
+    <div class="page-subtitle">{{ socio.codigo }} · {{ socio.nombre }} {{ socio.apellido }}</div>
+  </div>
+  <a href="{{ url_for('detalle_socio', sid=socio.id) }}" class="btn btn-outline">Volver</a>
+</div>
+
+<div class="card" style="margin-bottom:16px;">
+  <div class="card-body">
+    <form method="GET" action="{{ url_for('estado_cuenta_prestamo', sid=socio.id) }}" class="form-grid" style="align-items:end;">
+      <div class="form-group">
+        <label>Fecha desde</label>
+        <input type="date" name="fecha_desde" value="{{ filtros.fecha_desde }}">
+      </div>
+      <div class="form-group">
+        <label>Fecha hasta</label>
+        <input type="date" name="fecha_hasta" value="{{ filtros.fecha_hasta }}">
+      </div>
+      <div class="form-group" style="display:flex;gap:8px;align-items:end;">
+        <button type="submit" class="btn btn-primary">Filtrar</button>
+        <a href="{{ url_for('estado_cuenta_prestamo', sid=socio.id, fecha_desde=filtros.fecha_desde, fecha_hasta=filtros.fecha_hasta, export='csv') }}" class="btn btn-outline">CSV</a>
+        <a href="{{ url_for('estado_cuenta_prestamo', sid=socio.id, fecha_desde=filtros.fecha_desde, fecha_hasta=filtros.fecha_hasta, export='excel') }}" class="btn btn-outline">Excel</a>
+        <a href="{{ url_for('estado_cuenta_prestamo', sid=socio.id, fecha_desde=filtros.fecha_desde, fecha_hasta=filtros.fecha_hasta, print='1') }}" class="btn btn-gold">Imprimir / PDF</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Prestamos</div>
+    <div class="stat-value">{{ resumen.total_prestamos }}</div>
+  </div>
+  <div class="stat-card gold">
+    <div class="stat-label">Total Pagado</div>
+    <div class="stat-value">Q{{ '{:,.2f}'.format(total_pagado) }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Saldo Activo</div>
+    <div class="stat-value">Q{{ '{:,.2f}'.format(resumen.saldo_activo or 0) }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Prestamos Cancelados</div>
+    <div class="stat-value">{{ resumen.prestamos_cancelados }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">Movimientos de Prestamo ({{ pagos|length }})</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fecha</th><th>Prestamo</th><th>Monto</th><th>Capital</th><th>Interes</th><th>Saldo Restante</th><th>Comprobante</th><th>Boleta</th></tr></thead>
+      <tbody>
+        {% for pago in pagos %}
+        <tr>
+          <td>{{ pago.fecha }}</td>
+          <td>{{ pago.numero_prestamo }}</td>
+          <td class="amount">Q{{ '{:,.2f}'.format(pago.monto) }}</td>
+          <td class="amount">Q{{ '{:,.2f}'.format(pago.capital) }}</td>
+          <td class="amount">Q{{ '{:,.2f}'.format(pago.interes) }}</td>
+          <td class="amount">Q{{ '{:,.2f}'.format(pago.saldo_restante) }}</td>
+          <td>
+            <a href="{{ url_for('comprobante_pago_prestamo', pago_id=pago.id) }}" class="btn btn-outline btn-sm">{{ pago.numero_comprobante or 'Ver' }}</a>
+          </td>
+          <td>{{ pago.boleta_deposito or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:20px;">Sin pagos en el rango seleccionado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if printable %}
+<script>
+window.addEventListener('load', () => window.print());
+</script>
+{% endif %}
+{% endblock %}

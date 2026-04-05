@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Usuarios — Cooperativa Quetzal{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Usuarios</div>
+    <div class="page-subtitle">Gestión de usuarios del sistema</div>
+  </div>
+  <a href="{{ url_for('nuevo_usuario') }}" class="btn btn-primary">+ Nuevo Usuario</a>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Usuario</th><th>Rol</th><th>Activo</th><th>Creado</th></tr>
+        </thead>
+        <tbody>
+          {% for u in usuarios %}
+          <tr>
+            <td>{{ u.id }}</td>
+            <td>{{ u.username }}</td>
+            <td>{{ u.rol_nombre or 'Sin rol' }}</td>
+            <td>{{ u.activo }}</td>
+            <td>{{ u.fecha_creacion }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" style="text-align:center; color:#9ca3af;">No hay usuarios registrados</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

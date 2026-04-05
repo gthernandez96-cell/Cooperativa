@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Finiquito de Préstamo — {{ cooperativa_nombre }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Finiquito de Préstamo</div>
+    <div class="page-subtitle">{{ prestamo.numero }} · {{ prestamo.socio_codigo }} — {{ prestamo.nombre_socio }}</div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="{{ url_for('aprobar_prestamo', pid=prestamo.id) }}" class="btn btn-outline">Volver</a>
+    <a href="{{ url_for('calendario_prestamo_pdf', pid=prestamo.id) }}" class="btn btn-outline">Calendario PDF</a>
+    <a href="{{ url_for('finiquito_prestamo', pid=prestamo.id, formato='pdf') }}" class="btn btn-gold">Exportar PDF</a>
+  </div>
+</div>
+
+<div class="card" style="max-width:860px;margin:0 auto;">
+  <div class="card-body" style="display:flex;flex-direction:column;gap:18px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+      <div><div style="font-size:12px;color:#6b7280;">Categoría</div><div style="font-weight:600;">{{ prestamo.categoria_nombre or 'General' }}</div></div>
+      <div><div style="font-size:12px;color:#6b7280;">Frecuencia</div><div style="font-weight:600;">{{ prestamo.frecuencia }}</div></div>
+      <div><div style="font-size:12px;color:#6b7280;">Monto aprobado</div><div style="font-weight:600;">Q{{ '{:,.2f}'.format(prestamo.monto_aprobado or prestamo.monto_solicitado) }}</div></div>
+      <div><div style="font-size:12px;color:#6b7280;">Cuota</div><div style="font-weight:600;">Q{{ '{:,.2f}'.format(prestamo.cuota_mensual or 0) }}</div></div>
+      <div><div style="font-size:12px;color:#6b7280;">Desembolso</div><div style="font-weight:600;">{{ (prestamo.desembolso_tipo or 'No definido')|capitalize }}{% if prestamo.desembolso_referencia %} · {{ prestamo.desembolso_referencia }}{% endif %}</div></div>
+    </div>
+
+    <div style="border:1px solid #e5e7eb;border-radius:12px;padding:18px;background:#fffdf8;white-space:pre-line;line-height:1.8;">{{ contenido_finiquito }}</div>
+  </div>
+</div>
+{% endblock %}

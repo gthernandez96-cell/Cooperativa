@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+{% block title %}Aprobar Préstamo — {{ cooperativa_nombre }}{% endblock %}
+{% block content %}
+<style>
+.aprobar-shell { display:flex; flex-direction:column; gap:12px; }
+
+.aprobar-header {
+  display:flex; align-items:flex-start; justify-content:space-between; gap:14px;
+  padding-bottom:10px; border-bottom:2px solid var(--c-border,#e5e7eb);
+}
+.aprobar-eyebrow {
+  font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--c-blue,#003b74); margin-bottom:4px;
+}
+.aprobar-title {
+  font-family:'Fraunces',serif; font-size:24px; line-height:1.2;
+  color:#0f1f32; letter-spacing:-.02em;
+}
+.aprobar-sub { margin-top:2px; font-size:12px; color:#6b7280; }
+
+.aprobar-header-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.aprobar-header-actions .btn {
+  padding:7px 10px;
+  font-size:12px;
+  min-height:auto;
+}
+
+.aprobar-kpi-row {
+  display:grid; gap:10px;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+}
+.aprobar-kpi {
+  position:relative; background:#fff; border:1px solid var(--c-border,#e5e7eb);
+  border-radius:10px; padding:10px 12px;
+}
+.aprobar-kpi::after {
+  content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
+  border-radius:10px 0 0 10px; background:#003b74;
+}
+.aprobar-kpi-label {
+  font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:#6b7280;
+}
+.aprobar-kpi-value {
+  margin-top:5px; font-family:'Fraunces',serif; font-size:24px; line-height:1; color:#0f1f32;
+}
+
+.aprobar-main {
+  display:grid; grid-template-columns:minmax(0,1fr) 280px; gap:12px; align-items:start;
+}
+
+.aprobar-card {
+  background:#fff; border:1px solid var(--c-border,#e5e7eb);
+  border-radius:10px; overflow:hidden;
+}
+.aprobar-card-head {
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:10px 12px; background:#fafafa; border-bottom:1px solid var(--c-border,#e5e7eb);
+}
+.aprobar-card-title { font-size:13px; font-weight:700; color:#374151; }
+.aprobar-badge {
+  display:inline-flex; align-items:center; padding:4px 9px;
+  border-radius:999px; font-size:11px; font-weight:700;
+  letter-spacing:.05em; text-transform:uppercase;
+  background:#eaf2fb; color:#0b4d83;
+}
+.aprobar-card-body { padding:12px; }
+
+.aprobar-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.aprobar-field { display:flex; flex-direction:column; gap:4px; }
+.aprobar-field-full { grid-column:1 / -1; }
+.aprobar-field label {
+  font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#6b7280;
+}
+.aprobar-field input,
+.aprobar-field select {
+  width:100%; box-sizing:border-box; padding:7px 9px;
+  border:1px solid var(--c-border,#e5e7eb); border-radius:7px;
+  font-size:12px; background:#fafafa; color:#0f1f32;
+}
+.aprobar-field input:focus,
+.aprobar-field select:focus {
+  outline:none; border-color:var(--c-blue,#003b74); background:#fff;
+}
+.aprobar-field input[readonly] { background:#f3f4f6; color:#6b7280; }
+
+.aprobar-actions { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
+.aprobar-actions .btn {
+  padding:7px 10px;
+  font-size:12px;
+  min-height:auto;
+}
+
+.aprobar-side { display:flex; flex-direction:column; gap:10px; }
+.aprobar-summary-head { background:#03284c; color:#fff; padding:12px 14px; }
+.aprobar-summary-head .label {
+  font-size:11px; letter-spacing:.06em; text-transform:uppercase; opacity:.7;
+}
+.aprobar-summary-head .value {
+  margin-top:5px; font-family:'Fraunces',serif; font-size:30px; line-height:1; color:#f6c954;
+}
+.aprobar-summary-body { padding:0 12px 2px; }
+.aprobar-summary-row {
+  display:flex; justify-content:space-between; align-items:center;
+  border-bottom:1px solid #f3f4f6; padding:7px 0; font-size:12px;
+}
+.aprobar-summary-row:last-child { border-bottom:0; }
+.aprobar-summary-row span { color:#6b7280; }
+.aprobar-summary-row strong { color:#0f1f32; text-align:right; }
+.aprobar-summary-row.highlight strong { color:#15803d; }
+
+.aprobar-tip {
+  background:#fff; border:1px solid var(--c-border,#e5e7eb); border-radius:10px; padding:10px;
+}
+.aprobar-tip strong { display:block; font-size:12px; color:#374151; margin-bottom:3px; }
+.aprobar-tip span { font-size:12px; color:#9ca3af; line-height:1.45; }
+
+.aprobar-table-wrap { padding:0 12px 12px; }
+.aprobar-table-shell {
+  border:1px solid #e5e7eb; border-radius:8px; overflow:auto; background:#fff;
+}
+.aprobar-table {
+  width:100%; min-width:620px; border-collapse:collapse; font-size:12px;
+}
+.aprobar-table thead th {
+  position:sticky; top:0; z-index:1; background:#f8fafc;
+  padding:7px 9px; text-align:left; color:#6b7280;
+  text-transform:uppercase; letter-spacing:.06em; font-size:11px;
+  border-bottom:1px solid #e5e7eb;
+}
+.aprobar-table tbody td {
+  padding:7px 9px;
+  border-bottom:1px solid #f3f4f6;
+  line-height:1.3;
+}
+.aprobar-table tbody tr:last-child td { border-bottom:0; }
+.aprobar-table tbody tr:hover { background:#f8fbff; }
+.aprobar-cuota-numero {
+  font-family:'Fraunces',serif; font-size:15px; color:#12314e;
+}
+
+@media (max-width: 980px) {
+  .aprobar-main { grid-template-columns:1fr; }
+  .aprobar-side { order:-1; }
+}
+
+@media (max-width: 760px) {
+  .aprobar-kpi-row { grid-template-columns:1fr; }
+  .aprobar-grid { grid-template-columns:1fr; }
+  .aprobar-header { flex-direction:column; }
+  .aprobar-header-actions .btn { width:100%; }
+  .aprobar-table { min-width:540px; font-size:11px; }
+  .aprobar-table thead th { padding:6px 7px; font-size:10px; }
+  .aprobar-table tbody td { padding:6px 7px; }
+  .aprobar-cuota-numero { font-size:14px; }
+}
+</style>
+
+<div class="aprobar-shell">
+  <header class="aprobar-header">
+    <div>
+      <div class="aprobar-eyebrow">Aprobacion crediticia</div>
+      <div class="aprobar-title">Aprobar prestamo {{ prestamo.numero }}</div>
+      <div class="aprobar-sub">Confirme condiciones, desembolso y calendario de pago.</div>
+    </div>
+    <div class="aprobar-header-actions">
+      <a href="{{ url_for('prestamos') }}" class="btn btn-outline btn-sm">Volver a prestamos</a>
+      {% if prestamo.estado != 'pendiente' %}
+      <a href="{{ url_for('calendario_prestamo_pdf', pid=prestamo.id) }}" class="btn btn-outline btn-sm">Calendario PDF</a>
+      <a href="{{ url_for('finiquito_prestamo', pid=prestamo.id) }}" class="btn btn-gold btn-sm">Ver finiquito</a>
+      {% endif %}
+    </div>
+  </header>
+
+  <section class="aprobar-kpi-row">
+    <article class="aprobar-kpi">
+      <div class="aprobar-kpi-label">Cuota estimada</div>
+      <div class="aprobar-kpi-value">Q{{ '{:,.2f}'.format(resumen.cuota) }}</div>
+    </article>
+    <article class="aprobar-kpi">
+      <div class="aprobar-kpi-label">Total cuotas</div>
+      <div class="aprobar-kpi-value">{{ resumen.total_cuotas }}</div>
+    </article>
+    <article class="aprobar-kpi">
+      <div class="aprobar-kpi-label">Monto aprobado</div>
+      <div class="aprobar-kpi-value">Q{{ '{:,.2f}'.format(prestamo.monto_aprobado or prestamo.monto_solicitado) }}</div>
+    </article>
+  </section>
+
+  <section class="aprobar-main">
+    <div class="aprobar-card">
+      <div class="aprobar-card-head">
+        <div>
+          <div class="aprobar-card-title">Formulario de aprobacion</div>
+        </div>
+        <div class="aprobar-badge">Expediente {{ prestamo.numero }}</div>
+      </div>
+      <div class="aprobar-card-body">
+        <form method="post">
+          <div class="aprobar-grid">
+            <div class="aprobar-field">
+              <label>Asociado</label>
+              <input type="text" value="{{ prestamo.socio_codigo }} — {{ prestamo.nombre_socio }}" readonly>
+            </div>
+            <div class="aprobar-field">
+              <label>Categoría</label>
+              <input type="text" value="{{ prestamo.categoria_nombre or 'General' }}" readonly>
+            </div>
+            <div class="aprobar-field">
+              <label>Frecuencia</label>
+              <input type="text" value="{{ prestamo.frecuencia }}" readonly>
+            </div>
+            <div class="aprobar-field">
+              <label>Total de cuotas</label>
+              <input type="text" value="{{ resumen.total_cuotas }}" readonly>
+            </div>
+            <div class="aprobar-field">
+              <label>Monto aprobado (Q)</label>
+              <input type="number" name="monto_aprobado" step="0.01" min="0" value="{{ '%.2f'|format(prestamo.monto_aprobado or prestamo.monto_solicitado) }}" required>
+            </div>
+            <div class="aprobar-field">
+              <label>Fecha de aprobación</label>
+              <input type="date" name="fecha_aprobacion" value="{{ fecha_aprobacion }}" required>
+            </div>
+            <div class="aprobar-field aprobar-field-full">
+              <label>Primera fecha de pago</label>
+              <input type="date" name="fecha_primer_pago" value="{{ fecha_primer_pago }}" required>
+            </div>
+            <div class="aprobar-field">
+              <label>Forma de desembolso</label>
+              <select name="desembolso_tipo" required>
+                <option value="deposito" {% if desembolso_tipo == 'deposito' %}selected{% endif %}>Depósito</option>
+                <option value="cheque" {% if desembolso_tipo == 'cheque' %}selected{% endif %}>Cheque</option>
+              </select>
+            </div>
+            <div class="aprobar-field">
+              <label>Referencia de desembolso</label>
+              <input type="text" name="desembolso_referencia" value="{{ desembolso_referencia or '' }}" placeholder="No. boleta o no. cheque" required>
+            </div>
+          </div>
+          <div class="aprobar-actions">
+            <button type="submit" class="btn btn-primary">Guardar aprobacion y calendario</button>
+            <a href="{{ url_for('prestamos') }}" class="btn btn-outline">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <aside class="aprobar-side">
+      <div class="aprobar-card">
+        <div class="aprobar-summary-head">
+          <div class="label">Proyección del préstamo</div>
+          <div class="value">Q{{ '{:,.2f}'.format(resumen.cuota) }}</div>
+        </div>
+        <div class="aprobar-summary-body">
+          <div class="aprobar-summary-row">
+            <span>Monto aprobado</span>
+            <strong>Q{{ '{:,.2f}'.format(prestamo.monto_aprobado or prestamo.monto_solicitado) }}</strong>
+          </div>
+          <div class="aprobar-summary-row">
+            <span>Intereses estimados</span>
+            <strong>Q{{ '{:,.2f}'.format(resumen.intereses) }}</strong>
+          </div>
+          <div class="aprobar-summary-row">
+            <span>Total estimado</span>
+            <strong>Q{{ '{:,.2f}'.format(resumen.total) }}</strong>
+          </div>
+          <div class="aprobar-summary-row">
+            <span>Desembolso</span>
+            <strong>{{ (desembolso_tipo or 'deposito')|capitalize }}</strong>
+          </div>
+          <div class="aprobar-summary-row highlight">
+            <span>Última cuota</span>
+            <strong>{{ calendario_preview[-1].fecha_programada if calendario_preview else '—' }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="aprobar-tip">
+        <strong>Control documental</strong>
+        <span>Despues de guardar la aprobacion podra descargar el calendario y emitir el finiquito correspondiente.</span>
+      </div>
+      <div class="aprobar-tip">
+        <strong>Validacion clave</strong>
+        <span>La primera fecha de pago debe ser posterior a la fecha de aprobacion para que el calendario sea valido.</span>
+      </div>
+    </aside>
+  </section>
+
+  <section class="aprobar-card">
+    <div class="aprobar-card-head">
+      <div>
+        <div class="aprobar-card-title">Calendario estimado de pagos</div>
+      </div>
+      <div class="aprobar-badge">{{ calendario_preview|length }} cuota(s)</div>
+    </div>
+    <div class="aprobar-table-wrap">
+      <div class="aprobar-table-shell">
+        <table class="aprobar-table">
+          <thead>
+            <tr><th>No. cuota</th><th>Fecha programada</th><th>Monto programado</th><th>Estado</th></tr>
+          </thead>
+          <tbody>
+            {% for cuota in calendario_preview %}
+            <tr>
+              <td class="aprobar-cuota-numero">{{ cuota.numero_cuota }}</td>
+              <td>{{ cuota.fecha_programada }}</td>
+              <td class="amount">Q{{ '{:,.2f}'.format(cuota.monto_programado) }}</td>
+              <td><span class="badge {% if cuota.estado == 'pagado' %}badge-green{% else %}badge-gold{% endif %}">{{ (cuota.estado or 'pendiente').capitalize() }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Cierres de Periodo{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Cierres de Periodo</div>
+    <div class="page-subtitle">Bloquea movimientos historicos por modulo y rango de fechas</div>
+  </div>
+  <a href="{{ url_for('menu_prestamos') }}" class="btn btn-outline">Volver</a>
+</div>
+
+<div class="card" style="margin-bottom:16px;">
+  <div class="card-header"><span class="card-title">Nuevo cierre</span></div>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('cierres_periodo') }}" class="form-grid" style="align-items:end;">
+      <div class="form-group">
+        <label>Modulo</label>
+        <select name="modulo" required>
+          <option value="ahorro">Ahorro</option>
+          <option value="prestamos">Prestamos</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Fecha inicio</label>
+        <input type="date" name="fecha_inicio" required>
+      </div>
+      <div class="form-group">
+        <label>Fecha fin</label>
+        <input type="date" name="fecha_fin" required>
+      </div>
+      <div class="form-group">
+        <label>Observaciones</label>
+        <input type="text" name="observaciones" placeholder="Motivo del cierre">
+      </div>
+      <div class="form-group">
+        <button type="submit" class="btn btn-primary">Guardar cierre</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><span class="card-title">Historial de cierres</span></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Modulo</th><th>Inicio</th><th>Fin</th><th>Estado</th><th>Usuario</th><th>Fecha registro</th><th>Observaciones</th></tr></thead>
+      <tbody>
+        {% for c in cierres %}
+        <tr>
+          <td>{{ c.modulo }}</td>
+          <td>{{ c.fecha_inicio }}</td>
+          <td>{{ c.fecha_fin }}</td>
+          <td><span class="badge badge-red">{{ c.estado }}</span></td>
+          <td>{{ c.usuario or 'sistema' }}</td>
+          <td>{{ c.fecha_creacion }}</td>
+          <td>{{ c.observaciones or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:20px;">Sin cierres registrados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

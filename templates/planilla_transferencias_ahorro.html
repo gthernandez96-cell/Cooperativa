@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+
+{% block title %}Transferencias Internas de Ahorro - Cooperativa{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-exchange-alt me-2"></i>
+                        Transferencias Internas entre Cuentas de Ahorro
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Instrucciones -->
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-info-circle me-2"></i>Instrucciones</h5>
+                        <ul class="mb-0">
+                            <li>Sube un archivo Excel (.xlsx) o CSV con las columnas: <strong>cuenta_origen, cuenta_destino, monto_transferencia, descripcion</strong></li>
+                            <li>Ambas cuentas deben existir y estar activas</li>
+                            <li>La cuenta origen debe tener saldo suficiente</li>
+                            <li>Las transferencias se procesan como una sola transacción atómica</li>
+                        </ul>
+                    </div>
+
+                    <!-- Formulario de carga -->
+                    <form id="transferenciasForm" enctype="multipart/form-data">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="archivo" class="form-label">
+                                        <i class="fas fa-file-upload me-2"></i>Archivo de Transferencias
+                                    </label>
+                                    <input type="file" class="form-control" id="archivo" name="archivo"
+                                           accept=".xlsx,.csv" required>
+                                    <div class="form-text">
+                                        Formatos soportados: Excel (.xlsx) o CSV
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="fecha_transferencia" class="form-label">
+                                        <i class="fas fa-calendar me-2"></i>Fecha de Transferencia
+                                    </label>
+                                    <input type="date" class="form-control" id="fecha_transferencia"
+                                           name="fecha_transferencia" value="{{ fecha_actual }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="tipo_transferencia" class="form-label">
+                                        <i class="fas fa-tag me-2"></i>Tipo de Transferencia
+                                    </label>
+                                    <select class="form-select" id="tipo_transferencia" name="tipo_transferencia" required>
+                                        <option value="inmediata">Inmediata</option>
+                                        <option value="programada">Programada</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="comision_transferencia" class="form-label">
+                                        <i class="fas fa-dollar-sign me-2"></i>Comisión por Transferencia
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">Q</span>
+                                        <input type="number" class="form-control" id="comision_transferencia"
+                                               name="comision_transferencia" value="0.00" step="0.01" min="0">
+                                    </div>
+                                    <div class="form-text">
+                                        Comisión que se cobra por cada transferencia (opcional)
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <button type="button" class="btn btn-secondary" onclick="validarArchivo()">
+                                        <i class="fas fa-check-circle me-2"></i>Validar Archivo
+                                    </button>
+                                    <button type="submit" class="btn btn-info" id="btnProcesar" disabled>
+                                        <i class="fas fa-play me-2"></i>Procesar Transferencias
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Resultados de validación -->
+                    <div id="resultadosValidacion" class="mt-4" style="display: none;">
+                        <h5><i class="fas fa-clipboard-check me-2"></i>Resultados de Validación</h5>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h3 class="text-success" id="totalValidos">0</h3>
+                                        <p class="card-text">Válidos</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h3 class="text-danger" id="totalErrores">0</h3>
+                                        <p class="card-text">Errores</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h3 class="text-info" id="totalMonto">0.00</h3>
+                                        <p class="card-text">Monto Total</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h3 class="text-warning" id="totalRegistros">0</h3>
+                                        <p class="card-text">Total Registros</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de errores -->
+                    <div id="erroresTable" class="mt-4" style="display: none;">
+                        <h5><i class="fas fa-exclamation-triangle me-2"></i>Errores Encontrados</h5>
+                        <div class="table-responsive">
+                            <table class="table table-striped" id="tablaErrores">
+                                <thead>
+                                    <tr>
+                                        <th>Fila</th>
+                                        <th>Cuenta Origen</th>
+                                        <th>Cuenta Destino</th>
+                                        <th>Error</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Resumen de transferencias -->
+                    <div id="resumenTransferencias" class="mt-4" style="display: none;">
+                        <h5><i class="fas fa-list me-2"></i>Resumen de Transferencias</h5>
+                        <div class="table-responsive">
+                            <table class="table table-striped" id="tablaResumen">
+                                <thead>
+                                    <tr>
+                                        <th>Cuenta Origen</th>
+                                        <th>Cuenta Destino</th>
+                                        <th>Monto</th>
+                                        <th>Saldo Origen (Después)</th>
+                                        <th>Saldo Destino (Después)</th>
+                                        <th>Descripción</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Botón de regreso -->
+                    <div class="text-center mt-4">
+                        <a href="{{ url_for('menu_ahorro') }}" class="btn btn-outline-info">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            Regresar al Menú de Ahorro
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let datosTransferencias = [];
+
+function validarArchivo() {
+    const archivo = document.getElementById('archivo').files[0];
+    if (!archivo) {
+        alert('Por favor selecciona un archivo');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('archivo', archivo);
+
+    fetch('/validar_transferencias_ahorro', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        mostrarResultadosValidacion(data);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al validar el archivo');
+    });
+}
+
+function mostrarResultadosValidacion(data) {
+    document.getElementById('totalValidos').textContent = data.validos;
+    document.getElementById('totalErrores').textContent = data.errores;
+    document.getElementById('totalMonto').textContent = data.monto_total.toFixed(2);
+    document.getElementById('totalRegistros').textContent = data.total_registros;
+
+    document.getElementById('resultadosValidacion').style.display = 'block';
+
+    if (data.errores_detalle && data.errores_detalle.length > 0) {
+        mostrarErrores(data.errores_detalle);
+        document.getElementById('btnProcesar').disabled = true;
+    } else {
+        document.getElementById('erroresTable').style.display = 'none';
+        document.getElementById('btnProcesar').disabled = false;
+        datosTransferencias = data.datos_validos;
+        mostrarResumenTransferencias(data.resumen_transferencias);
+    }
+}
+
+function mostrarErrores(errores) {
+    const tbody = document.querySelector('#tablaErrores tbody');
+    tbody.innerHTML = '';
+
+    errores.forEach(error => {
+        const row = tbody.insertRow();
+        row.insertCell(0).textContent = error.fila;
+        row.insertCell(1).textContent = error.cuenta_origen;
+        row.insertCell(2).textContent = error.cuenta_destino;
+        row.insertCell(2).textContent = error.error;
+    });
+
+    document.getElementById('erroresTable').style.display = 'block';
+}
+
+function mostrarResumenTransferencias(resumen) {
+    const tbody = document.querySelector('#tablaResumen tbody');
+    tbody.innerHTML = '';
+
+    resumen.forEach(item => {
+        const row = tbody.insertRow();
+        row.insertCell(0).textContent = item.cuenta_origen;
+        row.insertCell(1).textContent = item.cuenta_destino;
+        row.insertCell(2).textContent = item.monto.toFixed(2);
+        row.insertCell(3).textContent = item.saldo_origen_despues.toFixed(2);
+        row.insertCell(4).textContent = item.saldo_destino_despues.toFixed(2);
+        row.insertCell(5).textContent = item.descripcion || '';
+    });
+
+    document.getElementById('resumenTransferencias').style.display = 'block';
+}
+
+document.getElementById('transferenciasForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    if (datosTransferencias.length === 0) {
+        alert('No hay datos válidos para procesar');
+        return;
+    }
+
+    const fechaTransferencia = document.getElementById('fecha_transferencia').value;
+    const tipoTransferencia = document.getElementById('tipo_transferencia').value;
+    const comisionTransferencia = parseFloat(document.getElementById('comision_transferencia').value) || 0;
+
+    fetch('/procesar_transferencias_ahorro', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            transferencias: datosTransferencias,
+            fecha_transferencia: fechaTransferencia,
+            tipo_transferencia: tipoTransferencia,
+            comision_transferencia: comisionTransferencia
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Transferencias procesadas exitosamente. Total transferido: Q${data.monto_total.toFixed(2)}`);
+            location.reload();
+        } else {
+            alert('Error al procesar las transferencias: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al procesar las transferencias');
+    });
+});
+</script>
+{% endblock %}

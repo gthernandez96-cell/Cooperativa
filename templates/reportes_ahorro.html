@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block title %}Reportes de Ahorro - Cooperativa{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Reportes de Cuentas de Ahorro
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Filtros de reporte -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <label for="tipo_reporte" class="form-label">Tipo de Reporte</label>
+                            <select class="form-select" id="tipo_reporte">
+                                <option value="saldos">Saldos por Cuenta</option>
+                                <option value="movimientos">Movimientos del Período</option>
+                                <option value="comparativo">Comparativo Mensual</option>
+                                <option value="inactivas">Cuentas Inactivas</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="fecha_inicio" class="form-label">Fecha Inicio</label>
+                            <input type="date" class="form-control" id="fecha_inicio" value="{{ fecha_mes_anterior }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="fecha_fin" class="form-label">Fecha Fin</label>
+                            <input type="date" class="form-control" id="fecha_fin" value="{{ fecha_actual }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button type="button" class="btn btn-success" onclick="generarReporte()">
+                                    <i class="fas fa-search me-2"></i>Generar Reporte
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Estadísticas rápidas -->
+                    <div class="row mb-4" id="estadisticas" style="display: none;">
+                        <div class="col-md-3">
+                            <div class="card text-center border-primary">
+                                <div class="card-body">
+                                    <h3 class="text-primary" id="total_cuentas">0</h3>
+                                    <p class="card-text">Total Cuentas</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center border-success">
+                                <div class="card-body">
+                                    <h3 class="text-success" id="saldo_total">0.00</h3>
+                                    <p class="card-text">Saldo Total</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center border-info">
+                                <div class="card-body">
+                                    <h3 class="text-info" id="promedio_saldo">0.00</h3>
+                                    <p class="card-text">Saldo Promedio</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center border-warning">
+                                <div class="card-body">
+                                    <h3 class="text-warning" id="cuentas_activas">0</h3>
+                                    <p class="card-text">Cuentas Activas</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Área de resultados -->
+                    <div id="resultadosReporte" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 id="tituloReporte">Resultados del Reporte</h5>
+                            <div>
+                                <button type="button" class="btn btn-outline-primary btn-sm me-2" onclick="exportarExcel()">
+                                    <i class="fas fa-file-excel me-2"></i>Exportar Excel
+                                </button>
+                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="exportarPDF()">
+                                    <i class="fas fa-file-pdf me-2"></i>Exportar PDF
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="tablaReporte">
+                                <thead id="encabezadoTabla">
+                                    <tr>
+                                        <th>Número Cuenta</th>
+                                        <th>Socio</th>
+                                        <th>Saldo Actual</th>
+                                        <th>Último Movimiento</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cuerpoTabla"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Gráfico (placeholder para futuras implementaciones) -->
+                    <div id="graficoContainer" class="mt-4" style="display: none;">
+                        <h5>Gráfico del Reporte</h5>
+                        <div class="alert alert-info">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            Los gráficos estarán disponibles en futuras actualizaciones.
+                        </div>
+                    </div>
+
+                    <!-- Botón de regreso -->
+                    <div class="text-center mt-4">
+                        <a href="{{ url_for('menu_ahorro') }}" class="btn btn-outline-success">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            Regresar al Menú de Ahorro
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function generarReporte() {
+    const tipoReporte = document.getElementById('tipo_reporte').value;
+    const fechaInicio = document.getElementById('fecha_inicio').value;
+    const fechaFin = document.getElementById('fecha_fin').value;
+
+    // Mostrar loading
+    document.getElementById('resultadosReporte').style.display = 'none';
+
+    fetch('/generar_reporte_ahorro', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            tipo_reporte: tipoReporte,
+            fecha_inicio: fechaInicio,
+            fecha_fin: fechaFin
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            mostrarEstadisticas(data.estadisticas);
+            mostrarResultados(data.resultados, tipoReporte);
+        } else {
+            alert('Error al generar el reporte: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al generar el reporte');
+    });
+}
+
+function mostrarEstadisticas(estadisticas) {
+    document.getElementById('total_cuentas').textContent = estadisticas.total_cuentas;
+    document.getElementById('saldo_total').textContent = estadisticas.saldo_total.toFixed(2);
+    document.getElementById('promedio_saldo').textContent = estadisticas.promedio_saldo.toFixed(2);
+    document.getElementById('cuentas_activas').textContent = estadisticas.cuentas_activas;
+
+    document.getElementById('estadisticas').style.display = 'block';
+}
+
+function mostrarResultados(resultados, tipoReporte) {
+    const encabezadoTabla = document.getElementById('encabezadoTabla');
+    const cuerpoTabla = document.getElementById('cuerpoTabla');
+    const tituloReporte = document.getElementById('tituloReporte');
+
+    // Limpiar tabla anterior
+    cuerpoTabla.innerHTML = '';
+
+    // Configurar encabezado según tipo de reporte
+    switch(tipoReporte) {
+        case 'saldos':
+            tituloReporte.textContent = 'Saldos por Cuenta de Ahorro';
+            encabezadoTabla.innerHTML = `
+                <tr>
+                    <th>Número Cuenta</th>
+                    <th>Socio</th>
+                    <th>Saldo Actual</th>
+                    <th>Último Movimiento</th>
+                    <th>Estado</th>
+                </tr>
+            `;
+            break;
+        case 'movimientos':
+            tituloReporte.textContent = 'Movimientos de Cuentas de Ahorro';
+            encabezadoTabla.innerHTML = `
+                <tr>
+                    <th>Fecha</th>
+                    <th>Número Cuenta</th>
+                    <th>Tipo</th>
+                    <th>Monto</th>
+                    <th>Saldo Después</th>
+                    <th>Descripción</th>
+                </tr>
+            `;
+            break;
+        case 'comparativo':
+            tituloReporte.textContent = 'Comparativo Mensual de Saldos';
+            encabezadoTabla.innerHTML = `
+                <tr>
+                    <th>Número Cuenta</th>
+                    <th>Socio</th>
+                    <th>Saldo Anterior</th>
+                    <th>Saldo Actual</th>
+                    <th>Diferencia</th>
+                </tr>
+            `;
+            break;
+        case 'inactivas':
+            tituloReporte.textContent = 'Cuentas de Ahorro Inactivas';
+            encabezadoTabla.innerHTML = `
+                <tr>
+                    <th>Número Cuenta</th>
+                    <th>Socio</th>
+                    <th>Saldo Actual</th>
+                    <th>Última Actividad</th>
+                    <th>Días Inactiva</th>
+                </tr>
+            `;
+            break;
+    }
+
+    // Llenar tabla con datos
+    resultados.forEach(item => {
+        const row = cuerpoTabla.insertRow();
+
+        switch(tipoReporte) {
+            case 'saldos':
+                row.innerHTML = `
+                    <td>${item.numero_cuenta}</td>
+                    <td>${item.nombre_socio}</td>
+                    <td>Q${item.saldo_actual.toFixed(2)}</td>
+                    <td>${item.ultimo_movimiento || 'N/A'}</td>
+                    <td><span class="badge bg-${item.estado === 'activa' ? 'success' : 'secondary'}">${item.estado}</span></td>
+                `;
+                break;
+            case 'movimientos':
+                row.innerHTML = `
+                    <td>${item.fecha}</td>
+                    <td>${item.numero_cuenta}</td>
+                    <td><span class="badge bg-${item.tipo === 'deposito' ? 'success' : 'danger'}">${item.tipo}</span></td>
+                    <td>Q${item.monto.toFixed(2)}</td>
+                    <td>Q${item.saldo_despues.toFixed(2)}</td>
+                    <td>${item.descripcion || ''}</td>
+                `;
+                break;
+            case 'comparativo':
+                const diferencia = item.saldo_actual - item.saldo_anterior;
+                row.innerHTML = `
+                    <td>${item.numero_cuenta}</td>
+                    <td>${item.nombre_socio}</td>
+                    <td>Q${item.saldo_anterior.toFixed(2)}</td>
+                    <td>Q${item.saldo_actual.toFixed(2)}</td>
+                    <td class="${diferencia >= 0 ? 'text-success' : 'text-danger'}">
+                        ${diferencia >= 0 ? '+' : ''}Q${diferencia.toFixed(2)}
+                    </td>
+                `;
+                break;
+            case 'inactivas':
+                row.innerHTML = `
+                    <td>${item.numero_cuenta}</td>
+                    <td>${item.nombre_socio}</td>
+                    <td>Q${item.saldo_actual.toFixed(2)}</td>
+                    <td>${item.ultima_actividad}</td>
+                    <td><span class="badge bg-warning">${item.dias_inactiva} días</span></td>
+                `;
+                break;
+        }
+    });
+
+    document.getElementById('resultadosReporte').style.display = 'block';
+}
+
+function exportarExcel() {
+    alert('Funcionalidad de exportación a Excel estará disponible próximamente.');
+}
+
+function exportarPDF() {
+    alert('Funcionalidad de exportación a PDF estará disponible próximamente.');
+}
+
+// Cargar datos iniciales al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    // Aquí se podrían cargar estadísticas generales al inicio
+});
+</script>
+{% endblock %}

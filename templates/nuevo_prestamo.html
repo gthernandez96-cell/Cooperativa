@@ -1,0 +1,497 @@
+{% extends "base.html" %}
+{% block title %}Nueva Solicitud de Préstamo — {{ cooperativa_nombre }}{% endblock %}
+{% block content %}
+<style>
+/* ── Nueva Solicitud Préstamo ── */
+.np-shell { display:flex;flex-direction:column;gap:20px; }
+
+.np-header {
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+  padding-bottom:18px;border-bottom:2px solid var(--c-border,#e5e7eb);
+}
+.np-header-eyebrow {
+  font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--c-blue,#003b74);margin-bottom:4px;
+}
+.np-header-title {
+  font-family:'Fraunces',serif;font-size:24px;font-weight:700;
+  color:#0f1f32;line-height:1.2;letter-spacing:-.02em;
+}
+.np-header-sub { font-size:13px;color:#6b7280;margin-top:3px; }
+.np-header-actions { display:flex;gap:10px;flex-shrink:0; }
+
+.np-main { display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start; }
+.np-panel { display:flex;flex-direction:column;gap:16px; }
+
+.np-card {
+  background:#fff;border:1px solid var(--c-border,#e5e7eb);
+  border-radius:10px;overflow:hidden;
+}
+.np-card-head {
+  display:flex;align-items:center;gap:12px;
+  padding:14px 18px;background:#fafafa;border-bottom:1px solid var(--c-border,#e5e7eb);
+}
+.np-card-head-title { font-size:13px;font-weight:700;color:#374151; }
+.np-card-body { padding:18px; }
+
+.np-grid { display:grid;grid-template-columns:1fr 1fr;gap:14px; }
+.np-field { display:flex;flex-direction:column;gap:5px; }
+.np-field-full { grid-column:span 2; }
+.np-field label {
+  font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6b7280;
+}
+.np-field input, .np-field select {
+  width:100%;box-sizing:border-box;padding:9px 11px;
+  border:1px solid var(--c-border,#e5e7eb);border-radius:7px;
+  font-size:13px;background:#fafafa;color:#0f1f32;
+  transition:border-color .15s,background .15s;
+}
+.np-field input:focus, .np-field select:focus {
+  outline:none;border-color:var(--c-blue,#003b74);background:#fff;
+}
+.np-field input[readonly] { background:#f3f4f6;color:#6b7280;cursor:default; }
+
+/* Amortización panel */
+.np-amort-warning {
+  padding:10px 14px;border:1px solid #f59e0b;border-radius:7px;
+  background:#fffbeb;color:#92400e;font-size:13px;line-height:1.5;
+}
+.np-amort-list { display:flex;flex-direction:column;gap:8px; }
+.np-amort-btn {
+  text-align:left;padding:10px 12px;width:100%;
+  border:1px solid #e5e7eb;border-radius:7px;background:#fff;cursor:pointer;
+  display:flex;flex-direction:column;gap:4px;
+  transition:border-color .15s,background .15s;
+}
+.np-amort-btn:hover { border-color:#0b4d83;background:#f0f7ff; }
+.np-amort-btn.active { border-color:#0f766e;background:#ecfeff; }
+
+.np-actions { display:flex;gap:10px;padding-top:4px; }
+
+/* Side */
+.np-side { display:flex;flex-direction:column;gap:14px; }
+.np-cuota-card { background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden; }
+.np-cuota-head { background:#03284c;padding:14px 18px;color:#fff; }
+.np-cuota-head .ch-label { font-size:11px;opacity:.65;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px; }
+.np-cuota-head .ch-value {
+  font-family:'Fraunces',serif;font-size:32px;font-weight:700;line-height:1;color:#f6c954;
+}
+.np-summary-body { padding:0 18px 4px; }
+.np-row {
+  display:flex;justify-content:space-between;align-items:center;
+  padding:9px 0;border-bottom:1px solid #f3f4f6;font-size:13px;
+}
+.np-row:last-child { border-bottom:none; }
+.np-row .r-label { color:#6b7280; }
+.np-row .r-value { font-weight:600;color:#0f1f32; }
+.np-row.danger .r-value { color:#c2410c; }
+
+.np-amort-summary {
+  background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;
+}
+.np-amort-summary-head {
+  background:#0b4d83;padding:10px 18px;
+  font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:rgba(255,255,255,.8);
+}
+.np-amort-summary-body { padding:0 18px 4px; }
+.np-amort-row {
+  display:flex;justify-content:space-between;padding:9px 0;
+  border-bottom:1px solid #f3f4f6;font-size:13px;
+}
+.np-amort-row:last-child { border-bottom:none;padding-top:10px;border-top:1px solid #e5e7eb; }
+.np-amort-row .ar-label { color:#6b7280; }
+.np-amort-row:last-child .ar-label { color:#059669; }
+.np-amort-row .ar-value { font-weight:600;color:#0f1f32; }
+.np-amort-row:last-child .ar-value { color:#059669; }
+
+.np-hint { font-size:12px;color:#9ca3af;line-height:1.6;padding:0 2px; }
+
+@media(max-width:900px){ .np-main{ grid-template-columns:1fr; } .np-side{ order:-1; } }
+@media(max-width:640px){ .np-grid{ grid-template-columns:1fr; } .np-field-full{ grid-column:span 1; } }
+</style>
+
+<div class="np-shell">
+
+  <header class="np-header">
+    <div>
+      <div class="np-header-eyebrow">Créditos</div>
+      <div class="np-header-title">Nueva solicitud de préstamo</div>
+      <div class="np-header-sub">Calcule cuotas y envíe la solicitud de crédito</div>
+    </div>
+    <div class="np-header-actions">
+      <a href="{{ url_for('prestamos') }}" class="btn btn-outline btn-sm">&#8592; Préstamos</a>
+    </div>
+  </header>
+
+  <form method="post" id="form-prestamo">
+    <input type="hidden" name="prestamo_a_amortizar_id" id="inp-prestamo-a-amortizar-id">
+
+    <div class="np-main">
+      <div class="np-panel">
+        <div class="np-card">
+          <div class="np-card-head">
+            <span class="np-card-head-title">Datos del préstamo</span>
+          </div>
+          <div class="np-card-body">
+            <div class="np-grid">
+              <div class="np-field np-field-full">
+                <label for="busqueda-socio">Buscar asociado</label>
+                <input type="text" id="busqueda-socio" placeholder="Buscar por código, DPI o nombre" autocomplete="off">
+              </div>
+              <div class="np-field np-field-full">
+                <label for="inp-socio">Socio *</label>
+                <select name="socio_id" id="inp-socio" required onchange="actualizarSocio(); calcular()">
+                  <option value="">Seleccionar socio&hellip;</option>
+                  {% for s in socios %}
+                  <option value="{{ s.id }}"
+                          data-frecuencia="{{ s.frecuencia or 'Quincenal' }}"
+                          data-dpi="{{ s.dpi }}"
+                          data-codigo="{{ s.codigo }}"
+                          data-nombre="{{ s.nombre }} {{ s.apellido }}"
+                          data-banco="{{ s.banco_nombre or '' }}"
+                          data-banco-tipo="{{ s.banco_tipo_cuenta or '' }}"
+                          data-banco-numero="{{ s.banco_numero_cuenta or '' }}"
+                          {% if socio_id_seleccionado and (s.id|string) == socio_id_seleccionado %}selected{% endif %}>
+                    {{ s.codigo }} &mdash; {{ s.nombre }} {{ s.apellido }} &mdash; DPI {{ s.dpi }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="np-field">
+                <label for="inp-frecuencia">Frecuencia del asociado</label>
+                <input id="inp-frecuencia" type="text" readonly placeholder="Se asigna automáticamente">
+              </div>
+              <div class="np-field">
+                <label for="inp-periodicidad">Periodicidad de pago</label>
+                <input id="inp-periodicidad" type="text" readonly placeholder="Se calcula automáticamente">
+              </div>
+              <div class="np-field">
+                <label for="inp-categoria">Categoría de préstamo *</label>
+                <select name="categoria_id" id="inp-categoria" required>
+                  <option value="">Seleccionar categoría&hellip;</option>
+                  {% for categoria in categorias_prestamo %}
+                  <option value="{{ categoria.id }}">{{ categoria.nombre }}{% if categoria.descripcion %} &mdash; {{ categoria.descripcion }}{% endif %}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="np-field">
+                <label for="inp-monto">Monto solicitado (Q) *</label>
+                <input name="monto" id="inp-monto" type="number" step="100" min="500" required placeholder="Ej: 10000" oninput="calcular()">
+              </div>
+              <div class="np-field">
+                <label for="inp-tasa">Tasa de interés anual (%)</label>
+                <select name="tasa" id="inp-tasa" onchange="calcular()">
+                  {% for config in configuraciones %}
+                  <option value="{{ config.tasa_interes }}" {% if config.tipo == 'prestamo' %}selected{% endif %}>{{ config.tasa_interes }}% &mdash; {{ config.descripcion or 'General' }}</option>
+                  {% endfor %}
+                  <option value="24">24% &mdash; Alto riesgo</option>
+                </select>
+              </div>
+              <div class="np-field">
+                <label for="inp-plazo">Plazo (meses) *</label>
+                <select name="plazo" id="inp-plazo" onchange="calcular()">
+                  <option value="6">6 meses</option>
+                  <option value="12" selected>12 meses</option>
+                  <option value="18">18 meses</option>
+                  <option value="24">24 meses</option>
+                  <option value="36">36 meses</option>
+                  <option value="48">48 meses</option>
+                  <option value="60">60 meses</option>
+                </select>
+              </div>
+              <div class="np-field">
+                <label for="inp-forma-desembolso">Forma de desembolso *</label>
+                <select name="forma_desembolso" id="inp-forma-desembolso" required onchange="actualizarMetodoDesembolso()">
+                  <option value="cheque">Cheque</option>
+                  <option value="deposito">Depósito</option>
+                </select>
+              </div>
+              <div class="np-field" id="grupo-banco" style="display:none;">
+                <label for="inp-banco-nombre">Banco</label>
+                <input id="inp-banco-nombre" readonly placeholder="Del perfil del asociado">
+              </div>
+              <div class="np-field" id="grupo-tipo-cuenta" style="display:none;">
+                <label for="inp-banco-tipo-cuenta">Tipo de cuenta</label>
+                <input name="banco_tipo_cuenta" id="inp-banco-tipo-cuenta" readonly placeholder="Del perfil del asociado">
+              </div>
+              <div class="np-field np-field-full" id="grupo-numero-cuenta" style="display:none;">
+                <label for="inp-banco-numero-cuenta">Número de cuenta bancaria</label>
+                <input name="banco_numero_cuenta" id="inp-banco-numero-cuenta" readonly placeholder="Del perfil del asociado">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="np-card" id="panel-amortizacion" style="display:none;">
+          <div class="np-card-head">
+            <span class="np-card-head-title">Área de amortización</span>
+          </div>
+          <div class="np-card-body" style="display:flex;flex-direction:column;gap:12px;">
+            <div class="np-amort-warning">
+              El asociado tiene préstamos vigentes. Para otorgar un nuevo préstamo seleccione cuál se amortizará.
+            </div>
+            <div id="lista-prestamos-vigentes" class="np-amort-list"></div>
+          </div>
+        </div>
+
+        <div class="np-actions">
+          <button type="submit" class="btn btn-primary" id="btn-enviar-prestamo">Enviar solicitud</button>
+          <a href="{{ url_for('prestamos') }}" class="btn btn-outline">Cancelar</a>
+        </div>
+      </div>
+
+      <div class="np-side">
+        <div class="np-cuota-card">
+          <div class="np-cuota-head">
+            <div class="ch-label">Cuota estimada por período</div>
+            <div class="ch-value" id="out-cuota">&mdash;</div>
+          </div>
+          <div class="np-summary-body">
+            <div class="np-row">
+              <span class="r-label">Frecuencia</span>
+              <strong class="r-value" id="out-frecuencia">&mdash;</strong>
+            </div>
+            <div class="np-row">
+              <span class="r-label">Número de pagos</span>
+              <strong class="r-value" id="out-cuotas">&mdash;</strong>
+            </div>
+            <div class="np-row">
+              <span class="r-label">Próximo pago</span>
+              <strong class="r-value" id="out-proximo-pago">&mdash;</strong>
+            </div>
+            <div class="np-row">
+              <span class="r-label">Finalización</span>
+              <strong class="r-value" id="out-fecha-final">&mdash;</strong>
+            </div>
+            <div class="np-row">
+              <span class="r-label">Monto del préstamo</span>
+              <strong class="r-value" id="out-monto">&mdash;</strong>
+            </div>
+            <div class="np-row">
+              <span class="r-label">Total a pagar</span>
+              <strong class="r-value" id="out-total">&mdash;</strong>
+            </div>
+            <div class="np-row danger">
+              <span class="r-label">Total en intereses</span>
+              <strong class="r-value" id="out-intereses">&mdash;</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="np-amort-summary" id="resumen-amortizacion" style="display:none;">
+          <div class="np-amort-summary-head">Resumen de amortización</div>
+          <div class="np-amort-summary-body">
+            <div class="np-amort-row">
+              <span class="ar-label">Préstamo a amortizar</span>
+              <strong class="ar-value" id="out-prestamo-amortizar">&mdash;</strong>
+            </div>
+            <div class="np-amort-row">
+              <span class="ar-label">Saldo pendiente</span>
+              <strong class="ar-value" id="out-saldo-amortizar">&mdash;</strong>
+            </div>
+            <div class="np-amort-row">
+              <span class="ar-label">Desembolso real</span>
+              <strong class="ar-value" id="out-desembolso-real">&mdash;</strong>
+            </div>
+          </div>
+        </div>
+
+        <p class="np-hint">Cálculo basado en la frecuencia del asociado: catorcenal cada 14 días, quincenal cada 15 días.</p>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script>
+function fmt(n) {
+  return 'Q' + n.toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtFecha(fecha) {
+  return fecha.toLocaleDateString('es-GT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+const prestamosVigentesPorSocio = {{ prestamos_vigentes_por_socio|tojson }};
+const inputBusquedaSocio = document.getElementById('busqueda-socio');
+const selectSocio = document.getElementById('inp-socio');
+const inputPrestamoAmortizar = document.getElementById('inp-prestamo-a-amortizar-id');
+const opcionesSocio = Array.from(selectSocio.options).slice(1).map(option => ({
+  value: option.value, text: option.textContent,
+  frecuencia: option.dataset.frecuencia || 'Quincenal',
+  dpi: option.dataset.dpi || '', codigo: option.dataset.codigo || '',
+  nombre: option.dataset.nombre || '', banco: option.dataset.banco || '',
+  bancoTipo: option.dataset.bancoTipo || '', bancoNumero: option.dataset.bancoNumero || ''
+}));
+
+function obtenerFrecuenciaSeleccionada() {
+  const option = selectSocio.options[selectSocio.selectedIndex];
+  return option && option.value ? (option.dataset.frecuencia || 'Quincenal') : '';
+}
+function obtenerDiasFrecuencia(frecuencia) { return frecuencia === 'Catorcenal' ? 14 : 15; }
+function obtenerPrestamosVigentesSeleccionados() {
+  return prestamosVigentesPorSocio[String(selectSocio.value || '')] || [];
+}
+function obtenerPrestamoSeleccionado() {
+  const prestamos = obtenerPrestamosVigentesSeleccionados();
+  return prestamos.find(item => String(item.id) === String(inputPrestamoAmortizar.value)) || null;
+}
+
+function renderOpcionesSocio(filtro) {
+  const actual = selectSocio.value;
+  const texto = (filtro || '').trim().toLowerCase();
+  const filtradas = !texto ? opcionesSocio : opcionesSocio.filter(item =>
+    item.codigo.toLowerCase().includes(texto) ||
+    item.dpi.toLowerCase().includes(texto) ||
+    item.nombre.toLowerCase().includes(texto)
+  );
+  selectSocio.innerHTML = '<option value="">Seleccionar socio\u2026</option>';
+  filtradas.forEach(item => {
+    const option = document.createElement('option');
+    option.value = item.value; option.textContent = item.text;
+    option.dataset.frecuencia = item.frecuencia; option.dataset.dpi = item.dpi;
+    option.dataset.codigo = item.codigo; option.dataset.nombre = item.nombre;
+    option.dataset.banco = item.banco; option.dataset.bancoTipo = item.bancoTipo;
+    option.dataset.bancoNumero = item.bancoNumero;
+    if (item.value === actual) option.selected = true;
+    selectSocio.appendChild(option);
+  });
+  actualizarSocio(); calcular();
+}
+
+function actualizarDatosBancarios() {
+  const option = selectSocio.options[selectSocio.selectedIndex];
+  const bancoNombre = document.getElementById('inp-banco-nombre');
+  const bancoTipo = document.getElementById('inp-banco-tipo-cuenta');
+  const bancoNumero = document.getElementById('inp-banco-numero-cuenta');
+  if (option && option.value) {
+    bancoNombre.value = option.dataset.banco || '';
+    bancoTipo.value = option.dataset.bancoTipo || '';
+    bancoNumero.value = option.dataset.bancoNumero || '';
+  } else {
+    bancoNombre.value = ''; bancoTipo.value = ''; bancoNumero.value = '';
+  }
+}
+
+function actualizarMetodoDesembolso() {
+  const metodo = document.getElementById('inp-forma-desembolso').value;
+  const grupoBanco = document.getElementById('grupo-banco');
+  const grupoTipoCuenta = document.getElementById('grupo-tipo-cuenta');
+  const grupoNumeroCuenta = document.getElementById('grupo-numero-cuenta');
+  const inputTipoCuenta = document.getElementById('inp-banco-tipo-cuenta');
+  const inputNumeroCuenta = document.getElementById('inp-banco-numero-cuenta');
+  const esDeposito = metodo === 'deposito';
+  grupoBanco.style.display = esDeposito ? '' : 'none';
+  grupoTipoCuenta.style.display = esDeposito ? '' : 'none';
+  grupoNumeroCuenta.style.display = esDeposito ? '' : 'none';
+  inputTipoCuenta.required = esDeposito;
+  inputNumeroCuenta.required = esDeposito;
+  if (!esDeposito) {
+    inputTipoCuenta.value = ''; inputNumeroCuenta.value = '';
+    document.getElementById('inp-banco-nombre').value = '';
+  } else { actualizarDatosBancarios(); }
+}
+
+function renderPanelAmortizacion() {
+  const panel = document.getElementById('panel-amortizacion');
+  const lista = document.getElementById('lista-prestamos-vigentes');
+  const prestamos = obtenerPrestamosVigentesSeleccionados();
+  const botonEnviar = document.getElementById('btn-enviar-prestamo');
+  if (!prestamos.length) {
+    panel.style.display = 'none'; lista.innerHTML = '';
+    inputPrestamoAmortizar.value = '';
+    botonEnviar.textContent = 'Enviar solicitud';
+    document.getElementById('resumen-amortizacion').style.display = 'none'; return;
+  }
+  panel.style.display = '';
+  botonEnviar.textContent = 'Procesar amortizaci\u00f3n';
+  const ids = prestamos.map(item => String(item.id));
+  if (!ids.includes(String(inputPrestamoAmortizar.value))) {
+    inputPrestamoAmortizar.value = String(prestamos[0].id);
+  }
+  lista.innerHTML = prestamos.map(item => {
+    const activo = String(item.id) === String(inputPrestamoAmortizar.value);
+    return '<button type="button" onclick="seleccionarPrestamoAmortizacion(\'' + item.id + '\')" class="np-amort-btn' + (activo ? ' active' : '') + '">' +
+      '<div style="display:flex;justify-content:space-between;gap:12px;align-items:center;">' +
+      '<strong>' + item.numero + '</strong><span style="font-size:12px;color:#6b7280;">' + item.estado + '</span></div>' +
+      '<div style="font-size:13px;color:#6b7280;">Categor\u00eda: ' + item.categoria_nombre + '</div>' +
+      '<div style="display:flex;justify-content:space-between;font-size:13px;gap:12px;">' +
+      '<span>Solicitado: ' + fmt(Number(item.monto_solicitado || 0)) + '</span>' +
+      '<strong style="color:#dc2626;">Pendiente: ' + fmt(Number(item.saldo_vigente || 0)) + '</strong></div></button>';
+  }).join('');
+  actualizarResumenAmortizacion();
+}
+
+function seleccionarPrestamoAmortizacion(prestamoId) {
+  inputPrestamoAmortizar.value = String(prestamoId);
+  renderPanelAmortizacion();
+}
+
+function actualizarResumenAmortizacion() {
+  const resumen = document.getElementById('resumen-amortizacion');
+  const prestamo = obtenerPrestamoSeleccionado();
+  if (!prestamo) {
+    resumen.style.display = 'none';
+    document.getElementById('out-prestamo-amortizar').textContent = '\u2014';
+    document.getElementById('out-saldo-amortizar').textContent = '\u2014';
+    document.getElementById('out-desembolso-real').textContent = '\u2014'; return;
+  }
+  const monto = parseFloat(document.getElementById('inp-monto').value) || 0;
+  const desembolsoReal = Math.max(0, monto - Number(prestamo.saldo_vigente || 0));
+  resumen.style.display = '';
+  document.getElementById('out-prestamo-amortizar').textContent = prestamo.numero;
+  document.getElementById('out-saldo-amortizar').textContent = fmt(Number(prestamo.saldo_vigente || 0));
+  document.getElementById('out-desembolso-real').textContent = monto > 0 ? fmt(desembolsoReal) : '\u2014';
+}
+
+function actualizarSocio() {
+  const frecuencia = obtenerFrecuenciaSeleccionada();
+  document.getElementById('inp-frecuencia').value = frecuencia || '';
+  document.getElementById('inp-periodicidad').value = frecuencia ? 'Cada ' + obtenerDiasFrecuencia(frecuencia) + ' d\u00edas' : '';
+  document.getElementById('out-frecuencia').textContent = frecuencia || '\u2014';
+  actualizarDatosBancarios(); renderPanelAmortizacion();
+}
+
+function calcular() {
+  const monto = parseFloat(document.getElementById('inp-monto').value) || 0;
+  const tasa = parseFloat(document.getElementById('inp-tasa').value) || 0;
+  const plazo = parseInt(document.getElementById('inp-plazo').value, 10) || 0;
+  const frecuencia = obtenerFrecuenciaSeleccionada();
+  if (monto <= 0 || !frecuencia || tasa <= 0 || plazo <= 0) {
+    ['out-cuota','out-monto','out-total','out-intereses','out-cuotas','out-proximo-pago','out-fecha-final'].forEach(id => {
+      document.getElementById(id).textContent = '\u2014';
+    });
+    document.getElementById('out-frecuencia').textContent = frecuencia || '\u2014';
+    actualizarResumenAmortizacion(); return;
+  }
+  const dias = obtenerDiasFrecuencia(frecuencia);
+  const cuotas = Math.max(1, Math.ceil((plazo * 30) / dias));
+  const tasaPeriodo = (tasa / 100) * (dias / 365);
+  const cuota = tasaPeriodo > 0 ? monto * tasaPeriodo / (1 - Math.pow(1 + tasaPeriodo, -cuotas)) : monto / cuotas;
+  const total = cuota * cuotas;
+  const intereses = total - monto;
+  document.getElementById('out-cuota').textContent = fmt(cuota);
+  document.getElementById('out-monto').textContent = fmt(monto);
+  document.getElementById('out-total').textContent = fmt(total);
+  document.getElementById('out-intereses').textContent = fmt(intereses);
+  document.getElementById('out-cuotas').textContent = cuotas;
+  document.getElementById('out-frecuencia').textContent = frecuencia + ' (' + dias + ' d\u00edas)';
+  const hoy = new Date();
+  const proximoPago = new Date(hoy); proximoPago.setDate(proximoPago.getDate() + dias);
+  const fechaFinal = new Date(hoy); fechaFinal.setDate(fechaFinal.getDate() + (cuotas * dias));
+  document.getElementById('out-proximo-pago').textContent = fmtFecha(proximoPago);
+  document.getElementById('out-fecha-final').textContent = fmtFecha(fechaFinal);
+  actualizarResumenAmortizacion();
+}
+
+document.getElementById('form-prestamo').addEventListener('submit', function(event) {
+  const prestamos = obtenerPrestamosVigentesSeleccionados();
+  if (prestamos.length && !inputPrestamoAmortizar.value) {
+    event.preventDefault();
+    alert('Debe seleccionar el pr\u00e9stamo vigente que se amortizar\u00e1.');
+  }
+});
+
+inputBusquedaSocio.addEventListener('input', event => renderOpcionesSocio(event.target.value));
+actualizarSocio(); actualizarMetodoDesembolso(); calcular();
+</script>
+{% endblock %}
