@@ -4,507 +4,1497 @@
 
 {% block extra_head %}
 <style>
-.cfg-shell {
-    max-width: 1180px;
-    margin: 0 auto;
-    display: grid;
-    gap: 16px;
+/* ── Layout ─────────────────────────────────────────────────── */
+.cfg-page {
+  max-width: 1080px;
+  margin: 0 auto;
+  display: grid;
+  gap: 24px;
 }
 
-.cfg-hero {
-    background: linear-gradient(125deg, #f9fcff 0%, #eef4fb 60%, #fff6de 100%);
-    border: 1px solid #d6e2f0;
-    border-radius: 16px;
-    padding: 18px 20px;
-    box-shadow: 0 8px 24px rgba(0, 42, 80, .08);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
+/* ── Page header ────────────────────────────────────────────── */
+.cfg-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
-.cfg-hero h1 {
-    margin: 0;
-    font-family: 'Fraunces', serif;
-    color: #012e58;
-    font-size: 29px;
-    line-height: 1.1;
+.cfg-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
-.cfg-hero p {
-    margin: 6px 0 0;
-    color: #5c6f82;
-    font-size: 13px;
+.cfg-header-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #003b74, #0057a3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(0, 59, 116, .25);
 }
 
-.cfg-pill {
-    background: #ffffff;
-    border: 1px solid #d9e6f3;
-    border-radius: 999px;
-    padding: 7px 12px;
-    color: #0a477d;
-    font-size: 12px;
-    font-weight: 600;
-    white-space: nowrap;
+.cfg-header-icon svg { color: #fff; }
+
+.cfg-page-title {
+  font-family: 'Fraunces', serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: #002a50;
+  line-height: 1.15;
+  letter-spacing: -.4px;
 }
 
-.cfg-card {
-    background: #ffffff;
-    border: 1px solid #dbe5ef;
-    border-radius: 14px;
-    box-shadow: 0 4px 16px rgba(0, 42, 80, .06);
-    overflow: hidden;
+.cfg-page-subtitle {
+  margin-top: 3px;
+  font-size: 13px;
+  color: #6b7280;
 }
 
-.cfg-card-header {
-    padding: 12px 16px;
-    border-bottom: 1px solid #e4ecf4;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    background: #fbfdff;
+.cfg-badge {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #e8f5e9;
+  color: #1b5e20;
+  border: 1px solid #a5d6a7;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  margin-top: 4px;
 }
 
-.cfg-card-title {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 700;
-    color: #0a3967;
-    letter-spacing: .2px;
+/* ── Section card ───────────────────────────────────────────── */
+.cfg-section {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 32, 68, .05);
+  overflow: hidden;
 }
 
-.cfg-card-body {
-    padding: 14px 16px;
+.cfg-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f2f5;
+  background: #fafbfc;
 }
 
+.cfg-section-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cfg-section-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cfg-section-icon.blue  { background: #eff6ff; color: #1d4ed8; }
+.cfg-section-icon.green { background: #f0fdf4; color: #15803d; }
+.cfg-section-icon.amber { background: #fffbeb; color: #b45309; }
+.cfg-section-icon.purple{ background: #faf5ff; color: #7c3aed; }
+
+.cfg-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.cfg-section-desc {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 1px;
+}
+
+.cfg-section-body {
+  padding: 20px;
+}
+
+/* ── Identity section ───────────────────────────────────────── */
 .cfg-identity-grid {
-    display: grid;
-    grid-template-columns: 210px minmax(0, 1fr);
-    gap: 16px;
-    align-items: center;
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 20px;
+  align-items: start;
 }
 
-.cfg-photo-box {
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    border-radius: 14px;
-    border: 1px solid #d8e3ef;
-    background: #f4f8fc;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
+.cfg-photo-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
 }
 
-.cfg-photo-box img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+.cfg-photo-preview {
+  width: 140px;
+  height: 140px;
+  border-radius: 16px;
+  border: 2px solid #e5e7eb;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
-.cfg-photo-empty {
-    color: #6f8193;
-    font-size: 13px;
+.cfg-photo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.cfg-form-grid {
-    display: grid;
-    gap: 10px;
+.cfg-photo-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: #9ca3af;
+}
+
+.cfg-photo-placeholder svg { width: 28px; height: 28px; }
+.cfg-photo-placeholder span { font-size: 11px; }
+
+.cfg-fields {
+  display: grid;
+  gap: 14px;
 }
 
 .cfg-field {
-    display: grid;
-    gap: 5px;
+  display: grid;
+  gap: 5px;
 }
 
 .cfg-label {
-    color: #294560;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: .2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.cfg-label span {
+  color: #dc2626;
+  margin-left: 2px;
 }
 
 .cfg-input,
-.cfg-file,
 .cfg-textarea {
-    width: 100%;
-    border: 1px solid #cedbea;
-    border-radius: 10px;
-    padding: 9px 11px;
-    font: inherit;
-    font-size: 14px;
-    color: #182b3d;
-    background: #fff;
+  width: 100%;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 14px;
+  color: #111827;
+  background: #fff;
+  border: 1.5px solid #d1d5db;
+  border-radius: 10px;
+  transition: border-color .15s, box-shadow .15s;
 }
 
 .cfg-input:focus,
-.cfg-file:focus,
 .cfg-textarea:focus {
-    outline: none;
-    border-color: #5f9dcf;
-    box-shadow: 0 0 0 3px rgba(59, 130, 186, .16);
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, .14);
 }
 
-.cfg-help {
-    font-size: 12px;
-    color: #6f8193;
+.cfg-file-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  background: #f8fafc;
+  border: 1.5px dashed #d1d5db;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+  width: 100%;
+  transition: border-color .15s, background .15s;
 }
 
-.cfg-rates {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
+.cfg-file-btn:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+input[type="file"].cfg-file-hidden {
+  display: none;
+}
+
+.cfg-hint {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+/* ── Rates grid ─────────────────────────────────────────────── */
+.cfg-rates-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: 11px;
+  border: 1px solid #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 12.5px;
+  margin-bottom: 14px;
+}
+
+.cfg-rates-alert svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.cfg-rates-note {
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 12px;
+}
+
+.cfg-rates-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px;
+  background: #fafbfc;
+}
+
+.cfg-rates-intro-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.cfg-rates-intro-subtitle {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.cfg-section-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px;
+  background: #fafbfc;
+}
+
+.cfg-section-intro-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.cfg-section-intro-subtitle {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.cfg-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid #cbd5e1;
+  background: #fff;
+  color: #1e293b;
+  white-space: nowrap;
+}
+
+.cfg-btn-secondary:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.cfg-rates-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  display: none;
+}
+
+.cfg-rates-modal.is-open {
+  display: block;
+}
+
+.cfg-rates-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, .45);
+}
+
+.cfg-rates-modal-panel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(980px, calc(100vw - 28px));
+  max-height: calc(100vh - 36px);
+  overflow: auto;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, .24);
+}
+
+.cfg-rates-modal-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.cfg-rates-modal-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.cfg-rates-modal-subtitle {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.cfg-rates-modal-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.cfg-rates-modal-close:hover {
+  background: #f8fafc;
+}
+
+.cfg-rates-modal-body {
+  padding: 14px 16px 16px;
+}
+
+.cfg-rates-modal-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+.cfg-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1390;
+  display: none;
+}
+
+.cfg-modal.is-open {
+  display: block;
+}
+
+.cfg-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, .45);
+}
+
+.cfg-modal-panel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(980px, calc(100vw - 28px));
+  max-height: calc(100vh - 36px);
+  overflow: auto;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, .24);
+}
+
+.cfg-modal-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.cfg-modal-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.cfg-modal-subtitle {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.cfg-modal-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.cfg-modal-close:hover {
+  background: #f8fafc;
+}
+
+.cfg-modal-body {
+  padding: 14px 16px 16px;
+}
+
+.cfg-modal-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+.cfg-rates-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.cfg-rate-panel {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.cfg-rate-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #eef2f7;
+  background: #f8fafc;
+}
+
+.cfg-rate-panel-head.savings {
+  background: #f8fafc;
+}
+
+.cfg-rate-panel-head.loans {
+  background: #f8fafc;
+}
+
+.cfg-rate-panel-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.cfg-rate-panel-subtitle {
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+.cfg-rate-panel-tag {
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  background: #f8fafc;
+  border-radius: 999px;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.cfg-rate-panel-body {
+  padding: 12px;
+}
+
+.cfg-rates-group-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 10px;
 }
 
 .cfg-rate-list {
-    display: grid;
-    gap: 12px;
-}
-
-.cfg-rate-item {
-    border: 1px solid #e3ebf3;
-    border-radius: 12px;
-    padding: 10px 11px;
-    background: #fcfdff;
-    display: grid;
-    gap: 6px;
+  display: grid;
+  gap: 10px;
 }
 
 .cfg-rate-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  transition: border-color .15s;
+}
+
+.cfg-rate-row:focus-within {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.cfg-rate-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .cfg-rate-name {
-    font-size: 13px;
-    font-weight: 700;
-    color: #173451;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
 }
 
-.cfg-rate-input {
-    width: 115px;
-    display: flex;
-    align-items: center;
-    border: 1px solid #ccd9e7;
-    border-radius: 10px;
-    overflow: hidden;
-    background: #fff;
+.cfg-rate-desc {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
 }
 
-.cfg-rate-input input {
-    width: 100%;
-    border: 0;
-    padding: 8px;
-    font: inherit;
-    text-align: right;
+.cfg-rate-input-group {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid #d1d5db;
+  border-radius: 9px;
+  overflow: hidden;
+  background: #fff;
+  flex-shrink: 0;
 }
 
-.cfg-rate-input input:focus {
-    outline: none;
+.cfg-rate-input-group input {
+  width: 80px;
+  border: 0;
+  padding: 8px 8px 8px 10px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  text-align: right;
+  background: transparent;
 }
 
-.cfg-rate-input span {
-    background: #f1f6fb;
-    color: #4a647d;
-    font-weight: 700;
-    font-size: 12px;
-    padding: 0 9px;
-    height: 100%;
-    display: inline-flex;
-    align-items: center;
+.cfg-rate-input-group input:focus { outline: none; }
+
+.cfg-rate-input-group .cfg-rate-suffix {
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 0 10px;
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  border-left: 1px solid #e5e7eb;
+  min-height: 38px;
 }
 
+.cfg-rates-summary {
+  margin-top: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  display: none;
+}
+
+.cfg-rates-summary-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.cfg-rates-summary-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.cfg-rates-summary-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.cfg-rates-summary-body {
+  padding: 10px 12px;
+}
+
+.cfg-rates-summary-empty {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.cfg-rates-summary-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.cfg-rates-summary-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 9px;
+}
+
+.cfg-rates-summary-label {
+  min-width: 0;
+}
+
+.cfg-rates-summary-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.cfg-rates-summary-group {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.cfg-rates-summary-delta {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1f2937;
+  white-space: nowrap;
+}
+
+/* ── Loan categories ────────────────────────────────────────── */
 .cfg-categories-list {
-    display: grid;
-    gap: 10px;
+  display: grid;
+  gap: 10px;
 }
 
 .categoria-prestamo-item {
-    border: 1px solid #e0e9f2;
-    border-radius: 11px;
-    padding: 10px;
-    display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr) auto;
-    gap: 8px;
-    align-items: end;
-    background: #fbfdff;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto;
+  gap: 10px;
+  align-items: end;
+  padding: 14px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
 }
 
-.cfg-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-    padding: 14px 16px;
-    background: linear-gradient(100deg, #f7fbff 0%, #fffaf0 100%);
-    border: 1px solid #dce7f2;
-    border-radius: 14px;
+.cfg-btn-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  border: 1px solid #fca5a5;
+  background: #fff5f5;
+  color: #dc2626;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  transition: background .15s, border-color .15s;
+  flex-shrink: 0;
 }
 
-.cfg-note {
-    margin: 0;
-    color: #4e6278;
-    font-size: 12px;
+.cfg-btn-remove:hover {
+  background: #fee2e2;
+  border-color: #f87171;
 }
 
-.cfg-buttons {
-    display: flex;
-    gap: 8px;
+/* ── Finiquito section ──────────────────────────────────────── */
+.cfg-vars-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
 }
 
-.btn-danger-soft {
-    border: 1px solid #f2c7c7;
-    background: #fff4f4;
-    color: #9e1f1f;
-    border-radius: 10px;
-    padding: 8px 10px;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
+.cfg-var-chip {
+  background: #f0f4ff;
+  color: #3730a3;
+  border: 1px solid #c7d2fe;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 11.5px;
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
 }
 
-@media (max-width: 960px) {
-    .cfg-rates {
-        grid-template-columns: 1fr;
-    }
-
-    .cfg-identity-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .cfg-photo-box {
-        max-width: 240px;
-    }
+/* ── Footer actions bar ─────────────────────────────────────── */
+.cfg-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 16px 20px;
+  box-shadow: 0 2px 8px rgba(0, 32, 68, .04);
 }
 
-@media (max-width: 760px) {
-    .cfg-hero {
-        padding: 14px;
-        align-items: flex-start;
-        flex-direction: column;
-    }
+.cfg-footer-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #6b7280;
+}
 
-    .cfg-hero h1 {
-        font-size: 24px;
-    }
+.cfg-footer-note svg { color: #3b82f6; flex-shrink: 0; }
 
-    .categoria-prestamo-item {
-        grid-template-columns: 1fr;
-    }
+.cfg-footer-actions {
+  display: flex;
+  gap: 10px;
+}
 
-    .cfg-rate-row {
-        flex-direction: column;
-        align-items: flex-start;
-    }
+.cfg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  transition: all .15s;
+  white-space: nowrap;
+}
 
-    .cfg-rate-input {
-        width: 100%;
-    }
+.cfg-btn-ghost {
+  background: transparent;
+  border: 1.5px solid #d1d5db;
+  color: #374151;
+}
 
-    .cfg-actions {
-        flex-direction: column;
-        align-items: stretch;
-    }
+.cfg-btn-ghost:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
 
-    .cfg-buttons {
-        width: 100%;
-        justify-content: space-between;
-    }
+.cfg-btn-primary {
+  background: linear-gradient(135deg, #003b74, #0057a3);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(0, 59, 116, .25);
+}
+
+.cfg-btn-primary:hover {
+  background: linear-gradient(135deg, #002f5e, #004b8c);
+  box-shadow: 0 6px 20px rgba(0, 59, 116, .32);
+  transform: translateY(-1px);
+}
+
+/* ── btn inline for section header ─────────────────────────── */
+.cfg-btn-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid #d1d5db;
+  background: #fff;
+  color: #374151;
+  transition: all .15s;
+  white-space: nowrap;
+}
+
+.cfg-btn-add:hover {
+  background: #f0f4ff;
+  border-color: #818cf8;
+  color: #3730a3;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .cfg-rates-columns { grid-template-columns: 1fr; }
+  .cfg-identity-grid { grid-template-columns: 1fr; }
+  .cfg-photo-wrap { flex-direction: row; align-items: flex-start; }
+  .cfg-photo-preview { width: 100px; height: 100px; }
+  .cfg-rates-modal-panel { width: calc(100vw - 20px); max-height: calc(100vh - 20px); }
+  .cfg-modal-panel { width: calc(100vw - 20px); max-height: calc(100vh - 20px); }
+}
+
+@media (max-width: 680px) {
+  .cfg-section-body { padding: 14px; }
+  .cfg-section-head { padding: 12px 14px; }
+  .categoria-prestamo-item {
+    grid-template-columns: 1fr;
+  }
+  .cfg-footer {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 14px;
+  }
+  .cfg-footer-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .cfg-btn { flex: 1; }
+  .cfg-rates-intro { align-items: stretch; }
+  .cfg-section-intro { align-items: stretch; }
+  .cfg-btn-secondary { width: 100%; justify-content: center; }
+  .cfg-rates-modal-actions { flex-direction: column; }
+  .cfg-modal-actions { flex-direction: column; }
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="cfg-shell">
-    <div class="cfg-hero">
-        <div>
-            <h1>Configuración General</h1>
-            <p>Panel centralizado para identidad institucional, tasas vigentes y parámetros operativos.</p>
+<div class="cfg-page">
+
+  <!-- ── Page header ─────────────────────────────────────────── -->
+  <div class="cfg-header">
+    <div class="cfg-header-left">
+      <div class="cfg-header-icon">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 3.44l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+      </div>
+      <div>
+        <div class="cfg-page-title">Configuración General</div>
+        <div class="cfg-page-subtitle">Identidad institucional, tasas y parámetros operativos</div>
+      </div>
+    </div>
+    <div class="cfg-badge">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+      Cambios inmediatos
+    </div>
+  </div>
+
+  <form action="{{ url_for('actualizar_configuraciones') }}" method="POST" enctype="multipart/form-data">
+
+    <!-- ── 1. Identidad ──────────────────────────────────────── -->
+    <div class="cfg-section">
+      <div class="cfg-section-head">
+        <div class="cfg-section-title-group">
+          <div class="cfg-section-icon blue">
+            <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2M8 7V5a2 2 0 0 0-4 0v2"/><circle cx="12" cy="14" r="3"/></svg>
+          </div>
+          <div>
+            <div class="cfg-section-title">Identidad de la cooperativa</div>
+            <div class="cfg-section-desc">Nombre e imagen que aparecen en todo el sistema</div>
+          </div>
         </div>
-        <div class="cfg-pill">Aplicación inmediata</div>
+      </div>
+      <div class="cfg-section-body">
+        <div class="cfg-section-intro">
+          <div>
+            <div class="cfg-section-intro-title">Datos institucionales en ventana separada</div>
+            <div class="cfg-section-intro-subtitle">Edite nombre e imagen desde un panel dedicado.</div>
+          </div>
+          <button type="button" class="cfg-btn-secondary" id="openIdentityModalBtn">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 3h7v7"/><path d="M10 14L21 3"/><path d="M21 14v7h-7"/><path d="M3 10L14 21"/></svg>
+            Administrar identidad
+          </button>
+        </div>
+      </div>
     </div>
 
-    <form action="{{ url_for('actualizar_configuraciones') }}" method="POST" enctype="multipart/form-data">
-        <section class="cfg-card">
-            <div class="cfg-card-header">
-                <h2 class="cfg-card-title">Identidad de la cooperativa</h2>
-            </div>
-            <div class="cfg-card-body">
-                <div class="cfg-identity-grid">
-                    <div class="cfg-photo-box">
-                        {% if cooperativa_foto %}
-                        <img src="{{ url_for('static', filename=cooperativa_foto) }}" alt="Foto institucional">
-                        {% else %}
-                        <div class="cfg-photo-empty">
-                            Sin foto
-                        </div>
-                        {% endif %}
-                    </div>
-                    <div class="cfg-form-grid">
-                        <div class="cfg-field">
-                            <label class="cfg-label">Nombre de la cooperativa</label>
-                            <input type="text" name="cooperativa_nombre" class="cfg-input" value="{{ cooperativa_nombre }}" maxlength="120" required>
-                        </div>
-                        <div class="cfg-field">
-                            <label class="cfg-label">Foto institucional</label>
-                            <input type="file" name="cooperativa_foto" class="cfg-file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp">
-                        </div>
-                        <p class="cfg-help">Esta imagen se mostrará en la parte superior del sistema y en el inicio de sesión.</p>
-                    </div>
+    <div class="cfg-modal" id="cfgIdentityModal" aria-hidden="true">
+      <div class="cfg-modal-backdrop" id="cfgIdentityModalBackdrop"></div>
+      <div class="cfg-modal-panel" role="dialog" aria-modal="true" aria-labelledby="cfgIdentityModalTitle">
+        <div class="cfg-modal-head">
+          <div>
+            <div class="cfg-modal-title" id="cfgIdentityModalTitle">Identidad de la cooperativa</div>
+            <div class="cfg-modal-subtitle">Nombre e imagen institucional del sistema</div>
+          </div>
+          <button type="button" class="cfg-modal-close" id="closeIdentityModalBtn" aria-label="Cerrar ventana">×</button>
+        </div>
+        <div class="cfg-modal-body">
+          <div class="cfg-identity-grid">
+            <div class="cfg-photo-wrap">
+              <div class="cfg-photo-preview">
+                {% if cooperativa_foto %}
+                <img src="{{ url_for('static', filename=cooperativa_foto) }}" alt="Foto institucional">
+                {% else %}
+                <div class="cfg-photo-placeholder">
+                  <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                  <span>Sin foto</span>
                 </div>
+                {% endif %}
+              </div>
             </div>
-        </section>
+            <div class="cfg-fields">
+              <div class="cfg-field">
+                <label class="cfg-label">Nombre de la cooperativa <span>*</span></label>
+                <input type="text" name="cooperativa_nombre" class="cfg-input" value="{{ cooperativa_nombre }}" maxlength="120" required placeholder="Nombre completo">
+              </div>
+              <div class="cfg-field">
+                <label class="cfg-label">Foto institucional</label>
+                <label class="cfg-file-btn" for="cooperativa_foto_input">
+                  <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  Seleccionar imagen…
+                </label>
+                <input type="file" id="cooperativa_foto_input" name="cooperativa_foto" class="cfg-file-hidden" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp">
+                <p class="cfg-hint">PNG, JPG o WEBP. Se muestra en la barra superior y en el inicio de sesión.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="cfg-modal-actions">
+          <button type="button" class="cfg-btn cfg-btn-ghost" id="closeIdentityModalSecondaryBtn">Cerrar</button>
+          <button type="button" class="cfg-btn cfg-btn-primary" id="acceptIdentityModalBtn">Aceptar cambios</button>
+        </div>
+      </div>
+    </div>
 
-        <section class="cfg-rates">
-            <div class="cfg-card">
-                <div class="cfg-card-header">
-                    <h2 class="cfg-card-title">Tasas de Cuentas de Ahorro</h2>
+    <!-- ── 2. Tasas ──────────────────────────────────────────── -->
+    <div class="cfg-section">
+      <div class="cfg-section-head">
+        <div class="cfg-section-title-group">
+          <div class="cfg-section-icon green">
+            <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div>
+            <div class="cfg-section-title">Tasas de interés</div>
+            <div class="cfg-section-desc">Porcentajes anuales aplicados a productos de ahorro y préstamos</div>
+          </div>
+        </div>
+      </div>
+      <div class="cfg-section-body">
+        <div class="cfg-rates-intro">
+          <div>
+            <div class="cfg-rates-intro-title">Cambios de tasas en apartado separado</div>
+            <div class="cfg-rates-intro-subtitle">Use la ventana de administración para revisar y editar tasas con mayor cuidado.</div>
+          </div>
+          <button type="button" class="cfg-btn-secondary" id="openRatesModalBtn">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 3h7v7"/><path d="M10 14L21 3"/><path d="M21 14v7h-7"/><path d="M3 10L14 21"/></svg>
+            Administrar tasas
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="cfg-rates-modal" id="cfgRatesModal" aria-hidden="true">
+      <div class="cfg-rates-modal-backdrop" id="cfgRatesModalBackdrop"></div>
+      <div class="cfg-rates-modal-panel" role="dialog" aria-modal="true" aria-labelledby="cfgRatesModalTitle">
+        <div class="cfg-rates-modal-head">
+          <div>
+            <div class="cfg-rates-modal-title" id="cfgRatesModalTitle">Administración de tasas de interés</div>
+            <div class="cfg-rates-modal-subtitle">Porcentajes anuales aplicados a ahorro y préstamos</div>
+          </div>
+          <button type="button" class="cfg-rates-modal-close" id="closeRatesModalBtn" aria-label="Cerrar ventana">×</button>
+        </div>
+        <div class="cfg-rates-modal-body">
+          <p class="cfg-rates-note">Revise con cuidado cada valor anual antes de guardar.</p>
+          <div class="cfg-rates-columns">
+            <div class="cfg-rate-panel">
+              <div class="cfg-rate-panel-head savings">
+                <div>
+                  <div class="cfg-rate-panel-title">Cuentas de ahorro</div>
+                  <div class="cfg-rate-panel-subtitle">Tasas para productos de captación</div>
                 </div>
-                <div class="cfg-card-body">
-                    <div class="cfg-rate-list">
-                        {% for config in configuraciones if 'ahorro' in config.tipo %}
-                        <div class="cfg-rate-item">
-                            <div class="cfg-rate-row">
-                                <div class="cfg-rate-name">
-                                    {% if config.tipo == 'ahorro_corriente' %}
-                                        Ahorro
-                                    {% elif config.tipo == 'ahorro_plazo_fijo' %}
-                                        Plazo fijo
-                                    {% elif config.tipo == 'ahorro_aportacion' %}
-                                        Aportación
-                                    {% else %}
-                                        Producto de ahorro
-                                    {% endif %}
-                                </div>
-                                <div class="cfg-rate-input">
-                                    <input type="number" step="0.01" name="{{ config.tipo }}" value="{{ config.tasa_interes }}" required>
-                                    <span>%</span>
-                                </div>
-                            </div>
-                            <div class="cfg-help">{{ config.descripcion }}</div>
-                        </div>
-                        {% endfor %}
+                <div class="cfg-rate-panel-tag">Ahorro</div>
+              </div>
+              <div class="cfg-rate-panel-body">
+              <div class="cfg-rates-group-title">Porcentaje anual (%)</div>
+              <div class="cfg-rate-list">
+                {% for config in configuraciones if 'ahorro' in config.tipo %}
+                <div class="cfg-rate-row">
+                  <div class="cfg-rate-info">
+                    <div class="cfg-rate-name">
+                      {% if config.tipo == 'ahorro_corriente' %}Ahorro corriente
+                      {% elif config.tipo == 'ahorro_plazo_fijo' %}Plazo fijo
+                      {% elif config.tipo == 'ahorro_aportacion' %}Aportaciones
+                      {% else %}Producto de ahorro{% endif %}
                     </div>
+                    {% if config.descripcion %}
+                    <div class="cfg-rate-desc">{{ config.descripcion }}</div>
+                    {% endif %}
+                  </div>
+                  <div class="cfg-rate-input-group">
+                    <input type="number" step="0.01" min="0" max="100" name="{{ config.tipo }}" value="{{ config.tasa_interes }}" class="cfg-rate-field" data-rate-group="Ahorro" data-rate-label="{% if config.tipo == 'ahorro_corriente' %}Ahorro corriente{% elif config.tipo == 'ahorro_plazo_fijo' %}Plazo fijo{% elif config.tipo == 'ahorro_aportacion' %}Aportaciones{% else %}Producto de ahorro{% endif %}" required>
+                    <span class="cfg-rate-suffix">%</span>
+                  </div>
                 </div>
+                {% endfor %}
+              </div>
+              </div>
             </div>
-
-            <div class="cfg-card">
-                <div class="cfg-card-header">
-                    <h2 class="cfg-card-title">Tasas de Préstamos</h2>
+            <div class="cfg-rate-panel">
+              <div class="cfg-rate-panel-head loans">
+                <div>
+                  <div class="cfg-rate-panel-title">Préstamos</div>
+                  <div class="cfg-rate-panel-subtitle">Tasas para colocación de crédito</div>
                 </div>
-                <div class="cfg-card-body">
-                    <div class="cfg-rate-list">
-                        {% for config in configuraciones if 'prestamo' in config.tipo %}
-                        <div class="cfg-rate-item">
-                            <div class="cfg-rate-row">
-                                <div class="cfg-rate-name">
-                                    {% if config.tipo == 'prestamo' %}
-                                        Préstamos
-                                    {% else %}
-                                        Producto de préstamos
-                                    {% endif %}
-                                </div>
-                                <div class="cfg-rate-input">
-                                    <input type="number" step="0.01" name="{{ config.tipo }}" value="{{ config.tasa_interes }}" required>
-                                    <span>%</span>
-                                </div>
-                            </div>
-                            <div class="cfg-help">{{ config.descripcion }}</div>
-                        </div>
-                        {% endfor %}
+                <div class="cfg-rate-panel-tag">Préstamos</div>
+              </div>
+              <div class="cfg-rate-panel-body">
+              <div class="cfg-rates-group-title">Porcentaje anual (%)</div>
+              <div class="cfg-rate-list">
+                {% for config in configuraciones if 'prestamo' in config.tipo %}
+                <div class="cfg-rate-row">
+                  <div class="cfg-rate-info">
+                    <div class="cfg-rate-name">
+                      {% if config.tipo == 'prestamo' %}Tasa general de préstamos
+                      {% else %}Producto de préstamos{% endif %}
                     </div>
+                    {% if config.descripcion %}
+                    <div class="cfg-rate-desc">{{ config.descripcion }}</div>
+                    {% endif %}
+                  </div>
+                  <div class="cfg-rate-input-group">
+                    <input type="number" step="0.01" min="0" max="100" name="{{ config.tipo }}" value="{{ config.tasa_interes }}" class="cfg-rate-field" data-rate-group="Prestamos" data-rate-label="{% if config.tipo == 'prestamo' %}Tasa general de préstamos{% else %}Producto de préstamos{% endif %}" required>
+                    <span class="cfg-rate-suffix">%</span>
+                  </div>
                 </div>
+                {% endfor %}
+              </div>
+              </div>
             </div>
-        </section>
+          </div>
+          <div class="cfg-rates-summary" id="cfgRatesSummary" aria-live="polite">
+            <div class="cfg-rates-summary-head">
+              <div class="cfg-rates-summary-title">Resumen de cambios en tasas</div>
+              <div class="cfg-rates-summary-count" id="cfgRatesSummaryCount">0 cambios</div>
+            </div>
+            <div class="cfg-rates-summary-body">
+              <div class="cfg-rates-summary-empty" id="cfgRatesSummaryEmpty">Sin cambios detectados.</div>
+              <ul class="cfg-rates-summary-list" id="cfgRatesSummaryList"></ul>
+            </div>
+          </div>
+        </div>
+        <div class="cfg-rates-modal-actions">
+          <button type="button" class="cfg-btn cfg-btn-ghost" id="closeRatesModalSecondaryBtn">Cerrar</button>
+          <button type="button" class="cfg-btn cfg-btn-primary" id="acceptRatesModalBtn">Aceptar cambios</button>
+        </div>
+      </div>
+    </div>
 
-        <section class="cfg-card">
-            <div class="cfg-card-header">
-                <h2 class="cfg-card-title">Categorías de préstamos</h2>
-                <button type="button" class="btn btn-outline btn-sm" id="agregar-categoria-btn">+ Agregar categoría</button>
-            </div>
-            <div class="cfg-card-body">
-                <p class="cfg-help">Cree y edite las categorías disponibles para las nuevas solicitudes de préstamo.</p>
-                <div id="categorias-prestamo-lista" class="cfg-categories-list">
-                    {% for categoria in categorias_prestamo %}
-                    <div class="categoria-prestamo-item">
-                        <input type="hidden" name="categoria_id[]" value="{{ categoria.id }}">
-                        <div class="cfg-field">
-                            <label class="cfg-label">Nombre</label>
-                            <input type="text" name="categoria_nombre[]" class="cfg-input" value="{{ categoria.nombre }}" maxlength="80" required>
-                        </div>
-                        <div class="cfg-field">
-                            <label class="cfg-label">Descripción</label>
-                            <input type="text" name="categoria_descripcion[]" class="cfg-input" value="{{ categoria.descripcion or '' }}" maxlength="180">
-                        </div>
-                        <div></div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </section>
+    <!-- ── 3. Categorías ─────────────────────────────────────── -->
+    <div class="cfg-section">
+      <div class="cfg-section-head">
+        <div class="cfg-section-title-group">
+          <div class="cfg-section-icon amber">
+            <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+          </div>
+          <div>
+            <div class="cfg-section-title">Categorías de préstamos</div>
+            <div class="cfg-section-desc">Tipos disponibles para nuevas solicitudes</div>
+          </div>
+        </div>
+      </div>
+      <div class="cfg-section-body">
+        <div class="cfg-section-intro">
+          <div>
+            <div class="cfg-section-intro-title">Administración de categorías en ventana separada</div>
+            <div class="cfg-section-intro-subtitle">Administre tipos de préstamo en un apartado dedicado.</div>
+          </div>
+          <button type="button" class="cfg-btn-secondary" id="openCategoriesModalBtn">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 3h7v7"/><path d="M10 14L21 3"/><path d="M21 14v7h-7"/><path d="M3 10L14 21"/></svg>
+            Administrar categorías
+          </button>
+        </div>
+      </div>
+    </div>
 
-        <section class="cfg-card">
-            <div class="cfg-card-header">
-                <h2 class="cfg-card-title">Formato de finiquito de préstamo</h2>
+    <div class="cfg-modal" id="cfgCategoriesModal" aria-hidden="true">
+      <div class="cfg-modal-backdrop" id="cfgCategoriesModalBackdrop"></div>
+      <div class="cfg-modal-panel" role="dialog" aria-modal="true" aria-labelledby="cfgCategoriesModalTitle">
+        <div class="cfg-modal-head">
+          <div>
+            <div class="cfg-modal-title" id="cfgCategoriesModalTitle">Categorías de préstamos</div>
+            <div class="cfg-modal-subtitle">Tipos disponibles para nuevas solicitudes</div>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button type="button" class="cfg-btn-add" id="agregar-categoria-btn">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Agregar categoría
+            </button>
+            <button type="button" class="cfg-modal-close" id="closeCategoriesModalBtn" aria-label="Cerrar ventana">×</button>
+          </div>
+        </div>
+        <div class="cfg-modal-body">
+          <div id="categorias-prestamo-lista" class="cfg-categories-list">
+            {% for categoria in categorias_prestamo %}
+            <div class="categoria-prestamo-item">
+              <input type="hidden" name="categoria_id[]" value="{{ categoria.id }}">
+              <div class="cfg-field">
+                <label class="cfg-label">Nombre <span style="color:#dc2626">*</span></label>
+                <input type="text" name="categoria_nombre[]" class="cfg-input" value="{{ categoria.nombre }}" maxlength="80" required>
+              </div>
+              <div class="cfg-field">
+                <label class="cfg-label">Descripción</label>
+                <input type="text" name="categoria_descripcion[]" class="cfg-input" value="{{ categoria.descripcion or '' }}" maxlength="180" placeholder="Opcional">
+              </div>
+              <button type="button" class="cfg-btn-remove quitar-categoria-btn" aria-label="Quitar categoría" title="Quitar">✕</button>
             </div>
-            <div class="cfg-card-body">
-                <div class="cfg-field">
-                    <label class="cfg-label">Plantilla del finiquito</label>
-                    <textarea name="prestamo_finiquito_texto" class="cfg-textarea" rows="7" required>{{ prestamo_finiquito_texto }}</textarea>
-                </div>
-                <p class="cfg-help">
-                    Variables disponibles: {cooperativa_nombre}, {prestamo_numero}, {socio_nombre}, {socio_codigo}, {categoria_nombre}, {monto_aprobado}, {cuota}, {frecuencia}, {fecha_aprobacion}, {fecha_primer_pago}, {fecha_ultima_cuota}, {total_cuotas}, {estado}, {desembolso_tipo}, {desembolso_referencia}.
-                </p>
-            </div>
-        </section>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="cfg-modal-actions">
+          <button type="button" class="cfg-btn cfg-btn-ghost" id="closeCategoriesModalSecondaryBtn">Cerrar</button>
+          <button type="button" class="cfg-btn cfg-btn-primary" id="acceptCategoriesModalBtn">Aceptar cambios</button>
+        </div>
+      </div>
+    </div>
 
-        <section class="cfg-actions">
-            <p class="cfg-note">
-                Los cambios se aplican inmediatamente a nuevas cuentas y solicitudes de préstamo.
-            </p>
-            <div class="cfg-buttons">
-                <a href="{{ url_for('index') }}" class="btn btn-outline">
-                    Cancelar
-                </a>
-                <button type="submit" class="btn btn-primary">
-                    Guardar cambios
-                </button>
+    <!-- ── 4. Plantillas ─────────────────────────────────────── -->
+    <div class="cfg-section">
+      <div class="cfg-section-head">
+        <div class="cfg-section-title-group">
+          <div class="cfg-section-icon purple">
+            <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+          <div>
+            <div class="cfg-section-title">Plantillas</div>
+            <div class="cfg-section-desc">Textos configurables para retiros y préstamos</div>
+          </div>
+        </div>
+      </div>
+      <div class="cfg-section-body">
+        <div class="cfg-section-intro">
+          <div>
+            <div class="cfg-section-intro-title">Edición de plantillas en ventana separada</div>
+            <div class="cfg-section-intro-subtitle">Administre los textos de comprobantes y finiquitos desde un solo lugar.</div>
+          </div>
+          <button type="button" class="cfg-btn-secondary" id="openTemplatesModalBtn">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 3h7v7"/><path d="M10 14L21 3"/><path d="M21 14v7h-7"/><path d="M3 10L14 21"/></svg>
+            Administrar plantillas
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="cfg-modal" id="cfgTemplatesModal" aria-hidden="true">
+      <div class="cfg-modal-backdrop" id="cfgTemplatesModalBackdrop"></div>
+      <div class="cfg-modal-panel" role="dialog" aria-modal="true" aria-labelledby="cfgTemplatesModalTitle">
+        <div class="cfg-modal-head">
+          <div>
+            <div class="cfg-modal-title" id="cfgTemplatesModalTitle">Plantillas del sistema</div>
+            <div class="cfg-modal-subtitle">Plantilla de retiros y plantilla de préstamos</div>
+          </div>
+          <button type="button" class="cfg-modal-close" id="closeTemplatesModalBtn" aria-label="Cerrar ventana">×</button>
+        </div>
+        <div class="cfg-modal-body">
+          <div class="cfg-field">
+            <label class="cfg-label">Plantilla de retiros <span>*</span></label>
+            <textarea name="retiro_comprobante_texto" class="cfg-textarea" rows="6" required>{{ retiro_comprobante_texto }}</textarea>
+            <p class="cfg-hint">Variables sugeridas: {cooperativa_nombre}, {socio_nombre}, {socio_codigo}, {cuenta_numero}, {monto_retiro}, {fecha_retiro}</p>
+          </div>
+
+          <div class="cfg-field" style="margin-top:14px;">
+            <label class="cfg-label">Plantilla de préstamos <span>*</span></label>
+            <textarea name="prestamo_finiquito_texto" class="cfg-textarea" rows="8" required>{{ prestamo_finiquito_texto }}</textarea>
+            <p class="cfg-hint">Variables disponibles para préstamos:</p>
+            <div class="cfg-vars-list">
+              {% for var in ['{cooperativa_nombre}','{prestamo_numero}','{socio_nombre}','{socio_codigo}','{categoria_nombre}','{monto_aprobado}','{cuota}','{frecuencia}','{fecha_aprobacion}','{fecha_primer_pago}','{fecha_ultima_cuota}','{total_cuotas}','{estado}','{desembolso_tipo}','{desembolso_referencia}'] %}
+              <span class="cfg-var-chip">{{ var }}</span>
+              {% endfor %}
             </div>
-        </section>
-    </form>
+          </div>
+        </div>
+        <div class="cfg-modal-actions">
+          <button type="button" class="cfg-btn cfg-btn-ghost" id="closeTemplatesModalSecondaryBtn">Cerrar</button>
+          <button type="button" class="cfg-btn cfg-btn-primary" id="acceptTemplatesModalBtn">Aceptar cambios</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Footer / actions ──────────────────────────────────── -->
+    <div class="cfg-footer">
+      <div class="cfg-footer-note">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Los cambios se aplican de inmediato a nuevas cuentas y solicitudes.
+      </div>
+      <div class="cfg-footer-actions">
+        <a href="{{ url_for('index') }}" class="cfg-btn cfg-btn-ghost">Cancelar</a>
+        <button type="submit" class="cfg-btn cfg-btn-primary">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Guardar cambios
+        </button>
+      </div>
+    </div>
+
+  </form>
 </div>
 
 <script>
 const categoriasPrestamoLista = document.getElementById('categorias-prestamo-lista');
-const agregarCategoriaBtn = document.getElementById('agregar-categoria-btn');
+const agregarCategoriaBtn     = document.getElementById('agregar-categoria-btn');
+
+const openIdentityModalBtn = document.getElementById('openIdentityModalBtn');
+const cfgIdentityModal = document.getElementById('cfgIdentityModal');
+const cfgIdentityModalBackdrop = document.getElementById('cfgIdentityModalBackdrop');
+const closeIdentityModalBtn = document.getElementById('closeIdentityModalBtn');
+const closeIdentityModalSecondaryBtn = document.getElementById('closeIdentityModalSecondaryBtn');
+const acceptIdentityModalBtn = document.getElementById('acceptIdentityModalBtn');
+
+const openRatesModalBtn = document.getElementById('openRatesModalBtn');
+const cfgRatesModal = document.getElementById('cfgRatesModal');
+const cfgRatesModalBackdrop = document.getElementById('cfgRatesModalBackdrop');
+const closeRatesModalBtn = document.getElementById('closeRatesModalBtn');
+const closeRatesModalSecondaryBtn = document.getElementById('closeRatesModalSecondaryBtn');
+const acceptRatesModalBtn = document.getElementById('acceptRatesModalBtn');
+
+const openCategoriesModalBtn = document.getElementById('openCategoriesModalBtn');
+const cfgCategoriesModal = document.getElementById('cfgCategoriesModal');
+const cfgCategoriesModalBackdrop = document.getElementById('cfgCategoriesModalBackdrop');
+const closeCategoriesModalBtn = document.getElementById('closeCategoriesModalBtn');
+const closeCategoriesModalSecondaryBtn = document.getElementById('closeCategoriesModalSecondaryBtn');
+const acceptCategoriesModalBtn = document.getElementById('acceptCategoriesModalBtn');
+
+const openTemplatesModalBtn = document.getElementById('openTemplatesModalBtn');
+const cfgTemplatesModal = document.getElementById('cfgTemplatesModal');
+const cfgTemplatesModalBackdrop = document.getElementById('cfgTemplatesModalBackdrop');
+const closeTemplatesModalBtn = document.getElementById('closeTemplatesModalBtn');
+const closeTemplatesModalSecondaryBtn = document.getElementById('closeTemplatesModalSecondaryBtn');
+const acceptTemplatesModalBtn = document.getElementById('acceptTemplatesModalBtn');
 
 if (agregarCategoriaBtn && categoriasPrestamoLista) {
-    agregarCategoriaBtn.addEventListener('click', function () {
-        const row = document.createElement('div');
-        row.className = 'categoria-prestamo-item';
-        row.innerHTML = `
-            <input type="hidden" name="categoria_id[]" value="">
-            <div class="cfg-field">
-                <label class="cfg-label">Nombre</label>
-                <input type="text" name="categoria_nombre[]" class="cfg-input" maxlength="80" required>
-            </div>
-            <div class="cfg-field">
-                <label class="cfg-label">Descripción</label>
-                <input type="text" name="categoria_descripcion[]" class="cfg-input" maxlength="180">
-            </div>
-            <button type="button" class="btn-danger-soft quitar-categoria-btn" aria-label="Quitar categoría">Quitar</button>
-        `;
-        categoriasPrestamoLista.appendChild(row);
-    });
+  agregarCategoriaBtn.addEventListener('click', function () {
+    const row = document.createElement('div');
+    row.className = 'categoria-prestamo-item';
+    row.innerHTML = `
+      <input type="hidden" name="categoria_id[]" value="">
+      <div class="cfg-field">
+        <label class="cfg-label">Nombre <span style="color:#dc2626">*</span></label>
+        <input type="text" name="categoria_nombre[]" class="cfg-input" maxlength="80" required placeholder="Nombre de la categoría">
+      </div>
+      <div class="cfg-field">
+        <label class="cfg-label">Descripción</label>
+        <input type="text" name="categoria_descripcion[]" class="cfg-input" maxlength="180" placeholder="Opcional">
+      </div>
+      <button type="button" class="cfg-btn-remove quitar-categoria-btn" aria-label="Quitar categoría" title="Quitar">✕</button>
+    `;
+    categoriasPrestamoLista.appendChild(row);
+    row.querySelector('input[name="categoria_nombre[]"]').focus();
+  });
 
-    categoriasPrestamoLista.addEventListener('click', function (event) {
-        if (!event.target.classList.contains('quitar-categoria-btn')) return;
-        event.target.closest('.categoria-prestamo-item')?.remove();
-    });
+  categoriasPrestamoLista.addEventListener('click', function (e) {
+    if (!e.target.classList.contains('quitar-categoria-btn')) return;
+    e.target.closest('.categoria-prestamo-item')?.remove();
+  });
 }
+
+// Show selected file name
+const fileInput = document.getElementById('cooperativa_foto_input');
+const fileLabel = fileInput ? fileInput.previousElementSibling : null;
+if (fileInput && fileLabel) {
+  fileInput.addEventListener('change', function () {
+    const name = fileInput.files[0]?.name;
+    if (name) fileLabel.innerHTML = `<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> ${name}`;
+  });
+}
+
+function openRatesModal() {
+  if (!cfgRatesModal) return;
+  cfgRatesModal.classList.add('is-open');
+  cfgRatesModal.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeRatesModal() {
+  if (!cfgRatesModal) return;
+  cfgRatesModal.classList.remove('is-open');
+  cfgRatesModal.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+}
+
+function openGenericModal(modalEl) {
+  if (!modalEl) return;
+  modalEl.classList.add('is-open');
+  modalEl.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeGenericModal(modalEl) {
+  if (!modalEl) return;
+  modalEl.classList.remove('is-open');
+  modalEl.setAttribute('aria-hidden', 'true');
+  const anyOpen = Array.from(document.querySelectorAll('.cfg-modal.is-open, .cfg-rates-modal.is-open')).length > 0;
+  if (!anyOpen) document.body.style.overflow = '';
+}
+
+if (openIdentityModalBtn) openIdentityModalBtn.addEventListener('click', function () { openGenericModal(cfgIdentityModal); });
+if (cfgIdentityModalBackdrop) cfgIdentityModalBackdrop.addEventListener('click', function () { closeGenericModal(cfgIdentityModal); });
+if (closeIdentityModalBtn) closeIdentityModalBtn.addEventListener('click', function () { closeGenericModal(cfgIdentityModal); });
+if (closeIdentityModalSecondaryBtn) closeIdentityModalSecondaryBtn.addEventListener('click', function () { closeGenericModal(cfgIdentityModal); });
+if (acceptIdentityModalBtn) acceptIdentityModalBtn.addEventListener('click', function () { closeGenericModal(cfgIdentityModal); });
+
+if (openRatesModalBtn) openRatesModalBtn.addEventListener('click', openRatesModal);
+if (cfgRatesModalBackdrop) cfgRatesModalBackdrop.addEventListener('click', closeRatesModal);
+if (closeRatesModalBtn) closeRatesModalBtn.addEventListener('click', closeRatesModal);
+if (closeRatesModalSecondaryBtn) closeRatesModalSecondaryBtn.addEventListener('click', closeRatesModal);
+if (acceptRatesModalBtn) acceptRatesModalBtn.addEventListener('click', closeRatesModal);
+
+if (openCategoriesModalBtn) openCategoriesModalBtn.addEventListener('click', function () { openGenericModal(cfgCategoriesModal); });
+if (cfgCategoriesModalBackdrop) cfgCategoriesModalBackdrop.addEventListener('click', function () { closeGenericModal(cfgCategoriesModal); });
+if (closeCategoriesModalBtn) closeCategoriesModalBtn.addEventListener('click', function () { closeGenericModal(cfgCategoriesModal); });
+if (closeCategoriesModalSecondaryBtn) closeCategoriesModalSecondaryBtn.addEventListener('click', function () { closeGenericModal(cfgCategoriesModal); });
+if (acceptCategoriesModalBtn) acceptCategoriesModalBtn.addEventListener('click', function () { closeGenericModal(cfgCategoriesModal); });
+
+if (openTemplatesModalBtn) openTemplatesModalBtn.addEventListener('click', function () { openGenericModal(cfgTemplatesModal); });
+if (cfgTemplatesModalBackdrop) cfgTemplatesModalBackdrop.addEventListener('click', function () { closeGenericModal(cfgTemplatesModal); });
+if (closeTemplatesModalBtn) closeTemplatesModalBtn.addEventListener('click', function () { closeGenericModal(cfgTemplatesModal); });
+if (closeTemplatesModalSecondaryBtn) closeTemplatesModalSecondaryBtn.addEventListener('click', function () { closeGenericModal(cfgTemplatesModal); });
+if (acceptTemplatesModalBtn) acceptTemplatesModalBtn.addEventListener('click', function () { closeGenericModal(cfgTemplatesModal); });
+
+window.addEventListener('keydown', function (event) {
+  if (event.key !== 'Escape') return;
+
+  if (event.key === 'Escape' && cfgRatesModal && cfgRatesModal.classList.contains('is-open')) {
+    closeRatesModal();
+    return;
+  }
+
+  if (cfgIdentityModal && cfgIdentityModal.classList.contains('is-open')) {
+    closeGenericModal(cfgIdentityModal);
+    return;
+  }
+
+  if (cfgCategoriesModal && cfgCategoriesModal.classList.contains('is-open')) {
+    closeGenericModal(cfgCategoriesModal);
+    return;
+  }
+
+  if (cfgTemplatesModal && cfgTemplatesModal.classList.contains('is-open')) {
+    closeGenericModal(cfgTemplatesModal);
+  }
+});
+
+// Resumen de cambios para tasas de interes antes de guardar.
+const rateFields = Array.from(document.querySelectorAll('.cfg-rate-field'));
+const ratesSummaryBox = document.getElementById('cfgRatesSummary');
+const ratesSummaryCount = document.getElementById('cfgRatesSummaryCount');
+const ratesSummaryEmpty = document.getElementById('cfgRatesSummaryEmpty');
+const ratesSummaryList = document.getElementById('cfgRatesSummaryList');
+
+function normalizeRateValue(value) {
+  const n = Number.parseFloat(value);
+  if (Number.isNaN(n)) return '';
+  return n.toFixed(2);
+}
+
+function renderRatesSummary() {
+  if (!ratesSummaryBox || !ratesSummaryCount || !ratesSummaryEmpty || !ratesSummaryList) return;
+
+  const changes = [];
+  rateFields.forEach(function (field) {
+    const original = field.dataset.originalRate || '';
+    const current = normalizeRateValue(field.value);
+    if (original !== current) {
+      changes.push({
+        label: field.dataset.rateLabel || field.name,
+        group: field.dataset.rateGroup || '',
+        before: original,
+        after: current,
+      });
+    }
+  });
+
+  ratesSummaryList.innerHTML = '';
+  ratesSummaryCount.textContent = `${changes.length} cambio${changes.length === 1 ? '' : 's'}`;
+  ratesSummaryBox.style.display = changes.length ? 'block' : 'none';
+  ratesSummaryEmpty.style.display = changes.length ? 'none' : 'block';
+
+  changes.forEach(function (change) {
+    const item = document.createElement('li');
+    item.className = 'cfg-rates-summary-item';
+    item.innerHTML = `
+      <div class="cfg-rates-summary-label">
+        <div class="cfg-rates-summary-name">${change.label}</div>
+        <div class="cfg-rates-summary-group">${change.group}</div>
+      </div>
+      <div class="cfg-rates-summary-delta">${change.before || '0.00'}% -> ${change.after || '0.00'}%</div>
+    `;
+    ratesSummaryList.appendChild(item);
+  });
+}
+
+rateFields.forEach(function (field) {
+  field.dataset.originalRate = normalizeRateValue(field.value);
+  field.addEventListener('input', renderRatesSummary);
+  field.addEventListener('change', renderRatesSummary);
+});
+
+renderRatesSummary();
 </script>
 {% endblock %}

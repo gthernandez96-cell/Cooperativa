@@ -4,6 +4,12 @@ Centraliza todos los valores que antes estaban dispersos en app.py.
 """
 import os
 
+# ── Backend de base de datos (Fase 1 migración PostgreSQL) ───────────────────
+# Por ahora el sistema sigue operando en SQLite. Estas variables preparan
+# la configuración para migrar por etapas sin romper compatibilidad.
+DATABASE_URL = os.getenv('DATABASE_URL', '').strip()
+DB_BACKEND = os.getenv('DB_BACKEND', 'sqlite').strip().lower()
+
 # ── Rutas del sistema ──────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(__file__)
 DB = os.path.join(BASE_DIR, 'cooperativa.db')
@@ -44,6 +50,12 @@ REQUIRED_CONFIGURACIONES = [
 SYSTEM_SETTINGS_DEFAULTS = {
     'cooperativa_nombre': DEFAULT_COOPERATIVA_NOMBRE,
     'cooperativa_foto': '',
+    'retiro_comprobante_texto': (
+        'Por este medio, {cooperativa_nombre} deja constancia del retiro efectuado por el asociado '
+        '{socio_nombre} con codigo {socio_codigo}, por un monto de Q{monto_retiro}, '
+        'desde la cuenta {cuenta_numero} en fecha {fecha_retiro}.\n\n'
+        'Se extiende el presente comprobante para fines administrativos.'
+    ),
     'prestamo_finiquito_texto': (
         'Por este medio, {cooperativa_nombre} hace constar que el asociado {socio_nombre} '
         'con codigo {socio_codigo} mantiene el prestamo {prestamo_numero} en categoria {categoria_nombre}, '

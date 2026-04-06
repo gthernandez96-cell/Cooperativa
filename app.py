@@ -15,11 +15,19 @@ from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
+try:
+    import psycopg  # type: ignore[import-not-found]
+    from psycopg.rows import dict_row  # type: ignore[import-not-found]
+except Exception:
+    psycopg = None
+    dict_row = None
+
 # Cargar variables de entorno desde .env
 load_dotenv()
 
 from config import (
-    DB, SOCIOS_UPLOAD_DIR, COOPERATIVA_UPLOAD_DIR, DEFAULT_COOPERATIVA_NOMBRE,
+    DB, DB_BACKEND, DATABASE_URL,
+    SOCIOS_UPLOAD_DIR, COOPERATIVA_UPLOAD_DIR, DEFAULT_COOPERATIVA_NOMBRE,
     CONFIG_LABELS, TRANSACCION_LABELS, TRANSACCIONES_POSITIVAS,
     REQUIRED_CONFIGURACIONES, SYSTEM_SETTINGS_DEFAULTS,
     AHORRO_SETTINGS_DEFAULTS, PRESTAMO_SETTINGS_DEFAULTS,
@@ -189,11 +197,75 @@ def login_required(role=None):
 
 # ── DB helpers ────────────────────────────────────────────────────────────────
 def get_db():
+    if DB_BACKEND == 'postgres':
+        if psycopg and DATABASE_URL:
+            return psycopg.connect(DATABASE_URL, row_factory=dict_row)
+        logger.warning(
+            'DB_BACKEND=postgres detectado, pero psycopg o DATABASE_URL no están listos. '
+            'Se usa SQLite temporalmente.'
+        )
     conn = sqlite3.connect(DB, timeout=30)
     conn.row_factory = sqlite3.Row
     conn.execute('PRAGMA busy_timeout = 30000')
     conn.execute('PRAGMA journal_mode = WAL')
     return conn
+
+
+def _is_postgres_connection(conn):
+    return conn.__class__.__module__.startswith('psycopg')
+
+
+def _adapt_query_for_backend(conn, query):
+    if _is_postgres_connection(conn):
+        return query.replace('?', '%s')
+    return query
+
+
+def db_execute(conn, query, params=()):
+    q = _adapt_query_for_backend(conn, query)
+    if params is None:
+        return conn.execute(q)
+    return conn.execute(q, tuple(params))
+
+
+def db_fetchone(conn, query, params=()):
+    return db_execute(conn, query, params).fetchone()
+
+
+def db_fetchall(conn, query, params=()):
+    return db_execute(conn, query, params).fetchall()
+
+
+def db_executemany(conn, query, rows):
+    q = _adapt_query_for_backend(conn, query)
+    return conn.executemany(q, rows)
+
+
+def db_insert_ignore(conn, table, columns, values, conflict_columns):
+    placeholders = ', '.join(['?'] * len(columns))
+    cols_sql = ', '.join(columns)
+    conflict_sql = ', '.join(conflict_columns)
+    db_execute(
+        conn,
+        f"INSERT INTO {table} ({cols_sql}) VALUES ({placeholders}) ON CONFLICT ({conflict_sql}) DO NOTHING",
+        values,
+    )
+
+
+def db_insert_and_get_id(conn, query, params=(), id_column='id'):
+    q = _adapt_query_for_backend(conn, query)
+    if _is_postgres_connection(conn):
+        if 'returning' not in q.lower():
+            q = f"{q} RETURNING {id_column}"
+        row = conn.execute(q, tuple(params)).fetchone()
+        if row is None:
+            return None
+        try:
+            return row[id_column]
+        except Exception:
+            return row[0]
+    cur = conn.execute(q, tuple(params))
+    return cur.lastrowid
 
 
 def get_db_connection():
@@ -203,7 +275,7 @@ def get_db_connection():
 def get_config(tipo):
     """Obtiene el valor de una configuración por tipo"""
     conn = get_db()
-    config = conn.execute("SELECT tasa_interes FROM configuraciones WHERE tipo=?", [tipo]).fetchone()
+    config = db_fetchone(conn, "SELECT tasa_interes FROM configuraciones WHERE tipo=?", [tipo])
     conn.close()
     return config['tasa_interes'] if config else 0
 
@@ -211,11 +283,12 @@ def get_config(tipo):
 def ensure_system_settings(conn):
     hoy = date.today().isoformat()
     for clave, valor in SYSTEM_SETTINGS_DEFAULTS.items():
-        conn.execute(
-            """INSERT OR IGNORE INTO ajustes_sistema
-               (clave, valor, fecha_actualizacion)
-               VALUES (?, ?, ?)""",
-            (clave, valor, hoy)
+        db_insert_ignore(
+            conn,
+            'ajustes_sistema',
+            ('clave', 'valor', 'fecha_actualizacion'),
+            (clave, valor, hoy),
+            ('clave',),
         )
 
 
@@ -223,22 +296,24 @@ def ensure_module_settings(conn):
     hoy = date.today().isoformat()
     for defaults in (AHORRO_SETTINGS_DEFAULTS, PRESTAMO_SETTINGS_DEFAULTS):
         for clave, valor in defaults.items():
-            conn.execute(
-                """INSERT OR IGNORE INTO ajustes_sistema
-                   (clave, valor, fecha_actualizacion)
-                   VALUES (?, ?, ?)""",
-                (clave, valor, hoy)
+            db_insert_ignore(
+                conn,
+                'ajustes_sistema',
+                ('clave', 'valor', 'fecha_actualizacion'),
+                (clave, valor, hoy),
+                ('clave',),
             )
 
 
 def ensure_default_prestamo_categories(conn):
     hoy = date.today().isoformat()
     for nombre, descripcion in DEFAULT_PRESTAMO_CATEGORIAS:
-        conn.execute(
-            """INSERT OR IGNORE INTO prestamo_categorias
-               (nombre, descripcion, estado, fecha_actualizacion)
-               VALUES (?, ?, 'activo', ?)""",
-            (nombre, descripcion, hoy)
+        db_insert_ignore(
+            conn,
+            'prestamo_categorias',
+            ('nombre', 'descripcion', 'estado', 'fecha_actualizacion'),
+            (nombre, descripcion, 'activo', hoy),
+            ('nombre',),
         )
 
 
@@ -262,29 +337,29 @@ def ensure_permissions_catalog(conn):
         ('reportes.ver', 'Ver reportes'),
     ]
     for codigo, nombre in permisos_base:
-        conn.execute(
-            "INSERT OR IGNORE INTO permisos (codigo, nombre) VALUES (?, ?)",
-            (codigo, nombre),
-        )
+        db_insert_ignore(conn, 'permisos', ('codigo', 'nombre'), (codigo, nombre), ('codigo',))
 
     for rol, perms in ROLE_PERMISSION_DEFAULTS.items():
-        rol_row = conn.execute("SELECT id FROM roles WHERE nombre=?", (rol,)).fetchone()
+        rol_row = db_fetchone(conn, "SELECT id FROM roles WHERE nombre=?", (rol,))
         if not rol_row:
             continue
         if '*' in perms:
             continue
         for perm in perms:
-            perm_row = conn.execute("SELECT id FROM permisos WHERE codigo=?", (perm,)).fetchone()
+            perm_row = db_fetchone(conn, "SELECT id FROM permisos WHERE codigo=?", (perm,))
             if not perm_row:
                 continue
-            conn.execute(
-                "INSERT OR IGNORE INTO rol_permisos (rol_id, permiso_id) VALUES (?, ?)",
+            db_insert_ignore(
+                conn,
+                'rol_permisos',
+                ('rol_id', 'permiso_id'),
                 (rol_row['id'], perm_row['id']),
+                ('rol_id', 'permiso_id'),
             )
 
 
 def get_system_setting(conn, clave, default=None):
-    row = conn.execute("SELECT valor FROM ajustes_sistema WHERE clave=?", (clave,)).fetchone()
+    row = db_fetchone(conn, "SELECT valor FROM ajustes_sistema WHERE clave=?", (clave,))
     if row and row['valor'] is not None:
         return row['valor']
     if default is not None:
@@ -293,7 +368,8 @@ def get_system_setting(conn, clave, default=None):
 
 
 def set_system_setting(conn, clave, valor, usuario=None):
-    conn.execute(
+    db_execute(
+        conn,
         """INSERT INTO ajustes_sistema (clave, valor, fecha_actualizacion, usuario_actualizacion)
            VALUES (?, ?, ?, ?)
            ON CONFLICT(clave) DO UPDATE SET
@@ -309,7 +385,7 @@ def obtener_marca_cooperativa():
     try:
         nombre = get_system_setting(conn, 'cooperativa_nombre', DEFAULT_COOPERATIVA_NOMBRE)
         foto = get_system_setting(conn, 'cooperativa_foto', '')
-    except sqlite3.OperationalError:
+    except Exception:
         nombre = DEFAULT_COOPERATIVA_NOMBRE
         foto = ''
     finally:
@@ -333,16 +409,14 @@ def ensure_required_configurations(conn):
     """Asegura que existan las configuraciones base editables en el panel."""
     hoy = date.today().isoformat()
     for tipo, tasa, descripcion in REQUIRED_CONFIGURACIONES:
-        conn.execute(
-            """INSERT OR IGNORE INTO configuraciones
-               (tipo, tasa_interes, descripcion, fecha_actualizacion)
-               VALUES (?, ?, ?, ?)""",
-            (tipo, tasa, descripcion, hoy)
+        db_insert_ignore(
+            conn,
+            'configuraciones',
+            ('tipo', 'tasa_interes', 'descripcion', 'fecha_actualizacion'),
+            (tipo, tasa, descripcion, hoy),
+            ('tipo',),
         )
-        conn.execute(
-            "UPDATE configuraciones SET descripcion=? WHERE tipo=?",
-            (descripcion, tipo)
-        )
+        db_execute(conn, "UPDATE configuraciones SET descripcion=? WHERE tipo=?", (descripcion, tipo))
 
 def get_config_label(tipo):
     """Retorna una etiqueta amigable para mostrar configuraciones al usuario."""
@@ -486,7 +560,8 @@ def renderizar_finiquito_prestamo(prestamo, plantilla):
 
 def obtener_beneficiarios_socio(conn, socio_id):
     return [
-        dict(row) for row in conn.execute(
+        dict(row) for row in db_fetchall(
+            conn,
             '''
             SELECT id, nombre, parentesco, porcentaje
             FROM socio_beneficiarios
@@ -494,7 +569,7 @@ def obtener_beneficiarios_socio(conn, socio_id):
             ORDER BY id
             ''',
             [socio_id]
-        ).fetchall()
+        )
     ]
 
 
@@ -557,20 +632,19 @@ def validar_pago_frecuencia(socio_id, tipo_pago, fecha_referencia=None):
     Retorna True si puede pagar, False si no.
     """
     conn = get_db()
-    
-    # Obtener información del socio
-    socio = conn.execute("SELECT frecuencia, cuota_ahorro FROM socios WHERE id=?", [socio_id]).fetchone()
+
+    socio = db_fetchone(conn, "SELECT frecuencia, cuota_ahorro FROM socios WHERE id=?", [socio_id])
     if not socio or not socio['frecuencia']:
         conn.close()
-        return True  # Si no tiene frecuencia configurada, permitir el pago
-    
+        return True
+
     hoy = normalizar_fecha_referencia(fecha_referencia)
-    
     fecha_limite = hoy.isoformat()
 
     if tipo_pago == 'ahorro':
-        # Verificar último depósito de ahorro
-        ultimo_deposito = conn.execute('''
+        ultimo_deposito = db_fetchone(
+            conn,
+            '''
             SELECT fecha FROM transacciones t
             JOIN cuentas c ON t.cuenta_id = c.id
             WHERE c.socio_id = ?
@@ -578,39 +652,42 @@ def validar_pago_frecuencia(socio_id, tipo_pago, fecha_referencia=None):
               AND t.monto = ?
               AND date(t.fecha) <= date(?)
             ORDER BY t.fecha DESC LIMIT 1
-        ''', [socio_id, socio['cuota_ahorro'], fecha_limite]).fetchone()
-        
+            ''',
+            [socio_id, socio['cuota_ahorro'], fecha_limite],
+        )
         if ultimo_deposito:
             proximo_pago = calcular_proximo_pago(ultimo_deposito['fecha'], socio['frecuencia'])
             if hoy < proximo_pago.date():
                 conn.close()
-                return False  # No puede pagar aún
-    
+                return False
+
     elif tipo_pago == 'prestamo':
-        # Verificar último pago de préstamo
-        ultimo_pago_prestamo = conn.execute('''
+        ultimo_pago_prestamo = db_fetchone(
+            conn,
+            '''
             SELECT fecha FROM pagos_prestamo pp
             JOIN prestamos p ON pp.prestamo_id = p.id
             WHERE p.socio_id = ?
               AND date(pp.fecha) <= date(?)
             ORDER BY pp.fecha DESC LIMIT 1
-        ''', [socio_id, fecha_limite]).fetchone()
-        
+            ''',
+            [socio_id, fecha_limite],
+        )
         if ultimo_pago_prestamo:
             proximo_pago = calcular_proximo_pago(ultimo_pago_prestamo['fecha'], socio['frecuencia'])
             if hoy < proximo_pago.date():
                 conn.close()
-                return False  # No puede pagar aún
-    
+                return False
+
     conn.close()
-    return True  # Puede pagar
+    return True
 
 def obtener_mensaje_validacion_frecuencia(socio_id, tipo_pago, fecha_referencia=None):
     """
     Retorna un mensaje explicativo cuando un pago no puede hacerse por frecuencia.
     """
     conn = get_db()
-    socio = conn.execute("SELECT frecuencia FROM socios WHERE id=?", [socio_id]).fetchone()
+    socio = db_fetchone(conn, "SELECT frecuencia FROM socios WHERE id=?", [socio_id])
     conn.close()
     
     if not socio or not socio['frecuencia']:
@@ -1180,7 +1257,11 @@ def login():
         user = request.form['username'].strip()
         pwd = request.form['password'].strip()
         conn = get_db()
-        row = conn.execute("SELECT u.*, r.nombre as rol_nombre FROM usuarios u LEFT JOIN roles r ON u.rol_id=r.id WHERE u.username=?", (user,)).fetchone()
+        row = db_fetchone(
+            conn,
+            "SELECT u.*, r.nombre as rol_nombre FROM usuarios u LEFT JOIN roles r ON u.rol_id=r.id WHERE u.username=?",
+            (user,)
+        )
         conn.close()
         if not row or not check_password_hash(row['password'], pwd):
             flash('Usuario o contraseña incorrectos', 'danger')
@@ -1207,30 +1288,79 @@ def logout():
 @login_required()
 def index():
     conn = get_db()
-    stats = {
-        'total_socios': conn.execute("SELECT COUNT(*) FROM socios WHERE estado='activo'").fetchone()[0],
-        'total_cuentas': conn.execute("SELECT COUNT(*) FROM cuentas WHERE estado='activa'").fetchone()[0],
-        'total_ahorros': conn.execute("SELECT COALESCE(SUM(saldo),0) FROM cuentas WHERE estado='activa'").fetchone()[0],
-        'prestamos_activos': conn.execute("SELECT COUNT(*) FROM prestamos WHERE estado='aprobado'").fetchone()[0],
-        'cartera_prestamos': conn.execute("SELECT COALESCE(SUM(saldo_pendiente),0) FROM prestamos WHERE estado='aprobado'").fetchone()[0],
-        'prestamos_pendientes': conn.execute("SELECT COUNT(*) FROM prestamos WHERE estado='pendiente'").fetchone()[0],
+    etiquetas_ahorro = {
+        'ahorro_aportacion': 'Aportación',
+        'ahorro_corriente': 'Ahorro corriente',
+        'ahorro_plazo_fijo': 'Plazo fijo',
     }
+    stats = {
+        'total_socios': db_fetchone(conn, "SELECT COUNT(*) FROM socios WHERE estado='activo'")[0],
+        'total_cuentas': db_fetchone(conn, "SELECT COUNT(*) FROM cuentas WHERE estado='activa'")[0],
+        'total_ahorros': db_fetchone(conn, "SELECT COALESCE(SUM(saldo),0) FROM cuentas WHERE estado='activa'")[0],
+        'prestamos_activos': db_fetchone(conn, "SELECT COUNT(*) FROM prestamos WHERE estado='aprobado'")[0],
+        'cartera_prestamos': db_fetchone(conn, "SELECT COALESCE(SUM(saldo_pendiente),0) FROM prestamos WHERE estado='aprobado'")[0],
+        'prestamos_pendientes': db_fetchone(conn, "SELECT COUNT(*) FROM prestamos WHERE estado='pendiente'")[0],
+    }
+
+    ahorro_por_categoria = db_fetchall(
+        conn,
+        '''
+        SELECT COALESCE(producto_ahorro, 'ahorro_corriente') AS categoria,
+               COALESCE(SUM(saldo), 0) AS total
+        FROM cuentas
+        WHERE estado='activa' AND tipo='ahorro'
+        GROUP BY COALESCE(producto_ahorro, 'ahorro_corriente')
+        ORDER BY CASE COALESCE(producto_ahorro, 'ahorro_corriente')
+            WHEN 'ahorro_aportacion' THEN 1
+            WHEN 'ahorro_corriente' THEN 2
+            WHEN 'ahorro_plazo_fijo' THEN 3
+            ELSE 99
+        END
+        '''
+    )
+    stats['ahorro_por_categoria'] = [
+        {
+            'nombre': etiquetas_ahorro.get(row['categoria'], (row['categoria'] or 'Otro').replace('_', ' ').title()),
+            'total': float(row['total'] or 0),
+        }
+        for row in ahorro_por_categoria
+    ]
+
+    prestamos_por_categoria = db_fetchall(
+        conn,
+        '''
+        SELECT COALESCE(pc.nombre, 'General') AS categoria,
+               COALESCE(SUM(p.saldo_pendiente), 0) AS total
+        FROM prestamos p
+        LEFT JOIN prestamo_categorias pc ON pc.id = p.categoria_id
+        WHERE p.estado='aprobado'
+        GROUP BY COALESCE(pc.nombre, 'General')
+        ORDER BY categoria
+        '''
+    )
+    stats['prestamos_por_categoria'] = [
+        {
+            'nombre': row['categoria'] or 'General',
+            'total': float(row['total'] or 0),
+        }
+        for row in prestamos_por_categoria
+    ]
     
 # Estadísticas simples de préstamos
     stats['pagos_prestamos_hoy'] = 0  # Por ahora 0, se puede calcular más tarde si es necesario
     stats['monto_pagos_prestamos_hoy'] = 0.0
     
     # Socios por frecuencia
-    stats['socios_catorcenal'] = conn.execute("SELECT COUNT(*) FROM socios WHERE estado='activo' AND frecuencia='Catorcenal'").fetchone()[0]
-    stats['socios_quincenal'] = conn.execute("SELECT COUNT(*) FROM socios WHERE estado='activo' AND frecuencia='Quincenal'").fetchone()[0]
+    stats['socios_catorcenal'] = db_fetchone(conn, "SELECT COUNT(*) FROM socios WHERE estado='activo' AND frecuencia='Catorcenal'")[0]
+    stats['socios_quincenal'] = db_fetchone(conn, "SELECT COUNT(*) FROM socios WHERE estado='activo' AND frecuencia='Quincenal'")[0]
     
-    ultimas_txn = conn.execute('''
+    ultimas_txn = db_fetchall(conn, '''
         SELECT t.*, c.numero as cuenta_num, s.nombre||' '||s.apellido as socio
         FROM transacciones t
         JOIN cuentas c ON t.cuenta_id=c.id
         JOIN socios s ON c.socio_id=s.id
         ORDER BY t.id DESC LIMIT 5
-    ''').fetchall()
+    ''')
     conn.close()
     return render_template('index.html', stats=stats, transacciones=ultimas_txn)
 
@@ -1238,7 +1368,7 @@ def index():
 
 def log_auditoria_socio(socio_id, user_id, accion, datos_previos=None, datos_nuevos=None):
     conn = get_db()
-    conn.execute('''
+    db_execute(conn, '''
         INSERT INTO auditoria_socios (socio_id, user_id, accion, datos_previos, datos_nuevos, fecha)
         VALUES (?, ?, ?, ?, ?, ?)
     ''', (socio_id, user_id, accion, datos_previos, datos_nuevos, datetime.now().isoformat()))
@@ -1248,7 +1378,8 @@ def log_auditoria_socio(socio_id, user_id, accion, datos_previos=None, datos_nue
 
 def log_auditoria_evento(modulo, entidad, accion, entidad_id=None, descripcion='', datos=None):
     conn = get_db()
-    conn.execute(
+    db_execute(
+        conn,
         '''
         INSERT INTO auditoria_eventos (modulo, entidad, entidad_id, accion, descripcion, datos, usuario, fecha)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -1271,7 +1402,8 @@ def log_auditoria_evento(modulo, entidad, accion, entidad_id=None, descripcion='
 def periodo_cerrado(modulo, fecha_evento=None):
     fecha_eval = normalizar_fecha_referencia(fecha_evento).isoformat()
     conn = get_db()
-    cierre = conn.execute(
+    cierre = db_fetchone(
+        conn,
         '''
         SELECT id FROM cierres_periodo
         WHERE modulo = ?
@@ -1280,13 +1412,13 @@ def periodo_cerrado(modulo, fecha_evento=None):
         LIMIT 1
         ''',
         (modulo, fecha_eval),
-    ).fetchone()
+    )
     conn.close()
     return cierre is not None
 
 
 def generar_numero_comprobante(conn):
-    ultimo = conn.execute('SELECT MAX(id) FROM pagos_prestamo').fetchone()[0] or 0
+    ultimo = db_fetchone(conn, 'SELECT MAX(id) FROM pagos_prestamo')[0] or 0
     return f'REC-{ultimo + 1:06d}'
 
 
@@ -1341,7 +1473,8 @@ def _obtener_cartera_con_alertas(fecha_inicio=None, fecha_fin=None):
         filtros += ' AND date(p.fecha_solicitud) <= date(?)'
         params.append(fecha_fin)
 
-    rows = conn.execute(
+    rows = db_fetchall(
+        conn,
         f'''
         SELECT p.*, s.id AS socio_id,
                s.codigo AS socio_codigo,
@@ -1371,7 +1504,7 @@ def _obtener_cartera_con_alertas(fecha_inicio=None, fecha_fin=None):
         ORDER BY p.id DESC
         ''',
         params,
-    ).fetchall()
+    )
     conn.close()
 
     cartera = []
@@ -1399,14 +1532,16 @@ def socios():
     conn = get_db()
     if q:
         like = f'%{q}%'
-        total = conn.execute(
+        total = db_fetchone(
+            conn,
             """SELECT COUNT(*) FROM socios
                WHERE nombre LIKE ? OR apellido LIKE ? OR codigo LIKE ? OR dpi LIKE ?
                   OR primer_nombre LIKE ? OR segundo_nombre LIKE ? OR tercer_nombre LIKE ?
                   OR primer_apellido LIKE ? OR segundo_apellido LIKE ?""",
             [like] * 9
-        ).fetchone()[0]
-        rows = conn.execute(
+        )[0]
+        rows = db_fetchall(
+            conn,
             """SELECT * FROM socios
                WHERE nombre LIKE ? OR apellido LIKE ? OR codigo LIKE ? OR dpi LIKE ?
                   OR primer_nombre LIKE ? OR segundo_nombre LIKE ? OR tercer_nombre LIKE ?
@@ -1414,10 +1549,10 @@ def socios():
                ORDER BY id DESC
                LIMIT ? OFFSET ?""",
             [like] * 9 + [per_page, offset]
-        ).fetchall()
+        )
     else:
-        total = conn.execute("SELECT COUNT(*) FROM socios").fetchone()[0]
-        rows = conn.execute("SELECT * FROM socios ORDER BY id DESC LIMIT ? OFFSET ?", [per_page, offset]).fetchall()
+        total = db_fetchone(conn, "SELECT COUNT(*) FROM socios")[0]
+        rows = db_fetchall(conn, "SELECT * FROM socios ORDER BY id DESC LIMIT ? OFFSET ?", [per_page, offset])
     conn.close()
     socios_lista = [preparar_datos_socio(row) for row in rows]
     total_pages = max(1, math.ceil(total / per_page))
@@ -1434,14 +1569,14 @@ def socios():
 @app.route('/socios/nuevo', methods=['GET','POST'])
 def nuevo_socio():
     conn = get_db()
-    codigo_sugerido = f"SOC-{conn.execute('SELECT COUNT(*) FROM socios').fetchone()[0] + 1:03d}"
+    codigo_sugerido = f"SOC-{db_fetchone(conn, 'SELECT COUNT(*) FROM socios')[0] + 1:03d}"
     conn.close()
     if request.method == 'POST':
         conn = get_db()
-        count = conn.execute("SELECT COUNT(*) FROM socios").fetchone()[0]
+        count = db_fetchone(conn, "SELECT COUNT(*) FROM socios")[0]
         codigo = request.form.get('codigo', '').strip().upper() or f'SOC-{count+1:03d}'
 
-        existente_codigo = conn.execute("SELECT id FROM socios WHERE codigo=?", (codigo,)).fetchone()
+        existente_codigo = db_fetchone(conn, "SELECT id FROM socios WHERE codigo=?", (codigo,))
         if existente_codigo:
             flash('Ya existe un socio con ese código.', 'danger')
             conn.close()
@@ -1462,7 +1597,8 @@ def nuevo_socio():
             if not primer_nombre or not primer_apellido or not request.form.get('dpi', '').strip():
                 raise ValueError('Código, primer nombre, primer apellido y DPI son obligatorios.')
 
-            conn.execute(
+            db_execute(
+                conn,
                 '''INSERT INTO socios (
                        codigo,nombre,primer_nombre,segundo_nombre,tercer_nombre,
                        apellido,primer_apellido,segundo_apellido,estado_civil,apellido_casada,
@@ -1485,11 +1621,16 @@ def nuevo_socio():
                     request.form.get('finca', '').strip(),
                 )
             )
-            socio_id = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
+            socio_insertado = db_fetchone(conn, 'SELECT id FROM socios WHERE codigo=?', (codigo,))
+            socio_id = socio_insertado['id'] if socio_insertado else None
             if beneficiarios:
-                conn.executemany(
+                db_executemany(
+                    conn,
                     'INSERT INTO socio_beneficiarios (socio_id, nombre, parentesco, porcentaje) VALUES (?, ?, ?, ?)',
-                    [(socio_id, item['nombre'], item['parentesco'], item['porcentaje']) for item in beneficiarios]
+                    [
+                        (socio_id, item['nombre'], item['parentesco'], item['porcentaje'])
+                        for item in beneficiarios
+                    ]
                 )
             conn.commit()
             flash('Socio registrado exitosamente.', 'success')
@@ -1504,7 +1645,7 @@ def nuevo_socio():
 @login_required(role='Administrador')
 def roles():
     conn = get_db()
-    rows = conn.execute("SELECT * FROM roles ORDER BY id DESC").fetchall()
+    rows = db_fetchall(conn, "SELECT * FROM roles ORDER BY id DESC")
     conn.close()
     return render_template('roles.html', roles=rows)
 
@@ -1513,8 +1654,11 @@ def nuevo_rol():
     if request.method == 'POST':
         conn = get_db()
         try:
-            conn.execute("INSERT INTO roles (nombre,descripcion) VALUES (?,?)",
-                (request.form['nombre'], request.form['descripcion']))
+            db_execute(
+                conn,
+                "INSERT INTO roles (nombre,descripcion) VALUES (?,?)",
+                (request.form['nombre'], request.form['descripcion'])
+            )
             conn.commit()
             flash('Rol creado exitosamente.', 'success')
             return redirect(url_for('roles'))
@@ -1528,20 +1672,31 @@ def nuevo_rol():
 @login_required(role='Administrador')
 def usuarios():
     conn = get_db()
-    rows = conn.execute('''SELECT u.*, r.nombre as rol_nombre
-                           FROM usuarios u LEFT JOIN roles r ON u.rol_id=r.id
-                           ORDER BY u.id DESC''').fetchall()
+    rows = db_fetchall(
+        conn,
+        '''SELECT u.*, r.nombre as rol_nombre
+           FROM usuarios u LEFT JOIN roles r ON u.rol_id=r.id
+           ORDER BY u.id DESC'''
+    )
     conn.close()
     return render_template('usuarios.html', usuarios=rows)
 
 @app.route('/usuarios/nuevo', methods=['GET','POST'])
 def nuevo_usuario():
     conn = get_db()
-    roles = conn.execute("SELECT id,nombre FROM roles WHERE estado='activo'").fetchall()
+    roles = db_fetchall(conn, "SELECT id,nombre FROM roles WHERE estado='activo'")
     if request.method == 'POST':
         try:
-            conn.execute("INSERT INTO usuarios (username,password,rol_id,fecha_creacion) VALUES (?,?,?,?)",
-                (request.form['username'], generate_password_hash(request.form['password']), request.form.get('rol_id'), date.today().isoformat()))
+            db_execute(
+                conn,
+                "INSERT INTO usuarios (username,password,rol_id,fecha_creacion) VALUES (?,?,?,?)",
+                (
+                    request.form['username'],
+                    generate_password_hash(request.form['password']),
+                    request.form.get('rol_id'),
+                    date.today().isoformat(),
+                )
+            )
             conn.commit()
             flash('Usuario creado exitosamente.', 'success')
             return redirect(url_for('usuarios'))
@@ -1556,9 +1711,9 @@ def nuevo_usuario():
 @login_required()
 def detalle_socio(sid):
     conn = get_db()
-    socio = conn.execute("SELECT * FROM socios WHERE id=?", [sid]).fetchone()
-    cuentas = conn.execute("SELECT * FROM cuentas WHERE socio_id=?", [sid]).fetchall()
-    prestamos = conn.execute('''
+    socio = db_fetchone(conn, "SELECT * FROM socios WHERE id=?", [sid])
+    cuentas = db_fetchall(conn, "SELECT * FROM cuentas WHERE socio_id=?", [sid])
+    prestamos = db_fetchall(conn, '''
         SELECT p.*,
                s.frecuencia,
                pc.nombre AS categoria_nombre,
@@ -1583,15 +1738,15 @@ def detalle_socio(sid):
         ) pp ON p.id = pp.prestamo_id
         WHERE p.socio_id=?
         ORDER BY p.id DESC
-    ''', [sid]).fetchall()
+    ''', [sid])
 
-    pagos_prestamos = conn.execute('''
+    pagos_prestamos = db_fetchall(conn, '''
         SELECT pp.*, p.numero AS numero_prestamo
         FROM pagos_prestamo pp
         JOIN prestamos p ON pp.prestamo_id = p.id
         WHERE p.socio_id=?
         ORDER BY date(pp.fecha) DESC, pp.id DESC
-    ''', [sid]).fetchall()
+    ''', [sid])
 
     beneficiarios = obtener_beneficiarios_socio(conn, sid)
 
@@ -1618,7 +1773,7 @@ def detalle_socio(sid):
 @login_required(role=('Administrador', 'Operador'))
 def editar_socio(sid):
     conn = get_db()
-    socio = conn.execute("SELECT * FROM socios WHERE id=?", [sid]).fetchone()
+    socio = db_fetchone(conn, "SELECT * FROM socios WHERE id=?", [sid])
     if not socio:
         conn.close()
         flash('Socio no encontrado.', 'danger')
@@ -1658,13 +1813,13 @@ def editar_socio(sid):
             conn.close()
             return render_template('editar_socio.html', socio=socio_dict, beneficiarios=beneficiarios_existentes)
 
-        existente_codigo = conn.execute("SELECT id FROM socios WHERE codigo=? AND id<>?", (codigo, sid)).fetchone()
+        existente_codigo = db_fetchone(conn, "SELECT id FROM socios WHERE codigo=? AND id<>?", (codigo, sid))
         if existente_codigo:
             flash('Ya existe otro socio con ese código.', 'danger')
             conn.close()
             return render_template('editar_socio.html', socio=socio_dict, beneficiarios=beneficiarios_existentes)
 
-        existente = conn.execute("SELECT id FROM socios WHERE dpi=? AND id<>?", (dpi, sid)).fetchone()
+        existente = db_fetchone(conn, "SELECT id FROM socios WHERE dpi=? AND id<>?", (dpi, sid))
         if existente:
             flash('Ya existe otro socio con ese DPI.', 'danger')
             conn.close()
@@ -1682,7 +1837,7 @@ def editar_socio(sid):
                     return render_template('editar_socio.html', socio=socio_dict, beneficiarios=beneficiarios_existentes)
                 ruta_foto = procesar_foto_socio(foto, sid)
 
-            conn.execute('''
+            db_execute(conn, '''
                 UPDATE socios SET codigo=?, nombre=?, primer_nombre=?, segundo_nombre=?, tercer_nombre=?,
                                   apellido=?, primer_apellido=?, segundo_apellido=?, estado_civil=?, apellido_casada=?,
                                   dpi=?, telefono=?, email=?, direccion=?, rol=?, frecuencia=?, cuota_ahorro=?, tipo_ahorro=?,
@@ -1694,9 +1849,10 @@ def editar_socio(sid):
                                     dpi, telefono, email, direccion, 'Asociado',
                 frecuencia, cuota_ahorro, tipo_ahorro, nit, resumen_beneficiarios(beneficiarios), finca,
                   banco_nombre, banco_tipo_cuenta, banco_numero_cuenta, ruta_foto, sid))
-            conn.execute('DELETE FROM socio_beneficiarios WHERE socio_id=?', [sid])
+            db_execute(conn, 'DELETE FROM socio_beneficiarios WHERE socio_id=?', [sid])
             if beneficiarios:
-                conn.executemany(
+                db_executemany(
+                    conn,
                     'INSERT INTO socio_beneficiarios (socio_id, nombre, parentesco, porcentaje) VALUES (?, ?, ?, ?)',
                     [(sid, item['nombre'], item['parentesco'], item['porcentaje']) for item in beneficiarios]
                 )
@@ -1757,7 +1913,7 @@ def editar_socio(sid):
 @login_required(role=('Administrador','Operador'))
 def activar_socio(sid):
     conn = get_db()
-    conn.execute("UPDATE socios SET estado='activo' WHERE id=?", [sid])
+    db_execute(conn, "UPDATE socios SET estado='activo' WHERE id=?", [sid])
     conn.commit()
     conn.close()
     log_auditoria_socio(sid, session.get('user_id'), 'activar', None, 'activo')
@@ -1768,7 +1924,7 @@ def activar_socio(sid):
 @login_required(role=('Administrador','Operador'))
 def inactivar_socio(sid):
     conn = get_db()
-    conn.execute("UPDATE socios SET estado='inactivo' WHERE id=?", [sid])
+    db_execute(conn, "UPDATE socios SET estado='inactivo' WHERE id=?", [sid])
     conn.commit()
     conn.close()
     log_auditoria_socio(sid, session.get('user_id'), 'inactivar', None, 'inactivo')
@@ -1783,7 +1939,8 @@ def configuraciones():
     ensure_required_configurations(conn)
     ensure_system_settings(conn)
     ensure_default_prestamo_categories(conn)
-    configs = conn.execute(
+    configs = db_fetchall(
+        conn,
         """SELECT * FROM configuraciones
            WHERE tipo IN ('ahorro_corriente', 'ahorro_plazo_fijo', 'ahorro_aportacion', 'prestamo')
            ORDER BY CASE tipo
@@ -1793,18 +1950,24 @@ def configuraciones():
                WHEN 'prestamo' THEN 4
                ELSE 99
            END"""
-    ).fetchall()
-    categorias_prestamo = conn.execute(
+    )
+    categorias_prestamo = db_fetchall(
+        conn,
         """SELECT * FROM prestamo_categorias
            WHERE estado='activo'
            ORDER BY nombre"""
-    ).fetchall()
+    )
     cooperativa_nombre = get_system_setting(conn, 'cooperativa_nombre', DEFAULT_COOPERATIVA_NOMBRE)
     cooperativa_foto = get_system_setting(conn, 'cooperativa_foto', '')
     prestamo_finiquito_texto = get_system_setting(
         conn,
         'prestamo_finiquito_texto',
         SYSTEM_SETTINGS_DEFAULTS['prestamo_finiquito_texto']
+    )
+    retiro_comprobante_texto = get_system_setting(
+        conn,
+        'retiro_comprobante_texto',
+        SYSTEM_SETTINGS_DEFAULTS['retiro_comprobante_texto']
     )
     conn.close()
     return render_template(
@@ -1814,6 +1977,7 @@ def configuraciones():
         cooperativa_nombre=cooperativa_nombre,
         cooperativa_foto=cooperativa_foto,
         prestamo_finiquito_texto=prestamo_finiquito_texto,
+        retiro_comprobante_texto=retiro_comprobante_texto,
     )
 
 @app.route('/configuraciones/actualizar', methods=['POST'])
@@ -1832,6 +1996,12 @@ def actualizar_configuraciones():
             conn,
             'prestamo_finiquito_texto',
             (request.form.get('prestamo_finiquito_texto') or SYSTEM_SETTINGS_DEFAULTS['prestamo_finiquito_texto']).strip(),
+            session.get('username')
+        )
+        set_system_setting(
+            conn,
+            'retiro_comprobante_texto',
+            (request.form.get('retiro_comprobante_texto') or SYSTEM_SETTINGS_DEFAULTS['retiro_comprobante_texto']).strip(),
             session.get('username')
         )
 
@@ -1857,7 +2027,8 @@ def actualizar_configuraciones():
             if tasa < 0:
                 raise ValueError(f'La tasa para {get_config_label(tipo)} no puede ser negativa.')
 
-            conn.execute(
+            db_execute(
+                conn,
                 """INSERT INTO configuraciones
                    (tipo, tasa_interes, descripcion, fecha_actualizacion, usuario_actualizacion)
                    VALUES (?, ?, ?, ?, ?)
@@ -1879,22 +2050,25 @@ def actualizar_configuraciones():
             if not nombre:
                 continue
 
-            existente = conn.execute(
+            existente = db_fetchone(
+                conn,
                 "SELECT id FROM prestamo_categorias WHERE lower(nombre)=lower(?) AND id != COALESCE(?, 0)",
                 (nombre, categoria_id or None)
-            ).fetchone()
+            )
             if existente:
                 raise ValueError(f'La categoria de prestamo "{nombre}" ya existe.')
 
             if categoria_id:
-                conn.execute(
+                db_execute(
+                    conn,
                     """UPDATE prestamo_categorias
                        SET nombre=?, descripcion=?, fecha_actualizacion=?, usuario_actualizacion=?
                        WHERE id=?""",
                     (nombre, descripcion, hoy, session.get('username'), categoria_id)
                 )
             else:
-                conn.execute(
+                db_execute(
+                    conn,
                     """INSERT INTO prestamo_categorias
                        (nombre, descripcion, estado, fecha_actualizacion, usuario_actualizacion)
                        VALUES (?, ?, 'activo', ?, ?)""",
@@ -1914,25 +2088,30 @@ def actualizar_configuraciones():
 @app.route('/cuentas')
 def cuentas():
     conn = get_db()
-    rows = conn.execute('''SELECT c.*, s.nombre||' '||s.apellido as socio
-                           FROM cuentas c JOIN socios s ON c.socio_id=s.id
-                           ORDER BY c.id DESC''').fetchall()
+    rows = db_fetchall(
+        conn,
+        '''SELECT c.*, s.nombre||' '||s.apellido as socio
+           FROM cuentas c JOIN socios s ON c.socio_id=s.id
+           ORDER BY c.id DESC'''
+    )
     conn.close()
     return render_template('cuentas.html', cuentas=rows)
 
 @app.route('/cuentas/nueva', methods=['GET','POST'])
 def nueva_cuenta():
     conn = get_db()
-    socios = conn.execute(
+    socios = db_fetchall(
+        conn,
         """
         SELECT id, codigo, nombre, apellido
         FROM socios
         WHERE estado='activo'
         ORDER BY codigo, nombre, apellido
         """
-    ).fetchall()
+    )
 
-    tipos_ahorro = conn.execute(
+    tipos_ahorro = db_fetchall(
+        conn,
         """
         SELECT tipo, tasa_interes
         FROM configuraciones
@@ -1944,7 +2123,7 @@ def nueva_cuenta():
             ELSE 99
         END
         """
-    ).fetchall()
+    )
 
     tasas_por_tipo = {row['tipo']: float(row['tasa_interes'] or 0) for row in tipos_ahorro}
     selected_socio_id = request.form.get('socio_id', '').strip()
@@ -1955,10 +2134,11 @@ def nueva_cuenta():
             if not selected_socio_id:
                 raise ValueError('Debe seleccionar un asociado activo.')
 
-            socio = conn.execute(
+            socio = db_fetchone(
+                conn,
                 "SELECT id, estado FROM socios WHERE id=?",
                 [selected_socio_id]
-            ).fetchone()
+            )
             if not socio or (socio['estado'] or '').lower() != 'activo':
                 raise ValueError('Solo se permite abrir cuentas a asociados activos.')
 
@@ -1966,7 +2146,8 @@ def nueva_cuenta():
             if selected_producto not in productos_validos:
                 raise ValueError('Debe seleccionar un tipo de cuenta válido.')
 
-            cuenta_existente = conn.execute(
+            cuenta_existente = db_fetchone(
+                conn,
                 """
                 SELECT id, numero
                 FROM cuentas
@@ -1976,11 +2157,11 @@ def nueva_cuenta():
                 LIMIT 1
                 """,
                 [selected_socio_id, selected_producto]
-            ).fetchone()
+            )
             if cuenta_existente:
                 raise ValueError('El asociado ya tiene una cuenta de ese tipo.')
 
-            count = conn.execute("SELECT COUNT(*) FROM cuentas").fetchone()[0]
+            count = db_fetchone(conn, "SELECT COUNT(*) FROM cuentas")[0]
             prefijos = {
                 'ahorro_aportacion': 'APR',
                 'ahorro_corriente': 'COR',
@@ -1989,7 +2170,8 @@ def nueva_cuenta():
             numero = f"{prefijos[selected_producto]}-{count+1:04d}"
             tasa = tasas_por_tipo.get(selected_producto, 0)
 
-            conn.execute(
+            db_execute(
+                conn,
                 """
                 INSERT INTO cuentas (numero, socio_id, tipo, producto_ahorro, saldo, tasa_interes, fecha_apertura)
                 VALUES (?, ?, 'ahorro', ?, 0, ?, ?)
@@ -2015,10 +2197,12 @@ def nueva_cuenta():
 @login_required(role='Administrador')
 def aplicar_intereses():
     conn = get_db()
-    cursor = conn.cursor()
     hoy = date.today()
     # Obtenemos cuentas de ahorro activas con saldo y tasa
-    cuentas = cursor.execute("SELECT id, numero, saldo, tasa_interes FROM cuentas WHERE tipo='ahorro' AND estado='activa' AND saldo > 0 AND tasa_interes > 0").fetchall()
+    cuentas = db_fetchall(
+        conn,
+        "SELECT id, numero, saldo, tasa_interes FROM cuentas WHERE tipo='ahorro' AND estado='activa' AND saldo > 0 AND tasa_interes > 0"
+    )
     
     procesados = 0
     total_pagado = 0
@@ -2028,10 +2212,13 @@ def aplicar_intereses():
         monto_interes = round(c['saldo'] * (c['tasa_interes'] / 100 / 12), 2)
         if monto_interes > 0:
             nuevo_saldo = round(c['saldo'] + monto_interes, 2)
-            cursor.execute("UPDATE cuentas SET saldo=? WHERE id=?", (nuevo_saldo, c['id']))
-            cursor.execute("""INSERT INTO transacciones (cuenta_id, tipo, monto, saldo_despues, descripcion, fecha)
-                           VALUES (?, 'interes', ?, ?, ?, ?)""", 
-                           (c['id'], monto_interes, nuevo_saldo, f"Capitalización Interés - {hoy.strftime('%B %Y')}", datetime.now().isoformat()))
+            db_execute(conn, "UPDATE cuentas SET saldo=? WHERE id=?", (nuevo_saldo, c['id']))
+            db_execute(
+                conn,
+                """INSERT INTO transacciones (cuenta_id, tipo, monto, saldo_despues, descripcion, fecha)
+                   VALUES (?, 'interes', ?, ?, ?, ?)""",
+                (c['id'], monto_interes, nuevo_saldo, f"Capitalización Interés - {hoy.strftime('%B %Y')}", datetime.now().isoformat())
+            )
             procesados += 1
             total_pagado += monto_interes
             
@@ -2043,22 +2230,26 @@ def aplicar_intereses():
 @app.route('/cuentas/<int:cid>')
 def detalle_cuenta(cid):
     conn = get_db()
-    cuenta = conn.execute('''SELECT c.*, s.nombre||' '||s.apellido as socio
-                             FROM cuentas c JOIN socios s ON c.socio_id=s.id
-                             WHERE c.id=?''', [cid]).fetchone()
+    cuenta = db_fetchone(
+        conn,
+        '''SELECT c.*, s.nombre||' '||s.apellido as socio
+           FROM cuentas c JOIN socios s ON c.socio_id=s.id
+           WHERE c.id=?''',
+        [cid]
+    )
     if not cuenta:
         conn.close()
         flash('Cuenta no encontrada.', 'danger')
         return redirect(url_for('cuentas'))
-    txns = conn.execute("SELECT * FROM transacciones WHERE cuenta_id=? ORDER BY id DESC", [cid]).fetchall()
+    txns = db_fetchall(conn, "SELECT * FROM transacciones WHERE cuenta_id=? ORDER BY id DESC", [cid])
     conn.close()
     return render_template('detalle_cuenta.html', cuenta=cuenta, transacciones=txns)
 
 @app.route('/cuentas/<int:cid>/transaccion', methods=['POST'])
 def hacer_transaccion(cid):
     conn = get_db()
-    cuenta = conn.execute("SELECT * FROM cuentas WHERE id=?", [cid]).fetchone()
-    socio = conn.execute("SELECT id FROM socios WHERE id=?", [cuenta['socio_id']]).fetchone()
+    cuenta = db_fetchone(conn, "SELECT * FROM cuentas WHERE id=?", [cid])
+    socio = db_fetchone(conn, "SELECT id FROM socios WHERE id=?", [cuenta['socio_id']])
     tipo = request.form['tipo']
     monto = float(request.form['monto'])
     desc = request.form.get('descripcion', tipo.capitalize())
@@ -2081,9 +2272,12 @@ def hacer_transaccion(cid):
             flash('Saldo insuficiente.', 'danger')
         else:
             nuevo_saldo = cuenta['saldo'] + monto if tipo == 'deposito' else cuenta['saldo'] - monto
-            conn.execute("UPDATE cuentas SET saldo=? WHERE id=?", [nuevo_saldo, cid])
-            conn.execute("INSERT INTO transacciones (cuenta_id,tipo,monto,saldo_despues,descripcion,fecha) VALUES (?,?,?,?,?,?)",
-                (cid, tipo, monto, nuevo_saldo, desc, datetime.now().isoformat()))
+            db_execute(conn, "UPDATE cuentas SET saldo=? WHERE id=?", [nuevo_saldo, cid])
+            db_execute(
+                conn,
+                "INSERT INTO transacciones (cuenta_id,tipo,monto,saldo_despues,descripcion,fecha) VALUES (?,?,?,?,?,?)",
+                (cid, tipo, monto, nuevo_saldo, desc, datetime.now().isoformat())
+            )
             conn.commit()
             log_auditoria_evento(
                 modulo='ahorro',
@@ -2208,7 +2402,8 @@ def prestamos():
 @login_required()
 def detalle_prestamo(pid):
     conn = get_db()
-    prestamo = conn.execute(
+    prestamo = db_fetchone(
+        conn,
         '''
         SELECT p.*, s.codigo AS socio_codigo, s.nombre || ' ' || s.apellido AS nombre_socio,
                s.frecuencia, pc.nombre AS categoria_nombre,
@@ -2229,7 +2424,7 @@ def detalle_prestamo(pid):
         WHERE p.id=?
         ''',
         [pid]
-    ).fetchone()
+    )
 
     if not prestamo:
         conn.close()
@@ -2240,7 +2435,8 @@ def detalle_prestamo(pid):
     if (prestamo.get('estado') or '').lower() == 'amortizado':
         prestamo['estado'] = 'pagado'
 
-    pagos = conn.execute(
+    pagos = db_fetchall(
+        conn,
         '''
         SELECT *
         FROM pagos_prestamo
@@ -2248,12 +2444,13 @@ def detalle_prestamo(pid):
         ORDER BY date(fecha) DESC, id DESC
         ''',
         [pid]
-    ).fetchall()
+    )
     pagos = [dict(row) for row in pagos]
 
     # Si este préstamo fue amortizado por uno o más préstamos nuevos,
     # se muestran como movimientos dentro del historial de cuotas pagadas.
-    prestamos_pagadores = conn.execute(
+    prestamos_pagadores = db_fetchall(
+        conn,
         '''
         SELECT numero,
                fecha_aprobacion,
@@ -2266,7 +2463,7 @@ def detalle_prestamo(pid):
         ORDER BY date(COALESCE(fecha_aprobacion, fecha_solicitud)) DESC, id DESC
         ''',
         [pid]
-    ).fetchall()
+    )
     for prestamo_pagador in prestamos_pagadores:
         pagos.append({
             'id': None,
@@ -2283,7 +2480,8 @@ def detalle_prestamo(pid):
         })
 
     if prestamo.get('refinanciado_de') and float(prestamo.get('monto_amortizado') or 0) > 0:
-        prestamo_amortizado = conn.execute(
+        prestamo_amortizado = db_fetchone(
+            conn,
             '''
             SELECT numero,
                    COALESCE(monto_aprobado, monto_solicitado, 0) AS total_prestamo
@@ -2291,7 +2489,7 @@ def detalle_prestamo(pid):
             WHERE id=?
             ''',
             [prestamo['refinanciado_de']]
-        ).fetchone()
+        )
 
         pagos.insert(0, {
             'id': None,
@@ -2313,7 +2511,8 @@ def detalle_prestamo(pid):
         reverse=True,
     )
 
-    calendario = conn.execute(
+    calendario = db_fetchall(
+        conn,
         '''
         SELECT numero_cuota, fecha_programada, monto_programado, estado
         FROM prestamo_calendario_pagos
@@ -2321,7 +2520,7 @@ def detalle_prestamo(pid):
         ORDER BY numero_cuota
         ''',
         [pid]
-    ).fetchall()
+    )
 
     conn.close()
 
@@ -2346,14 +2545,17 @@ def _cargar_contexto_nuevo_prestamo(conn, socio_id_seleccionado=''):
     ensure_required_configurations(conn)
     ensure_default_prestamo_categories(conn)
 
-    socios = conn.execute(
+    socios = db_fetchall(
+        conn,
         "SELECT id, codigo, nombre, apellido, dpi, frecuencia, banco_nombre, banco_tipo_cuenta, banco_numero_cuenta FROM socios WHERE estado='activo' ORDER BY codigo, nombre, apellido"
-    ).fetchall()
-    configs = conn.execute("SELECT * FROM configuraciones WHERE tipo='prestamo'").fetchall()
-    categorias_prestamo = conn.execute(
+    )
+    configs = db_fetchall(conn, "SELECT * FROM configuraciones WHERE tipo='prestamo'")
+    categorias_prestamo = db_fetchall(
+        conn,
         "SELECT id, nombre, descripcion FROM prestamo_categorias WHERE estado='activo' ORDER BY nombre"
-    ).fetchall()
-    prestamos_rows = conn.execute(
+    )
+    prestamos_rows = db_fetchall(
+        conn,
         '''
         SELECT p.id,
                p.socio_id,
@@ -2368,7 +2570,7 @@ def _cargar_contexto_nuevo_prestamo(conn, socio_id_seleccionado=''):
         WHERE p.estado IN ('pendiente', 'aprobado')
         ORDER BY p.socio_id, date(p.fecha_solicitud) DESC, p.id DESC
         '''
-    ).fetchall()
+    )
 
     prestamos_vigentes_por_socio = {}
     for row in prestamos_rows:
@@ -2407,10 +2609,11 @@ def nuevo_prestamo():
             flash('Debe seleccionar un asociado válido.', 'danger')
             return redirect(url_for('nuevo_prestamo'))
 
-        socio = conn.execute(
+        socio = db_fetchone(
+            conn,
             "SELECT id, frecuencia, banco_nombre, banco_tipo_cuenta, banco_numero_cuenta FROM socios WHERE id=?",
             [socio_id]
-        ).fetchone()
+        )
         if not socio:
             conn.close()
             flash('Debe seleccionar un asociado válido.', 'danger')
@@ -2418,10 +2621,11 @@ def nuevo_prestamo():
 
         categoria = None
         if categoria_id:
-            categoria = conn.execute(
+            categoria = db_fetchone(
+                conn,
                 "SELECT id FROM prestamo_categorias WHERE id=? AND estado='activo'",
                 [categoria_id]
-            ).fetchone()
+            )
         if not categoria:
             conn.close()
             flash('Debe seleccionar una categoria de prestamo válida.', 'danger')
@@ -2452,7 +2656,8 @@ def nuevo_prestamo():
                 flash('El asociado no tiene la información bancaria completa para desembolso por deposito.', 'danger')
                 return redirect(url_for('nuevo_prestamo', socio_id=socio_id))
 
-        prestamos_vigentes = conn.execute(
+        prestamos_vigentes = db_fetchall(
+            conn,
             '''
             SELECT id, numero, categoria_id, COALESCE(saldo_pendiente, monto_aprobado, monto_solicitado, 0) AS saldo_vigente
             FROM prestamos
@@ -2460,7 +2665,7 @@ def nuevo_prestamo():
             ORDER BY date(fecha_solicitud) DESC, id DESC
             ''',
             [socio_id]
-        ).fetchall()
+        )
         tiene_prestamos_vigentes = len(prestamos_vigentes) > 0
 
         if tiene_prestamos_vigentes and not prestamo_a_amortizar_id:
@@ -2471,11 +2676,12 @@ def nuevo_prestamo():
         resumen = calcular_resumen_prestamo(monto, tasa, plazo, socio['frecuencia'])
 
         try:
-            count = conn.execute("SELECT COUNT(*) FROM prestamos").fetchone()[0]
+            count = db_fetchone(conn, "SELECT COUNT(*) FROM prestamos")[0]
             numero = f'PRE-{count+1:04d}'
 
             if prestamo_a_amortizar_id:
-                prestamo_viejo = conn.execute(
+                prestamo_viejo = db_fetchone(
+                    conn,
                     '''
                     SELECT id, numero, categoria_id,
                            COALESCE(saldo_pendiente, monto_aprobado, monto_solicitado, 0) AS saldo_vigente
@@ -2483,7 +2689,7 @@ def nuevo_prestamo():
                     WHERE id=? AND socio_id=? AND estado IN ('pendiente', 'aprobado')
                     ''',
                     [prestamo_a_amortizar_id, socio_id]
-                ).fetchone()
+                )
                 if not prestamo_viejo:
                     conn.close()
                     flash('El préstamo seleccionado para amortizar ya no está vigente.', 'danger')
@@ -2491,7 +2697,8 @@ def nuevo_prestamo():
 
                 monto_amortizado = float(prestamo_viejo['saldo_vigente'] or 0)
                 monto_desembolso = max(0, monto - monto_amortizado)
-                conn.execute(
+                db_execute(
+                    conn,
                     '''
                     INSERT INTO prestamos (
                         numero, socio_id, categoria_id, monto_solicitado, tasa_interes, plazo_meses,
@@ -2518,7 +2725,8 @@ def nuevo_prestamo():
                 )
                 mensaje = f'Solicitud de préstamo enviada. Si se aprueba, amortizará {prestamo_viejo["numero"]} y el desembolso estimado será de Q{monto_desembolso:,.2f}'
             else:
-                conn.execute(
+                db_execute(
+                    conn,
                     '''
                     INSERT INTO prestamos (
                         numero, socio_id, categoria_id, monto_solicitado, tasa_interes, plazo_meses,
@@ -2559,7 +2767,8 @@ def nuevo_prestamo():
     return render_template('nuevo_prestamo.html', **contexto)
 
 def obtener_detalle_prestamo_aprobacion(conn, pid):
-    prestamo = conn.execute(
+    prestamo = db_fetchone(
+        conn,
         '''
         SELECT p.*, s.codigo AS socio_codigo, s.nombre || ' ' || s.apellido AS nombre_socio,
                s.frecuencia, pc.nombre AS categoria_nombre
@@ -2569,11 +2778,12 @@ def obtener_detalle_prestamo_aprobacion(conn, pid):
         WHERE p.id=?
         ''',
         [pid]
-    ).fetchone()
+    )
     if not prestamo:
         return None
 
-    calendario = conn.execute(
+    calendario = db_fetchall(
+        conn,
         '''
         SELECT numero_cuota, fecha_programada, monto_programado, estado
         FROM prestamo_calendario_pagos
@@ -2581,7 +2791,7 @@ def obtener_detalle_prestamo_aprobacion(conn, pid):
         ORDER BY numero_cuota
         ''',
         [pid]
-    ).fetchall()
+    )
 
     item = dict(prestamo)
     item['calendario'] = [dict(row) for row in calendario]
@@ -2635,32 +2845,37 @@ def aprobar_prestamo(pid):
             flash('Debe ingresar la referencia del depósito o cheque.', 'warning')
             return render_template('aprobar_prestamo.html', prestamo=prestamo, resumen=resumen, calendario_preview=calendario_preview, fecha_aprobacion=fecha_aprobacion, fecha_primer_pago=fecha_primer_pago, desembolso_tipo=desembolso_tipo, desembolso_referencia=desembolso_referencia)
 
-        conn.execute(
+        db_execute(
+            conn,
             "UPDATE prestamos SET estado='aprobado', monto_aprobado=?, cuota_mensual=?, saldo_pendiente=?, fecha_aprobacion=?, desembolso_tipo=?, desembolso_referencia=? WHERE id=?",
             [monto_aprobado, resumen['cuota'], monto_aprobado, fecha_aprobacion, desembolso_tipo, desembolso_referencia.strip(), pid]
         )
         mensaje_aprobacion = 'Préstamo aprobado y calendario generado correctamente.'
         if prestamo.get('refinanciado_de'):
-            prestamo_anterior = conn.execute(
+            prestamo_anterior = db_fetchone(
+                conn,
                 '''
                 SELECT id, numero, COALESCE(saldo_pendiente, monto_aprobado, monto_solicitado, 0) AS saldo_vigente
                 FROM prestamos
                 WHERE id=?
                 ''',
                 [prestamo['refinanciado_de']]
-            ).fetchone()
+            )
             if prestamo_anterior and (prestamo_anterior['saldo_vigente'] or 0) > 0:
                 monto_amortizado = float(prestamo_anterior['saldo_vigente'] or 0)
                 monto_desembolso = max(0, float(monto_aprobado or 0) - monto_amortizado)
-                conn.execute(
+                db_execute(
+                    conn,
                     "UPDATE prestamos SET saldo_pendiente=0, estado='pagado' WHERE id=?",
                     [prestamo_anterior['id']]
                 )
-                conn.execute(
+                db_execute(
+                    conn,
                     "UPDATE prestamos SET monto_amortizado=?, monto_desembolso=? WHERE id=?",
                     [monto_amortizado, monto_desembolso, pid]
                 )
-                conn.execute(
+                db_execute(
+                    conn,
                     '''
                     INSERT INTO auditoria_eventos (modulo, entidad, entidad_id, accion, descripcion, usuario, fecha)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -2676,8 +2891,9 @@ def aprobar_prestamo(pid):
                     )
                 )
                 mensaje_aprobacion = f'Préstamo aprobado, calendario generado y amortización aplicada a {prestamo_anterior["numero"]}.'
-        conn.execute('DELETE FROM prestamo_calendario_pagos WHERE prestamo_id=?', [pid])
-        conn.executemany(
+        db_execute(conn, 'DELETE FROM prestamo_calendario_pagos WHERE prestamo_id=?', [pid])
+        db_executemany(
+            conn,
             '''
             INSERT INTO prestamo_calendario_pagos (prestamo_id, numero_cuota, fecha_programada, monto_programado, estado)
             VALUES (?, ?, ?, ?, 'pendiente')
@@ -2697,7 +2913,7 @@ def aprobar_prestamo(pid):
 @login_required()
 def marcar_prestamo_no_procede(pid):
     conn = get_db()
-    prestamo = conn.execute("SELECT id, numero, estado FROM prestamos WHERE id=?", [pid]).fetchone()
+    prestamo = db_fetchone(conn, "SELECT id, numero, estado FROM prestamos WHERE id=?", [pid])
     if not prestamo:
         conn.close()
         flash('Prestamo no encontrado.', 'danger')
@@ -2708,7 +2924,8 @@ def marcar_prestamo_no_procede(pid):
         flash('Solo se pueden marcar como no procede las solicitudes pendientes.', 'warning')
         return redirect(url_for('prestamos', vista='pendientes'))
 
-    conn.execute(
+    db_execute(
+        conn,
         "UPDATE prestamos SET estado='no_procede', saldo_pendiente=0 WHERE id=?",
         [pid]
     )
@@ -2859,7 +3076,11 @@ def finiquito_prestamo(pid):
 @permission_required('prestamos.pagar')
 def pagar_prestamo(pid):
     conn = get_db()
-    prestamo = conn.execute("SELECT p.*, s.frecuencia FROM prestamos p JOIN socios s ON s.id = p.socio_id WHERE p.id=?", [pid]).fetchone()
+    prestamo = db_fetchone(
+        conn,
+        "SELECT p.*, s.frecuencia FROM prestamos p JOIN socios s ON s.id = p.socio_id WHERE p.id=?",
+        [pid],
+    )
 
     if periodo_cerrado('prestamos', date.today().isoformat()):
         conn.close()
@@ -2881,7 +3102,8 @@ def pagar_prestamo(pid):
         interes = 0
     nuevo_saldo = round(max(0, prestamo['saldo_pendiente'] - capital), 2)
     numero_comprobante = generar_numero_comprobante(conn)
-    cur = conn.execute(
+    pago_id = db_insert_and_get_id(
+        conn,
         """
         INSERT INTO pagos_prestamo
         (prestamo_id,monto,capital,interes,saldo_restante,fecha,numero_comprobante)
@@ -2890,8 +3112,9 @@ def pagar_prestamo(pid):
         [pid, prestamo['cuota_mensual'], capital, interes, nuevo_saldo, date.today().isoformat(), numero_comprobante]
     )
     estado = 'pagado' if nuevo_saldo == 0 else 'aprobado'
-    conn.execute("UPDATE prestamos SET saldo_pendiente=?, estado=? WHERE id=?", [nuevo_saldo, estado, pid])
-    cuota_programada = conn.execute(
+    db_execute(conn, "UPDATE prestamos SET saldo_pendiente=?, estado=? WHERE id=?", [nuevo_saldo, estado, pid])
+    cuota_programada = db_fetchone(
+        conn,
         '''
         SELECT id FROM prestamo_calendario_pagos
         WHERE prestamo_id=? AND estado='pendiente'
@@ -2899,14 +3122,14 @@ def pagar_prestamo(pid):
         LIMIT 1
         ''',
         [pid]
-    ).fetchone()
+    )
     if cuota_programada:
-        conn.execute(
+        db_execute(
+            conn,
             "UPDATE prestamo_calendario_pagos SET estado='pagado' WHERE id=?",
             [cuota_programada['id']]
         )
     conn.commit()
-    pago_id = cur.lastrowid
     conn.close()
 
     log_auditoria_evento(
@@ -2962,9 +3185,10 @@ def gestiones():
     if destino_filtro not in {'todos', 'retiro', 'amortizacion'}:
         destino_filtro = 'todos'
 
-    categorias_prestamo = conn.execute(
+    categorias_prestamo = db_fetchall(
+        conn,
         "SELECT id, nombre FROM prestamo_categorias WHERE estado='activo' ORDER BY nombre"
-    ).fetchall()
+    )
 
     solicitudes = []
 
@@ -2979,7 +3203,8 @@ def gestiones():
         elif destino_filtro == 'retiro':
             filtros_retiro.append("COALESCE(sr.destino, 'retiro') <> 'amortizacion_prestamo'")
         where_retiro = f"WHERE {' AND '.join(filtros_retiro)}" if filtros_retiro else ''
-        retiros = conn.execute(
+        retiros = db_fetchall(
+            conn,
             f'''
             SELECT sr.id,
                    sr.numero,
@@ -3004,7 +3229,7 @@ def gestiones():
             ORDER BY sr.fecha_solicitud DESC, sr.id DESC
             ''',
             params_retiro,
-        ).fetchall()
+        )
         for item in retiros:
             row = dict(item)
             row['tipo_solicitud'] = 'retiro'
@@ -3021,7 +3246,8 @@ def gestiones():
             filtros_prestamo.append("p.categoria_id = ?")
             params_prestamo.append(int(categoria_id_filtro))
         where_prestamo = f"WHERE {' AND '.join(filtros_prestamo)}" if filtros_prestamo else ''
-        prestamos = conn.execute(
+        prestamos = db_fetchall(
+            conn,
             f'''
             SELECT p.id,
                    p.numero,
@@ -3046,7 +3272,7 @@ def gestiones():
             ORDER BY p.fecha_solicitud DESC, p.id DESC
             ''',
             params_prestamo,
-        ).fetchall()
+        )
         for item in prestamos:
             row = dict(item)
             row['tipo_solicitud'] = 'prestamo'
@@ -3074,7 +3300,8 @@ def gestiones():
 @login_required(role=('Administrador', 'Operador'))
 def gestion_retiro():
     conn = get_db()
-    cuentas = conn.execute(
+    cuentas = db_fetchall(
+        conn,
         '''
         SELECT c.id,
                c.numero,
@@ -3091,8 +3318,9 @@ def gestion_retiro():
         WHERE c.tipo='ahorro' AND c.estado='activa' AND s.estado='activo'
         ORDER BY s.codigo, c.numero
         '''
-    ).fetchall()
-    prestamos_vigentes = conn.execute(
+    )
+    prestamos_vigentes = db_fetchall(
+        conn,
         '''
         SELECT p.id,
                p.socio_id,
@@ -3102,7 +3330,7 @@ def gestion_retiro():
         WHERE p.estado='aprobado' AND COALESCE(p.saldo_pendiente, 0) > 0
         ORDER BY p.numero
         '''
-    ).fetchall()
+    )
     conn.close()
     return render_template('nuevo_retiro.html', cuentas=cuentas, prestamos_vigentes=prestamos_vigentes)
 
@@ -3127,7 +3355,8 @@ def nueva_solicitud_retiro():
     banco_numero_cuenta = ''
     prestamo_id = None
 
-    cuentas = conn.execute(
+    cuentas = db_fetchall(
+        conn,
         '''
         SELECT c.id,
                c.numero,
@@ -3144,7 +3373,7 @@ def nueva_solicitud_retiro():
         WHERE c.tipo='ahorro' AND c.estado='activa' AND s.estado='activo'
         ORDER BY s.codigo, c.numero
         '''
-    ).fetchall()
+    )
 
     try:
         if not cuenta_id.isdigit():
@@ -3157,7 +3386,8 @@ def nueva_solicitud_retiro():
         if destino not in ('retiro', 'amortizacion_prestamo'):
             raise ValueError('Debe seleccionar un destino válido para la solicitud.')
 
-        cuenta = conn.execute(
+        cuenta = db_fetchone(
+            conn,
             '''
             SELECT c.id, c.numero, c.saldo, c.socio_id,
                    s.estado AS socio_estado,
@@ -3169,7 +3399,7 @@ def nueva_solicitud_retiro():
             WHERE c.id=?
             ''',
             [int(cuenta_id)],
-        ).fetchone()
+        )
         if not cuenta or (cuenta['socio_estado'] or '').lower() != 'activo':
             raise ValueError('La cuenta seleccionada no está disponible para retiro.')
 
@@ -3179,7 +3409,8 @@ def nueva_solicitud_retiro():
         if destino == 'amortizacion_prestamo':
             if not prestamo_id_raw.isdigit():
                 raise ValueError('Debe seleccionar un préstamo vigente para amortizar.')
-            prestamo = conn.execute(
+            prestamo = db_fetchone(
+                conn,
                 '''
                 SELECT id,
                        socio_id,
@@ -3190,7 +3421,7 @@ def nueva_solicitud_retiro():
                 WHERE id=?
                 ''',
                 [int(prestamo_id_raw)],
-            ).fetchone()
+            )
             if not prestamo:
                 raise ValueError('El préstamo seleccionado no existe.')
             if int(prestamo['socio_id']) != int(cuenta['socio_id']):
@@ -3213,10 +3444,11 @@ def nueva_solicitud_retiro():
             banco_tipo_cuenta = ''
             banco_numero_cuenta = ''
 
-        count = conn.execute("SELECT COUNT(*) FROM solicitudes_retiro").fetchone()[0] or 0
+        count = db_fetchone(conn, "SELECT COUNT(*) FROM solicitudes_retiro")[0] or 0
         numero = f'RET-{count + 1:05d}'
 
-        conn.execute(
+        db_execute(
+            conn,
             '''
             INSERT INTO solicitudes_retiro
             (numero, cuenta_id, socio_id, monto, descripcion, metodo_retiro, banco_tipo_cuenta, banco_numero_cuenta, destino, prestamo_id, fecha_solicitud, estado)
@@ -3250,7 +3482,8 @@ def nueva_solicitud_retiro():
 @login_required(role=('Administrador', 'Operador'))
 def aprobar_solicitud_retiro(rid):
     conn = get_db()
-    solicitud = conn.execute(
+    solicitud = db_fetchone(
+        conn,
         '''
         SELECT sr.*, c.numero AS cuenta_numero, c.saldo,
                p.numero AS prestamo_numero,
@@ -3262,7 +3495,7 @@ def aprobar_solicitud_retiro(rid):
         WHERE sr.id=?
         ''',
         [rid],
-    ).fetchone()
+    )
 
     if not solicitud:
         conn.close()
@@ -3301,8 +3534,9 @@ def aprobar_solicitud_retiro(rid):
             return redirect(url_for('gestiones', tipo='retiro', estado='pendiente'))
 
     nuevo_saldo = saldo_actual - monto
-    conn.execute("UPDATE cuentas SET saldo=? WHERE id=?", [nuevo_saldo, solicitud['cuenta_id']])
-    conn.execute(
+    db_execute(conn, "UPDATE cuentas SET saldo=? WHERE id=?", [nuevo_saldo, solicitud['cuenta_id']])
+    db_execute(
+        conn,
         '''
         INSERT INTO transacciones
         (cuenta_id, tipo, monto, saldo_despues, descripcion, fecha)
@@ -3322,7 +3556,8 @@ def aprobar_solicitud_retiro(rid):
         nuevo_saldo_prestamo = round(max(0, prestamo_saldo_actual - monto), 2)
         estado_prestamo = 'pagado' if nuevo_saldo_prestamo == 0 else 'aprobado'
         numero_comprobante = generar_numero_comprobante(conn)
-        conn.execute(
+        db_execute(
+            conn,
             '''
             INSERT INTO pagos_prestamo
             (prestamo_id, monto, capital, interes, saldo_restante, descripcion, boleta_deposito, fecha, numero_comprobante)
@@ -3340,12 +3575,14 @@ def aprobar_solicitud_retiro(rid):
                 numero_comprobante,
             ),
         )
-        conn.execute(
+        db_execute(
+            conn,
             "UPDATE prestamos SET saldo_pendiente=?, estado=? WHERE id=?",
             [nuevo_saldo_prestamo, estado_prestamo, solicitud['prestamo_id']]
         )
 
-    conn.execute(
+    db_execute(
+        conn,
         "UPDATE solicitudes_retiro SET estado='aprobado', fecha_aprobacion=?, aprobado_por=? WHERE id=?",
         [date.today().isoformat(), session.get('username'), rid],
     )
@@ -3360,7 +3597,8 @@ def aprobar_solicitud_retiro(rid):
 @login_required(role=('Administrador', 'Operador'))
 def comprobante_retiro(rid):
     conn = get_db()
-    retiro = conn.execute(
+    retiro = db_fetchone(
+        conn,
         '''
         SELECT sr.*, c.numero AS cuenta_numero,
                s.codigo AS socio_codigo,
@@ -3373,7 +3611,7 @@ def comprobante_retiro(rid):
         WHERE sr.id=?
         ''',
         (rid,),
-    ).fetchone()
+    )
     conn.close()
 
     if not retiro:
@@ -3392,10 +3630,11 @@ def comprobante_retiro(rid):
 @login_required(role=('Administrador', 'Operador'))
 def marcar_solicitud_retiro_no_procede(rid):
     conn = get_db()
-    solicitud = conn.execute(
+    solicitud = db_fetchone(
+        conn,
         "SELECT id, numero, estado FROM solicitudes_retiro WHERE id=?",
         [rid],
-    ).fetchone()
+    )
 
     if not solicitud:
         conn.close()
@@ -3407,7 +3646,8 @@ def marcar_solicitud_retiro_no_procede(rid):
         flash('Solo se pueden marcar como no procede las solicitudes pendientes.', 'warning')
         return redirect(url_for('gestiones', tipo='retiro', estado='pendiente'))
 
-    conn.execute(
+    db_execute(
+        conn,
         "UPDATE solicitudes_retiro SET estado='no_procede', fecha_aprobacion=?, aprobado_por=? WHERE id=?",
         [date.today().isoformat(), session.get('username'), rid],
     )
@@ -3575,7 +3815,7 @@ def validar_retiros_ahorro():
                 errores_detalle.append({'fila': i, 'numero_cuenta': numero, 'error': 'Monto debe ser mayor que 0'})
                 continue
 
-            cuenta = conn.execute('SELECT * FROM cuentas WHERE numero=? AND tipo="ahorro" AND estado="activa"', (numero,)).fetchone()
+            cuenta = db_fetchone(conn, 'SELECT * FROM cuentas WHERE numero=? AND tipo="ahorro" AND estado="activa"', (numero,))
             if not cuenta:
                 errores += 1
                 errores_detalle.append({'fila': i, 'numero_cuenta': numero, 'error': 'Cuenta no encontrada o no activa'})
@@ -3620,7 +3860,6 @@ def procesar_retiros_ahorro():
     if not validate_idempotency(conn, 'procesar_retiros_ahorro'):
         conn.close()
         return jsonify({'success': False, 'error': 'Solicitud duplicada detectada (idempotencia).'}), 409
-    c = conn.cursor()
     procesados = 0
     monto_total = 0.0
     errores = []
@@ -3631,7 +3870,7 @@ def procesar_retiros_ahorro():
             monto = float(retiro['monto'])
             descripcion = retiro.get('descripcion', 'Retiro masivo')
 
-            cuenta = c.execute('SELECT saldo FROM cuentas WHERE id=? AND tipo="ahorro" AND estado="activa"', (cuenta_id,)).fetchone()
+            cuenta = db_fetchone(conn, 'SELECT saldo FROM cuentas WHERE id=? AND tipo="ahorro" AND estado="activa"', (cuenta_id,))
             if not cuenta:
                 errores.append(f'Cuenta {cuenta_id} no encontrada')
                 continue
@@ -3641,9 +3880,12 @@ def procesar_retiros_ahorro():
                 continue
 
             nuevo_saldo = cuenta['saldo'] - monto
-            c.execute('UPDATE cuentas SET saldo=? WHERE id=?', (nuevo_saldo, cuenta_id))
-            c.execute('INSERT INTO transacciones (cuenta_id,tipo,monto,saldo_despues,descripcion,fecha) VALUES (?,?,?,?,?,?)',
-                      (cuenta_id, 'retiro', monto, nuevo_saldo, descripcion, fecha_retiro))
+            db_execute(conn, 'UPDATE cuentas SET saldo=? WHERE id=?', (nuevo_saldo, cuenta_id))
+            db_execute(
+                conn,
+                'INSERT INTO transacciones (cuenta_id,tipo,monto,saldo_despues,descripcion,fecha) VALUES (?,?,?,?,?,?)',
+                (cuenta_id, 'retiro', monto, nuevo_saldo, descripcion, fecha_retiro)
+            )
             procesados += 1
             monto_total += monto
         except Exception as e:
@@ -3702,8 +3944,8 @@ def validar_transferencias_ahorro():
                 errores_detalle.append({'fila': i, 'cuenta_origen': origen, 'cuenta_destino': destino, 'error': 'Monto debe ser mayor que 0'})
                 continue
 
-            c_origen = conn.execute('SELECT * FROM cuentas WHERE numero=? AND tipo="ahorro" AND estado="activa"', (origen,)).fetchone()
-            c_destino = conn.execute('SELECT * FROM cuentas WHERE numero=? AND tipo="ahorro" AND estado="activa"', (destino,)).fetchone()
+            c_origen = db_fetchone(conn, 'SELECT * FROM cuentas WHERE numero=? AND tipo="ahorro" AND estado="activa"', (origen,))
+            c_destino = db_fetchone(conn, 'SELECT * FROM cuentas WHERE numero=? AND tipo="ahorro" AND estado="activa"', (destino,))
 
             if not c_origen or not c_destino:
                 errores += 1
@@ -3762,7 +4004,6 @@ def procesar_transferencias_ahorro():
     if not validate_idempotency(conn, 'procesar_transferencias_ahorro'):
         conn.close()
         return jsonify({'success': False, 'error': 'Solicitud duplicada detectada (idempotencia).'}), 409
-    c = conn.cursor()
     procesados = 0
     monto_total = 0.0
     errores = []
@@ -3774,8 +4015,8 @@ def procesar_transferencias_ahorro():
             monto = float(movimiento['monto'])
             descripcion = movimiento.get('descripcion', 'Transferencia interna')
 
-            c_origen = c.execute('SELECT saldo FROM cuentas WHERE id=? AND tipo="ahorro" AND estado="activa"', (origen_id,)).fetchone()
-            c_destino = c.execute('SELECT saldo FROM cuentas WHERE id=? AND tipo="ahorro" AND estado="activa"', (destino_id,)).fetchone()
+            c_origen = db_fetchone(conn, 'SELECT saldo FROM cuentas WHERE id=? AND tipo="ahorro" AND estado="activa"', (origen_id,))
+            c_destino = db_fetchone(conn, 'SELECT saldo FROM cuentas WHERE id=? AND tipo="ahorro" AND estado="activa"', (destino_id,))
 
             if not c_origen or not c_destino:
                 errores.append(f'Origen o destino no válidos para transferencia {origen_id}->{destino_id}')
@@ -3791,17 +4032,26 @@ def procesar_transferencias_ahorro():
                 errores.append(f'Saldo insuficiente (incluyendo comisión) en cuenta origen {origen_id}')
                 continue
 
-            c.execute('UPDATE cuentas SET saldo=? WHERE id=?', (saldo_origen_nuevo, origen_id))
-            c.execute('UPDATE cuentas SET saldo=? WHERE id=?', (saldo_destino_nuevo, destino_id))
+            db_execute(conn, 'UPDATE cuentas SET saldo=? WHERE id=?', (saldo_origen_nuevo, origen_id))
+            db_execute(conn, 'UPDATE cuentas SET saldo=? WHERE id=?', (saldo_destino_nuevo, destino_id))
 
-            c.execute('INSERT INTO transacciones (cuenta_id,tipo,monto,saldo_despues,descripcion,fecha) VALUES (?,?,?,?,?,?)',
-                      (origen_id, 'transferencia_salida', monto, saldo_origen_nuevo, descripcion + f' ({tipo_transferencia})', fecha_transferencia))
-            c.execute('INSERT INTO transacciones (cuenta_id,tipo,monto,saldo_despues,descripcion,fecha) VALUES (?,?,?,?,?,?)',
-                      (destino_id, 'transferencia_entrada', monto, saldo_destino_nuevo, descripcion + f' ({tipo_transferencia})', fecha_transferencia))
+            db_execute(
+                conn,
+                'INSERT INTO transacciones (cuenta_id,tipo,monto,saldo_despues,descripcion,fecha) VALUES (?,?,?,?,?,?)',
+                (origen_id, 'transferencia_salida', monto, saldo_origen_nuevo, descripcion + f' ({tipo_transferencia})', fecha_transferencia)
+            )
+            db_execute(
+                conn,
+                'INSERT INTO transacciones (cuenta_id,tipo,monto,saldo_despues,descripcion,fecha) VALUES (?,?,?,?,?,?)',
+                (destino_id, 'transferencia_entrada', monto, saldo_destino_nuevo, descripcion + f' ({tipo_transferencia})', fecha_transferencia)
+            )
 
             if comision > 0:
-                c.execute('INSERT INTO transacciones (cuenta_id,tipo,monto,saldo_despues,descripcion,fecha) VALUES (?,?,?,?,?,?)',
-                          (origen_id, 'comision', comision, saldo_origen_nuevo, 'Comisión transferencia', fecha_transferencia))
+                db_execute(
+                    conn,
+                    'INSERT INTO transacciones (cuenta_id,tipo,monto,saldo_despues,descripcion,fecha) VALUES (?,?,?,?,?,?)',
+                    (origen_id, 'comision', comision, saldo_origen_nuevo, 'Comisión transferencia', fecha_transferencia)
+                )
 
             procesados += 1
             monto_total += monto
@@ -3824,46 +4074,45 @@ def generar_reporte_ahorro():
     fecha_fin = data.get('fecha_fin')
 
     conn = get_db()
-    c = conn.cursor()
 
     try:
         if tipo == 'saldos':
-            rows = c.execute('''
+            rows = db_fetchall(conn, '''
                 SELECT c.numero AS numero_cuenta, s.nombre || ' ' || s.apellido AS nombre_socio,
                        c.saldo AS saldo_actual, c.estado,
                        (SELECT fecha FROM transacciones t WHERE t.cuenta_id=c.id ORDER BY t.fecha DESC LIMIT 1) AS ultimo_movimiento
                 FROM cuentas c
                 JOIN socios s ON c.socio_id=s.id
                 WHERE c.tipo='ahorro'
-            ''').fetchall()
+            ''')
             resultados = [{'numero_cuenta': r['numero_cuenta'], 'nombre_socio': r['nombre_socio'], 'saldo_actual': r['saldo_actual'] or 0.0, 'ultimo_movimiento': r['ultimo_movimiento'], 'estado': r['estado']} for r in rows]
 
         elif tipo == 'movimientos':
             if not fecha_inicio or not fecha_fin:
                 return jsonify({'success': False, 'error': 'Debe indicar rango de fechas'}), 400
-            rows = c.execute('''
+            rows = db_fetchall(conn, '''
                 SELECT t.fecha, c.numero AS numero_cuenta, t.tipo, t.monto, t.saldo_despues, t.descripcion
                 FROM transacciones t
                 JOIN cuentas c ON t.cuenta_id=c.id
                 WHERE c.tipo='ahorro' AND date(t.fecha) BETWEEN date(?) AND date(?)
                 ORDER BY t.fecha ASC
-            ''', (fecha_inicio, fecha_fin)).fetchall()
+            ''', (fecha_inicio, fecha_fin))
             resultados = [{'fecha': r['fecha'], 'numero_cuenta': r['numero_cuenta'], 'tipo': r['tipo'], 'monto': r['monto'], 'saldo_despues': r['saldo_despues'], 'descripcion': r['descripcion']} for r in rows]
 
         elif tipo == 'comparativo':
             if not fecha_inicio or not fecha_fin:
                 return jsonify({'success': False, 'error': 'Debe indicar rango de fechas'}), 400
-            cuentas_data = c.execute('SELECT id, numero, socio_id, saldo FROM cuentas WHERE tipo="ahorro"').fetchall()
+            cuentas_data = db_fetchall(conn, 'SELECT id, numero, socio_id, saldo FROM cuentas WHERE tipo="ahorro"')
             resultados = []
             for cuenta in cuentas_data:
                 saldo_actual = cuenta['saldo'] or 0.0
-                anterior = c.execute('''
+                anterior = db_fetchone(conn, '''
                     SELECT saldo_despues FROM transacciones
                     WHERE cuenta_id=? AND date(fecha) < date(?)
                     ORDER BY fecha DESC LIMIT 1
-                ''', (cuenta['id'], fecha_inicio)).fetchone()
+                ''', (cuenta['id'], fecha_inicio))
                 saldo_anterior = anterior['saldo_despues'] if anterior else 0.0
-                socio = c.execute('SELECT nombre, apellido FROM socios WHERE id=?', (cuenta['socio_id'],)).fetchone()
+                socio = db_fetchone(conn, 'SELECT nombre, apellido FROM socios WHERE id=?', (cuenta['socio_id'],))
                 resultados.append({
                     'numero_cuenta': cuenta['numero'],
                     'nombre_socio': socio['nombre'] + ' ' + socio['apellido'],
@@ -3873,27 +4122,42 @@ def generar_reporte_ahorro():
 
         elif tipo == 'inactivas':
             fecha_corte = fecha_fin or date.today().isoformat()
-            rows = c.execute('''
-                SELECT c.numero AS numero_cuenta, s.nombre || ' ' || s.apellido AS nombre_socio,
-                       c.saldo AS saldo_actual,
-                       MAX(t.fecha) AS ultima_actividad,
-                       julianday(date(?)) - julianday(MAX(date(t.fecha))) AS dias_inactiva
-                FROM cuentas c
-                JOIN socios s ON c.socio_id=s.id
-                LEFT JOIN transacciones t ON t.cuenta_id=c.id
-                WHERE c.tipo='ahorro'
-                GROUP BY c.id
-                HAVING dias_inactiva > 30
-            ''', (fecha_corte,)).fetchall()
+            if _is_postgres_connection(conn):
+                rows = db_fetchall(conn, '''
+                    SELECT c.numero AS numero_cuenta,
+                           s.nombre || ' ' || s.apellido AS nombre_socio,
+                           c.saldo AS saldo_actual,
+                           MAX(t.fecha) AS ultima_actividad,
+                           (DATE(%s) - MAX(DATE(t.fecha)))::int AS dias_inactiva
+                    FROM cuentas c
+                    JOIN socios s ON c.socio_id=s.id
+                    LEFT JOIN transacciones t ON t.cuenta_id=c.id
+                    WHERE c.tipo='ahorro'
+                    GROUP BY c.id, c.numero, s.nombre, s.apellido, c.saldo
+                    HAVING (DATE(%s) - MAX(DATE(t.fecha)))::int > 30
+                ''', (fecha_corte, fecha_corte))
+            else:
+                rows = db_fetchall(conn, '''
+                    SELECT c.numero AS numero_cuenta, s.nombre || ' ' || s.apellido AS nombre_socio,
+                           c.saldo AS saldo_actual,
+                           MAX(t.fecha) AS ultima_actividad,
+                           julianday(date(?)) - julianday(MAX(date(t.fecha))) AS dias_inactiva
+                    FROM cuentas c
+                    JOIN socios s ON c.socio_id=s.id
+                    LEFT JOIN transacciones t ON t.cuenta_id=c.id
+                    WHERE c.tipo='ahorro'
+                    GROUP BY c.id
+                    HAVING dias_inactiva > 30
+                ''', (fecha_corte,))
             resultados = [{'numero_cuenta': r['numero_cuenta'], 'nombre_socio': r['nombre_socio'], 'saldo_actual': r['saldo_actual'] or 0.0, 'ultima_actividad': r['ultima_actividad'] or 'N/A', 'dias_inactiva': int(r['dias_inactiva'] or 0)} for r in rows]
 
         else:
             return jsonify({'success': False, 'error': 'Tipo de reporte desconocido'}), 400
 
-        total_cuentas = c.execute('SELECT COUNT(*) FROM cuentas WHERE tipo="ahorro"').fetchone()[0]
-        total_saldo = c.execute('SELECT COALESCE(SUM(saldo),0) FROM cuentas WHERE tipo="ahorro"').fetchone()[0]
+        total_cuentas = db_fetchone(conn, 'SELECT COUNT(*) FROM cuentas WHERE tipo="ahorro"')[0]
+        total_saldo = db_fetchone(conn, 'SELECT COALESCE(SUM(saldo),0) FROM cuentas WHERE tipo="ahorro"')[0]
         promedio_saldo = float(total_saldo) / total_cuentas if total_cuentas else 0.0
-        cuentas_activas = c.execute('SELECT COUNT(*) FROM cuentas WHERE tipo="ahorro" AND estado="activa"').fetchone()[0]
+        cuentas_activas = db_fetchone(conn, 'SELECT COUNT(*) FROM cuentas WHERE tipo="ahorro" AND estado="activa"')[0]
 
         return jsonify({'success': True, 'resultados': resultados, 'estadisticas': {
             'total_cuentas': total_cuentas,
@@ -3996,10 +4260,11 @@ def _generar_datos_reporte_prestamos(tipo_reporte, fecha_inicio=None, fecha_fin=
         where_rango += ' AND date(pp.fecha) <= date(?)'
         params_rango.append(fecha_fin)
 
-    intereses = conn.execute(
+    intereses = db_fetchone(
+        conn,
         f"SELECT COALESCE(SUM(pp.interes),0) FROM pagos_prestamo pp WHERE 1=1 {where_rango}",
         params_rango
-    ).fetchone()[0]
+    )[0]
     conn.close()
 
     rendimiento_cartera = (float(intereses) * 100.0 / cartera_total) if cartera_total else 0.0
@@ -4047,17 +4312,32 @@ def _generar_datos_reporte_prestamos(tipo_reporte, fecha_inicio=None, fecha_fin=
         } for p in vencidos]
     elif tipo_reporte == 'rendimiento':
         conn = get_db()
-        rows = conn.execute(
-            '''
-            SELECT substr(fecha,1,7) AS mes,
-                   COALESCE(SUM(interes),0) AS intereses_cobrados,
-                   COALESCE(AVG(saldo_restante),0) AS cartera_promedio
-            FROM pagos_prestamo
-            GROUP BY substr(fecha,1,7)
-            ORDER BY mes DESC
-            LIMIT 12
-            '''
-        ).fetchall()
+        if _is_postgres_connection(conn):
+            rows = db_fetchall(
+                conn,
+                '''
+                SELECT to_char(fecha::date, 'YYYY-MM') AS mes,
+                       COALESCE(SUM(interes),0) AS intereses_cobrados,
+                       COALESCE(AVG(saldo_restante),0) AS cartera_promedio
+                FROM pagos_prestamo
+                GROUP BY to_char(fecha::date, 'YYYY-MM')
+                ORDER BY mes DESC
+                LIMIT 12
+                '''
+            )
+        else:
+            rows = db_fetchall(
+                conn,
+                '''
+                SELECT substr(fecha,1,7) AS mes,
+                       COALESCE(SUM(interes),0) AS intereses_cobrados,
+                       COALESCE(AVG(saldo_restante),0) AS cartera_promedio
+                FROM pagos_prestamo
+                GROUP BY substr(fecha,1,7)
+                ORDER BY mes DESC
+                LIMIT 12
+                '''
+            )
         conn.close()
         resultados = []
         for r in rows:
@@ -4072,17 +4352,32 @@ def _generar_datos_reporte_prestamos(tipo_reporte, fecha_inicio=None, fecha_fin=
             })
     elif tipo_reporte == 'comparativo':
         conn = get_db()
-        rows = conn.execute(
-            '''
-            SELECT substr(fecha_solicitud,1,7) AS mes,
-                   COUNT(*) AS nuevos_prestamos,
-                   COALESCE(SUM(monto_solicitado),0) AS cartera_actual
-            FROM prestamos
-            GROUP BY substr(fecha_solicitud,1,7)
-            ORDER BY mes DESC
-            LIMIT 12
-            '''
-        ).fetchall()
+        if _is_postgres_connection(conn):
+            rows = db_fetchall(
+                conn,
+                '''
+                SELECT to_char(fecha_solicitud::date, 'YYYY-MM') AS mes,
+                       COUNT(*) AS nuevos_prestamos,
+                       COALESCE(SUM(monto_solicitado),0) AS cartera_actual
+                FROM prestamos
+                GROUP BY to_char(fecha_solicitud::date, 'YYYY-MM')
+                ORDER BY mes DESC
+                LIMIT 12
+                '''
+            )
+        else:
+            rows = db_fetchall(
+                conn,
+                '''
+                SELECT substr(fecha_solicitud,1,7) AS mes,
+                       COUNT(*) AS nuevos_prestamos,
+                       COALESCE(SUM(monto_solicitado),0) AS cartera_actual
+                FROM prestamos
+                GROUP BY substr(fecha_solicitud,1,7)
+                ORDER BY mes DESC
+                LIMIT 12
+                '''
+            )
         conn.close()
         resultados = []
         cartera_anterior = 0.0
@@ -4239,21 +4534,42 @@ def obtener_estadisticas_cobranza():
     cartera = _obtener_cartera_con_alertas()
     morosos = [p for p in cartera if p['dias_atraso'] > 0 and p['estado'] == 'aprobado']
     conn = get_db()
-    recuperado_mes = conn.execute(
-        """
-        SELECT COALESCE(SUM(monto),0)
-        FROM pagos_prestamo
-        WHERE strftime('%Y-%m', fecha) = strftime('%Y-%m', 'now')
-        """
-    ).fetchone()[0]
-    acciones_pendientes = conn.execute(
-        """
-        SELECT COUNT(*)
-        FROM cobranza_acciones
-        WHERE date(fecha_compromiso) < date('now')
-          AND resultado IN ('compromiso', 'sin_respuesta')
-        """
-    ).fetchone()[0]
+    if _is_postgres_connection(conn):
+        recuperado_mes = db_fetchone(
+            conn,
+            """
+            SELECT COALESCE(SUM(monto),0)
+            FROM pagos_prestamo
+            WHERE to_char(fecha::date, 'YYYY-MM') = to_char(current_date, 'YYYY-MM')
+            """
+        )[0]
+        acciones_pendientes = db_fetchone(
+            conn,
+            """
+            SELECT COUNT(*)
+            FROM cobranza_acciones
+            WHERE fecha_compromiso::date < current_date
+              AND resultado IN ('compromiso', 'sin_respuesta')
+            """
+        )[0]
+    else:
+        recuperado_mes = db_fetchone(
+            conn,
+            """
+            SELECT COALESCE(SUM(monto),0)
+            FROM pagos_prestamo
+            WHERE strftime('%Y-%m', fecha) = strftime('%Y-%m', 'now')
+            """
+        )[0]
+        acciones_pendientes = db_fetchone(
+            conn,
+            """
+            SELECT COUNT(*)
+            FROM cobranza_acciones
+            WHERE date(fecha_compromiso) < date('now')
+              AND resultado IN ('compromiso', 'sin_respuesta')
+            """
+        )[0]
     conn.close()
     return jsonify({
         'prestamos_morosos': len(morosos),
@@ -4292,15 +4608,17 @@ def obtener_lista_cobranza():
     cartera.sort(key=key_map.get(ordenar_por, key_map['dias_atraso']), reverse=(ordenar_por != 'numero_prestamo'))
 
     conn = get_db()
-    ult_contactos = conn.execute(
+    ult_contactos = db_fetchall(
+        conn,
         '''
         SELECT p.numero AS numero_prestamo, MAX(ca.fecha_accion) AS ultimo_contacto
         FROM cobranza_acciones ca
         JOIN prestamos p ON ca.prestamo_id = p.id
         GROUP BY p.numero
         '''
-    ).fetchall()
-    ult_responsables = conn.execute(
+    )
+    ult_responsables = db_fetchall(
+        conn,
         '''
         SELECT p.numero AS numero_prestamo, ca.responsable
         FROM cobranza_acciones ca
@@ -4311,7 +4629,7 @@ def obtener_lista_cobranza():
             GROUP BY prestamo_id
         ) ult ON ult.ultimo_id = ca.id
         '''
-    ).fetchall()
+    )
     conn.close()
     mapa_contacto = {r['numero_prestamo']: r['ultimo_contacto'] for r in ult_contactos}
     mapa_responsable = {r['numero_prestamo']: (r['responsable'] or '') for r in ult_responsables}
@@ -4353,12 +4671,13 @@ def guardar_accion_cobranza():
         return jsonify({'success': False, 'error': 'Número de préstamo requerido'}), 400
 
     conn = get_db()
-    prestamo = conn.execute('SELECT id, numero FROM prestamos WHERE numero=?', (numero_prestamo,)).fetchone()
+    prestamo = db_fetchone(conn, 'SELECT id, numero FROM prestamos WHERE numero=?', (numero_prestamo,))
     if not prestamo:
         conn.close()
         return jsonify({'success': False, 'error': 'Préstamo no encontrado'}), 404
 
-    conn.execute(
+    db_execute(
+        conn,
         '''
         INSERT INTO cobranza_acciones
         (prestamo_id, tipo_accion, resultado, notas, monto_comprometido, fecha_compromiso, fecha_accion, responsable)
@@ -4406,7 +4725,8 @@ def obtener_historial_cobranza():
         params.append(f'%{numero}%')
 
     conn = get_db()
-    rows = conn.execute(
+    rows = db_fetchall(
+        conn,
         f'''
         SELECT ca.fecha_accion AS fecha,
                p.numero AS numero_prestamo,
@@ -4420,7 +4740,7 @@ def obtener_historial_cobranza():
         LIMIT 200
         ''',
         params
-    ).fetchall()
+    )
     conn.close()
     return jsonify({'historial': [dict(r) for r in rows]})
 
@@ -4456,7 +4776,7 @@ def auditoria_eventos():
     query += ' ORDER BY id DESC LIMIT 500'
 
     conn = get_db()
-    eventos = conn.execute(query, params).fetchall()
+    eventos = db_fetchall(conn, query, params)
     conn.close()
 
     return render_template(
@@ -4484,10 +4804,11 @@ def enviar_recordatorios_cobranza():
     conn = get_db()
     enviados = 0
     for numero in numeros:
-        prestamo = conn.execute('SELECT id FROM prestamos WHERE numero=?', (numero,)).fetchone()
+        prestamo = db_fetchone(conn, 'SELECT id FROM prestamos WHERE numero=?', (numero,))
         if not prestamo:
             continue
-        conn.execute(
+        db_execute(
+            conn,
             '''
             INSERT INTO cobranza_acciones
             (prestamo_id, tipo_accion, resultado, notas, fecha_accion, responsable)
@@ -4513,8 +4834,10 @@ def marcar_revision_legal():
     conn = get_db()
     marcados = 0
     for numero in numeros:
-        cur = conn.execute("UPDATE prestamos SET etapa_cobranza='legal' WHERE numero=?", (numero,))
-        marcados += cur.rowcount
+        db_execute(conn, "UPDATE prestamos SET etapa_cobranza='legal' WHERE numero=?", (numero,))
+        cur_count = db_fetchone(conn, "SELECT COUNT(*) FROM prestamos WHERE numero=? AND etapa_cobranza='legal'", (numero,))[0]
+        if cur_count:
+            marcados += 1
     conn.commit()
     conn.close()
 
@@ -4545,7 +4868,8 @@ def cierres_periodo():
             flash('Debe completar módulo, fecha inicio y fecha fin.', 'danger')
             return redirect(url_for('cierres_periodo'))
 
-        conn.execute(
+        db_execute(
+            conn,
             '''
             INSERT INTO cierres_periodo (modulo, fecha_inicio, fecha_fin, estado, observaciones, usuario, fecha_creacion)
             VALUES (?, ?, ?, 'cerrado', ?, ?, ?)
@@ -4565,9 +4889,10 @@ def cierres_periodo():
         flash('Cierre de periodo registrado correctamente.', 'success')
         return redirect(url_for('cierres_periodo'))
 
-    cierres = conn.execute(
+    cierres = db_fetchall(
+        conn,
         "SELECT * FROM cierres_periodo ORDER BY id DESC LIMIT 100"
-    ).fetchall()
+    )
     conn.close()
     return render_template('cierres_periodo.html', cierres=cierres)
 
@@ -4581,7 +4906,7 @@ def estado_cuenta_prestamo(sid):
     printable = request.args.get('print', '').strip() == '1'
 
     conn = get_db()
-    socio = conn.execute('SELECT * FROM socios WHERE id=?', (sid,)).fetchone()
+    socio = db_fetchone(conn, 'SELECT * FROM socios WHERE id=?', (sid,))
     if not socio:
         conn.close()
         flash('Socio no encontrado.', 'danger')
@@ -4596,7 +4921,8 @@ def estado_cuenta_prestamo(sid):
         filtros += ' AND date(pp.fecha) <= date(?)'
         params.append(fecha_hasta)
 
-    pagos = conn.execute(
+    pagos = db_fetchall(
+        conn,
         f'''
         SELECT pp.*, p.numero AS numero_prestamo
         FROM pagos_prestamo pp
@@ -4605,9 +4931,10 @@ def estado_cuenta_prestamo(sid):
         ORDER BY date(pp.fecha) DESC, pp.id DESC
         ''',
         params,
-    ).fetchall()
+    )
 
-    resumen = conn.execute(
+    resumen = db_fetchone(
+        conn,
         '''
         SELECT COUNT(*) AS total_prestamos,
                COALESCE(SUM(CASE WHEN estado='aprobado' THEN saldo_pendiente ELSE 0 END),0) AS saldo_activo,
@@ -4616,7 +4943,7 @@ def estado_cuenta_prestamo(sid):
         WHERE socio_id=?
         ''',
         (sid,),
-    ).fetchone()
+    )
     conn.close()
 
     total_pagado = sum(float(p['monto'] or 0) for p in pagos)
@@ -4674,7 +5001,8 @@ def estado_cuenta_prestamo(sid):
 @login_required()
 def comprobante_pago_prestamo(pago_id):
     conn = get_db()
-    pago = conn.execute(
+    pago = db_fetchone(
+        conn,
         '''
         SELECT pp.*, p.numero AS numero_prestamo,
                s.codigo AS socio_codigo,
@@ -4685,7 +5013,7 @@ def comprobante_pago_prestamo(pago_id):
         WHERE pp.id=?
         ''',
         (pago_id,),
-    ).fetchone()
+    )
     conn.close()
 
     if not pago:
@@ -4698,18 +5026,13 @@ def comprobante_pago_prestamo(pago_id):
 @login_required()
 def generar_planilla_ahorro():
     conn = get_db_connection()
-    c = conn.cursor()
-
-    # Obtener todas las cuentas activas con información del socio
-    c.execute('''
+    cuentas = db_fetchall(conn, '''
         SELECT c.id, c.numero, c.saldo, s.nombre, s.apellido, s.codigo
         FROM cuentas c
         JOIN socios s ON c.socio_id = s.id
         WHERE c.estado = 'activa' AND s.estado = 'activo'
         ORDER BY s.apellido, s.nombre
     ''')
-
-    cuentas = c.fetchall()
     conn.close()
 
     return render_template('planilla_ahorro.html', cuentas=cuentas)
@@ -4762,7 +5085,7 @@ def planillas_ahorro_pendientes():
         END, fecha_creacion DESC, id DESC
     '''
 
-    planillas_rows = conn.execute(query, params).fetchall()
+    planillas_rows = db_fetchall(conn, query, params)
     conn.close()
 
     planillas = []
@@ -4790,23 +5113,23 @@ def planillas_ahorro_pendientes():
 @login_required()
 def detalle_planilla_ahorro(planilla_id):
     conn = get_db_connection()
-    planilla = conn.execute('''
+    planilla = db_fetchone(conn, '''
         SELECT * FROM planillas_masivas
         WHERE id=? AND tipo='ahorro_cuotas'
-    ''', (planilla_id,)).fetchone()
+    ''', (planilla_id,))
 
     if not planilla:
         conn.close()
         flash('Planilla de ahorro no encontrada.', 'danger')
         return redirect(url_for('planillas_ahorro_pendientes'))
 
-    detalles = conn.execute('''
+    detalles = db_fetchall(conn, '''
         SELECT d.*, c.saldo AS saldo_actual
         FROM planilla_masiva_detalles d
         LEFT JOIN cuentas c ON d.referencia_id = c.id AND d.referencia_tipo = 'cuenta_ahorro'
         WHERE d.planilla_id=?
         ORDER BY socio_nombre, numero_referencia
-    ''', (planilla_id,)).fetchall()
+    ''', (planilla_id,))
     conn.close()
 
     return render_template(
@@ -4825,10 +5148,10 @@ def detalle_planilla_ahorro(planilla_id):
 @login_required()
 def editar_planilla_ahorro(planilla_id):
     conn = get_db_connection()
-    planilla = conn.execute('''
+    planilla = db_fetchone(conn, '''
         SELECT * FROM planillas_masivas
         WHERE id=? AND tipo='ahorro_cuotas'
-    ''', (planilla_id,)).fetchone()
+    ''', (planilla_id,))
 
     if not planilla:
         conn.close()
@@ -4840,7 +5163,8 @@ def editar_planilla_ahorro(planilla_id):
         flash('No se puede modificar una planilla ya aplicada.', 'warning')
         return redirect(url_for('detalle_planilla_ahorro', planilla_id=planilla_id))
 
-    detalles = conn.execute(
+    detalles = db_fetchall(
+        conn,
         '''
         SELECT id, socio_codigo, socio_nombre, numero_referencia, monto, estado
         FROM planilla_masiva_detalles
@@ -4848,7 +5172,7 @@ def editar_planilla_ahorro(planilla_id):
         ORDER BY socio_nombre, numero_referencia
         ''',
         (planilla_id,)
-    ).fetchall()
+    )
 
     if request.method == 'POST':
         nombre = request.form.get('nombre_planilla', '').strip()
@@ -4867,7 +5191,8 @@ def editar_planilla_ahorro(planilla_id):
             return redirect(url_for('editar_planilla_ahorro', planilla_id=planilla_id))
 
         if accion == 'recalcular':
-            detalles_recalculo = conn.execute(
+            detalles_recalculo = db_fetchall(
+                conn,
                 '''
                 SELECT d.id, d.monto, d.estado, d.referencia_id,
                        s.cuota_ahorro
@@ -4877,7 +5202,7 @@ def editar_planilla_ahorro(planilla_id):
                 WHERE d.planilla_id=?
                 ''',
                 (planilla_id,)
-            ).fetchall()
+            )
 
             for d in detalles_recalculo:
                 if (d['estado'] or '').lower() != 'pendiente':
@@ -4885,7 +5210,8 @@ def editar_planilla_ahorro(planilla_id):
                 nueva_cuota = round(float(d['cuota_ahorro'] or 0), 2)
                 if nueva_cuota < 0:
                     nueva_cuota = 0
-                conn.execute(
+                db_execute(
+                    conn,
                     '''
                     UPDATE planilla_masiva_detalles
                     SET monto=?
@@ -4914,7 +5240,8 @@ def editar_planilla_ahorro(planilla_id):
                     flash('La cuota programada no puede ser negativa.', 'danger')
                     return redirect(url_for('editar_planilla_ahorro', planilla_id=planilla_id))
 
-                conn.execute(
+                db_execute(
+                    conn,
                     '''
                     UPDATE planilla_masiva_detalles
                     SET monto=?
@@ -4923,16 +5250,17 @@ def editar_planilla_ahorro(planilla_id):
                     (monto_valor, detalle_id, planilla_id)
                 )
 
-        total_monto = conn.execute(
+        total_monto = db_fetchone(
+            conn,
             '''
             SELECT COALESCE(SUM(monto), 0)
             FROM planilla_masiva_detalles
             WHERE planilla_id=?
             ''',
             (planilla_id,)
-        ).fetchone()[0]
+        )[0]
 
-        conn.execute('''
+        db_execute(conn, '''
             UPDATE planillas_masivas
             SET nombre=?, fecha_pago=?, frecuencia=?, total_monto=?
             WHERE id=?
@@ -4968,10 +5296,10 @@ def editar_planilla_ahorro(planilla_id):
 @login_required()
 def eliminar_planilla_ahorro(planilla_id):
     conn = get_db_connection()
-    planilla = conn.execute('''
+    planilla = db_fetchone(conn, '''
         SELECT * FROM planillas_masivas
         WHERE id=? AND tipo='ahorro_cuotas'
-    ''', (planilla_id,)).fetchone()
+    ''', (planilla_id,))
 
     if not planilla:
         conn.close()
@@ -4983,8 +5311,8 @@ def eliminar_planilla_ahorro(planilla_id):
         flash('No se puede eliminar una planilla ya aplicada.', 'warning')
         return redirect(url_for('planillas_ahorro_pendientes'))
 
-    conn.execute('DELETE FROM planilla_masiva_detalles WHERE planilla_id=?', (planilla_id,))
-    conn.execute('DELETE FROM planillas_masivas WHERE id=?', (planilla_id,))
+    db_execute(conn, 'DELETE FROM planilla_masiva_detalles WHERE planilla_id=?', (planilla_id,))
+    db_execute(conn, 'DELETE FROM planillas_masivas WHERE id=?', (planilla_id,))
     conn.commit()
     conn.close()
 
@@ -5036,13 +5364,13 @@ def generar_planilla_cuotas_ahorro():
             return render_template('generar_planilla_cuotas_ahorro.html', form_data=form_data)
 
         conn = get_db_connection()
-        c = conn.cursor()
 
         filtro_tipo = "AND COALESCE(c.producto_ahorro, 'ahorro_corriente') = ?"
         params = [frecuencia, tipo_cuenta]
 
         # Obtener socios con cuota de ahorro > 1, frecuencia y tipo de cuenta configurados
-        c.execute(
+        cuentas = db_fetchall(
+            conn,
             f'''
             SELECT c.id, c.numero, c.saldo, s.nombre, s.apellido, s.codigo,
                    s.cuota_ahorro, s.frecuencia
@@ -5058,8 +5386,6 @@ def generar_planilla_cuotas_ahorro():
             ''',
             params
         )
-
-        cuentas = c.fetchall()
 
         # Calcular total de cuotas
         total_cuotas = sum(cuenta['cuota_ahorro'] for cuenta in cuentas)
@@ -5077,29 +5403,36 @@ def generar_planilla_cuotas_ahorro():
 
         nombre_planilla_guardado = f"{nombre_planilla} [{tipo_label}]"
 
-        c.execute('''
+        planilla_id = db_insert_and_get_id(
+            conn,
+            '''
             INSERT INTO planillas_masivas
             (tipo, nombre, fecha_pago, frecuencia, estado, total_monto, total_registros, fecha_creacion, usuario_creacion)
             VALUES (?, ?, ?, ?, 'pendiente', ?, ?, ?, ?)
-        ''', (
-            'ahorro_cuotas', nombre_planilla_guardado, fecha_pago, frecuencia,
-            total_cuotas, len(cuentas), datetime.now().isoformat(), session.get('username')
-        ))
-        planilla_id = c.lastrowid
+            ''',
+            (
+                'ahorro_cuotas', nombre_planilla_guardado, fecha_pago, frecuencia,
+                total_cuotas, len(cuentas), datetime.now().isoformat(), session.get('username')
+            )
+        )
 
         for cuenta in cuentas:
-            c.execute('''
+            db_execute(
+                conn,
+                '''
                 INSERT INTO planilla_masiva_detalles
                 (planilla_id, referencia_tipo, referencia_id, numero_referencia, socio_codigo, socio_nombre, monto, estado)
                 VALUES (?, 'cuenta_ahorro', ?, ?, ?, ?, ?, 'pendiente')
-            ''', (
-                planilla_id,
-                cuenta['id'],
-                cuenta['numero'],
-                cuenta['codigo'],
-                f"{cuenta['nombre']} {cuenta['apellido']}",
-                cuenta['cuota_ahorro']
-            ))
+                ''',
+                (
+                    planilla_id,
+                    cuenta['id'],
+                    cuenta['numero'],
+                    cuenta['codigo'],
+                    f"{cuenta['nombre']} {cuenta['apellido']}",
+                    cuenta['cuota_ahorro']
+                )
+            )
 
         conn.commit()
         conn.close()
@@ -5155,7 +5488,7 @@ def planillas_prestamos_pendientes():
         END, fecha_creacion DESC, id DESC
     '''
 
-    planillas = conn.execute(query, params).fetchall()
+    planillas = db_fetchall(conn, query, params)
     conn.close()
     return render_template(
         'planillas_prestamos_pendientes.html',
@@ -5176,17 +5509,17 @@ def planillas_prestamos_pendientes():
 @login_required()
 def detalle_planilla_prestamos(planilla_id):
     conn = get_db_connection()
-    planilla = conn.execute('''
+    planilla = db_fetchone(conn, '''
         SELECT * FROM planillas_masivas
         WHERE id=? AND tipo='prestamo_cuotas'
-    ''', (planilla_id,)).fetchone()
+    ''', (planilla_id,))
 
     if not planilla:
         conn.close()
         flash('Planilla de prestamos no encontrada.', 'danger')
         return redirect(url_for('planillas_prestamos_pendientes'))
 
-    detalles = conn.execute('''
+    detalles = db_fetchall(conn, '''
         SELECT d.*, p.monto_aprobado, p.saldo_pendiente, p.cuota_mensual,
                COALESCE(pp.capital_pagado, 0) AS capital_pagado,
                COALESCE(pp.interes_pagado, 0) AS interes_pagado
@@ -5201,7 +5534,7 @@ def detalle_planilla_prestamos(planilla_id):
         ) pp ON pp.prestamo_id = p.id
         WHERE d.planilla_id=?
         ORDER BY socio_nombre, numero_referencia
-    ''', (planilla_id,)).fetchall()
+    ''', (planilla_id,))
     conn.close()
 
     return render_template(
@@ -5243,10 +5576,11 @@ def generar_planilla_prestamos():
             return render_template('generar_planilla_prestamos.html', form_data=form_data)
 
         conn = get_db_connection()
-        c = conn.cursor()
 
         # Obtener prestamos activos filtrados por frecuencia del socio.
-        c.execute('''
+        prestamos = db_fetchall(
+            conn,
+            '''
             SELECT p.id, p.numero, p.monto_aprobado, p.saldo_pendiente, p.cuota_mensual,
                    p.tasa_interes, p.plazo_meses, s.id AS socio_id, s.nombre, s.apellido,
                    s.codigo, s.frecuencia, COUNT(pp.id) AS cuotas_pagadas
@@ -5259,9 +5593,9 @@ def generar_planilla_prestamos():
               AND s.frecuencia = ?
             GROUP BY p.id
             ORDER BY s.apellido, s.nombre
-        ''', (frecuencia,))
-
-        prestamos = c.fetchall()
+            ''',
+            (frecuencia,)
+        )
 
         if not prestamos:
             conn.close()
@@ -5270,30 +5604,37 @@ def generar_planilla_prestamos():
 
         total_planilla = sum(min(float(prestamo['cuota_mensual'] or 0), float(prestamo['saldo_pendiente'] or 0)) for prestamo in prestamos)
 
-        c.execute('''
+        planilla_id = db_insert_and_get_id(
+            conn,
+            '''
             INSERT INTO planillas_masivas
             (tipo, nombre, fecha_pago, frecuencia, estado, total_monto, total_registros, fecha_creacion, usuario_creacion)
             VALUES (?, ?, ?, ?, 'pendiente', ?, ?, ?, ?)
-        ''', (
-            'prestamo_cuotas', nombre_planilla, fecha_pago, frecuencia,
-            total_planilla, len(prestamos), datetime.now().isoformat(), session.get('username')
-        ))
-        planilla_id = c.lastrowid
+            ''',
+            (
+                'prestamo_cuotas', nombre_planilla, fecha_pago, frecuencia,
+                total_planilla, len(prestamos), datetime.now().isoformat(), session.get('username')
+            )
+        )
 
         for prestamo in prestamos:
             monto_programado = min(float(prestamo['cuota_mensual'] or 0), float(prestamo['saldo_pendiente'] or 0))
-            c.execute('''
+            db_execute(
+                conn,
+                '''
                 INSERT INTO planilla_masiva_detalles
                 (planilla_id, referencia_tipo, referencia_id, numero_referencia, socio_codigo, socio_nombre, monto, estado)
                 VALUES (?, 'prestamo', ?, ?, ?, ?, ?, 'pendiente')
-            ''', (
-                planilla_id,
-                prestamo['id'],
-                prestamo['numero'],
-                prestamo['codigo'],
-                f"{prestamo['nombre']} {prestamo['apellido']}",
-                monto_programado
-            ))
+                ''',
+                (
+                    planilla_id,
+                    prestamo['id'],
+                    prestamo['numero'],
+                    prestamo['codigo'],
+                    f"{prestamo['nombre']} {prestamo['apellido']}",
+                    monto_programado
+                )
+            )
 
         conn.commit()
 
@@ -5325,15 +5666,14 @@ def procesar_abonos_masivos():
     if not validate_idempotency(conn, 'procesar_abonos_masivos'):
         conn.close()
         return jsonify({'error': 'Solicitud duplicada detectada (idempotencia).'}), 409
-    c = conn.cursor()
 
     planilla = None
     detalles_planilla = []
     if planilla_id:
-        planilla = c.execute('''
+        planilla = db_fetchone(conn, '''
             SELECT * FROM planillas_masivas
             WHERE id=? AND tipo='ahorro_cuotas'
-        ''', (planilla_id,)).fetchone()
+        ''', (planilla_id,))
 
         if not planilla:
             conn.close()
@@ -5343,10 +5683,10 @@ def procesar_abonos_masivos():
             conn.close()
             return jsonify({'error': 'La planilla ya fue aplicada anteriormente.'}), 400
 
-        detalles_planilla = c.execute('''
+        detalles_planilla = db_fetchall(conn, '''
             SELECT * FROM planilla_masiva_detalles
             WHERE planilla_id=? AND estado='pendiente'
-        ''', (planilla_id,)).fetchall()
+        ''', (planilla_id,))
         abonos = [
             {
                 'cuenta_id': detalle['referencia_id'],
@@ -5373,17 +5713,16 @@ def procesar_abonos_masivos():
                 continue
             
             # Obtener información de la cuenta y socio
-            c.execute('SELECT c.saldo, c.socio_id FROM cuentas c WHERE c.id = ?', (cuenta_id,))
-            cuenta = c.fetchone()
+            cuenta = db_fetchone(conn, 'SELECT c.saldo, c.socio_id FROM cuentas c WHERE c.id = ?', (cuenta_id,))
             
             if not cuenta:
                 errores.append(f"Cuenta {abono.get('numero', cuenta_id)} no encontrada")
                 continue
             
-            nuevo_saldo = cuenta[0] + monto
+            nuevo_saldo = float(cuenta['saldo'] or 0) + monto
             
             # Actualizar saldo
-            c.execute('UPDATE cuentas SET saldo = ? WHERE id = ?', (nuevo_saldo, cuenta_id))
+            db_execute(conn, 'UPDATE cuentas SET saldo = ? WHERE id = ?', (nuevo_saldo, cuenta_id))
             
             # Registrar transacción
             descripcion_planilla = f"Planilla: {nombre_planilla}"
@@ -5392,13 +5731,17 @@ def procesar_abonos_masivos():
             if frecuencia:
                 descripcion_planilla += f" | Frecuencia: {frecuencia}"
 
-            c.execute('''
+            db_execute(
+                conn,
+                '''
                 INSERT INTO transacciones (cuenta_id, tipo, monto, saldo_despues, descripcion, fecha)
                 VALUES (?, 'deposito', ?, ?, ?, ?)
-            ''', (cuenta_id, monto, nuevo_saldo, descripcion_planilla, fecha_pago))
+                ''',
+                (cuenta_id, monto, nuevo_saldo, descripcion_planilla, fecha_pago)
+            )
 
             if abono.get('detalle_id'):
-                c.execute("UPDATE planilla_masiva_detalles SET estado='aplicado' WHERE id=?", (abono['detalle_id'],))
+                db_execute(conn, "UPDATE planilla_masiva_detalles SET estado='aplicado' WHERE id=?", (abono['detalle_id'],))
             
             procesados += 1
             
@@ -5407,7 +5750,7 @@ def procesar_abonos_masivos():
     
     if planilla_id and planilla:
         estado_final = 'aplicada' if procesados == len(abonos) and not errores else ('parcial' if procesados > 0 else 'pendiente')
-        c.execute('''
+        db_execute(conn, '''
             UPDATE planillas_masivas
             SET estado=?, boleta_deposito=?, fecha_aplicacion=?, usuario_aplicacion=?
             WHERE id=?
@@ -5454,14 +5797,13 @@ def procesar_pagos_masivos():
     if not validate_idempotency(conn, 'procesar_pagos_masivos'):
         conn.close()
         return jsonify({'error': 'Solicitud duplicada detectada (idempotencia).'}), 409
-    c = conn.cursor()
 
     planilla = None
     if planilla_id:
-        planilla = c.execute('''
+        planilla = db_fetchone(conn, '''
             SELECT * FROM planillas_masivas
             WHERE id=? AND tipo='prestamo_cuotas'
-        ''', (planilla_id,)).fetchone()
+        ''', (planilla_id,))
 
         if not planilla:
             conn.close()
@@ -5487,22 +5829,21 @@ def procesar_pagos_masivos():
                 continue
             
             # Obtener información del préstamo
-            c.execute('''
+            prestamo = db_fetchone(conn, '''
                 SELECT p.saldo_pendiente, p.cuota_mensual, p.socio_id, s.frecuencia
                 FROM prestamos p
                 JOIN socios s ON p.socio_id = s.id
                 WHERE p.id = ? AND p.estado = "aprobado"
             ''', (prestamo_id,))
-            prestamo = c.fetchone()
             
             if not prestamo:
                 errores.append(f"Préstamo {pago.get('numero', prestamo_id)} no encontrado o no aprobado")
                 continue
             
-            saldo_pendiente = prestamo[0]
-            cuota_mensual = prestamo[1]
+            saldo_pendiente = float(prestamo['saldo_pendiente'] or 0)
+            cuota_mensual = float(prestamo['cuota_mensual'] or 0)
 
-            if frecuencia and prestamo[3] != frecuencia:
+            if frecuencia and prestamo['frecuencia'] != frecuencia:
                 errores.append(f"Prestamo {pago.get('numero', prestamo_id)} no coincide con la frecuencia seleccionada")
                 continue
             
@@ -5526,7 +5867,7 @@ def procesar_pagos_masivos():
             nuevo_saldo = saldo_pendiente - monto
             
             # Actualizar saldo del préstamo
-            c.execute('UPDATE prestamos SET saldo_pendiente = ? WHERE id = ?', (nuevo_saldo, prestamo_id))
+            db_execute(conn, 'UPDATE prestamos SET saldo_pendiente = ? WHERE id = ?', (nuevo_saldo, prestamo_id))
             
             # Registrar pago
             descripcion_planilla = f"Planilla: {nombre_planilla}"
@@ -5535,14 +5876,18 @@ def procesar_pagos_masivos():
             if frecuencia:
                 descripcion_planilla += f" | Frecuencia: {frecuencia}"
 
-            c.execute('''
-                                INSERT INTO pagos_prestamo (prestamo_id, monto, capital, interes, saldo_restante, descripcion, boleta_deposito, fecha, numero_comprobante)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (prestamo_id, monto, capital, interes, nuevo_saldo,
-                                    descripcion_planilla, boleta_deposito, fecha_pago, generar_numero_comprobante(conn)))
+            db_execute(
+                conn,
+                '''
+                INSERT INTO pagos_prestamo (prestamo_id, monto, capital, interes, saldo_restante, descripcion, boleta_deposito, fecha, numero_comprobante)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''',
+                (prestamo_id, monto, capital, interes, nuevo_saldo,
+                 descripcion_planilla, boleta_deposito, fecha_pago, generar_numero_comprobante(conn))
+            )
 
             if pago.get('detalle_id'):
-                c.execute('UPDATE planilla_masiva_detalles SET estado=?, monto=? WHERE id=?', ('aplicado', monto, pago['detalle_id']))
+                db_execute(conn, 'UPDATE planilla_masiva_detalles SET estado=?, monto=? WHERE id=?', ('aplicado', monto, pago['detalle_id']))
             
             procesados += 1
             total_capital += capital
@@ -5558,12 +5903,13 @@ def procesar_pagos_masivos():
             errores.append(f"Error procesando préstamo {pago.get('numero', prestamo_id)}: {str(e)}")
     
     if planilla_id and planilla:
-        pendientes = c.execute(
+        pendientes = db_fetchone(
+            conn,
             "SELECT COUNT(*) FROM planilla_masiva_detalles WHERE planilla_id=? AND estado='pendiente'",
             (planilla_id,)
-        ).fetchone()[0]
+        )[0]
         estado_final = 'aplicada' if pendientes == 0 and procesados > 0 else ('parcial' if procesados > 0 else 'pendiente')
-        c.execute('''
+        db_execute(conn, '''
             UPDATE planillas_masivas
             SET estado=?, boleta_deposito=?, fecha_aplicacion=?, usuario_aplicacion=?
             WHERE id=?
@@ -5644,25 +5990,23 @@ def historial_planillas():
 def _obtener_historial_planillas(tipo='todos', nombre='', boleta='', frecuencia='', fecha_desde='', fecha_hasta=''):
 
     conn = get_db_connection()
-    c = conn.cursor()
-
-    ahorro_rows = c.execute('''
+    ahorro_rows = db_fetchall(conn, '''
         SELECT t.fecha, t.monto, t.descripcion, s.frecuencia
         FROM transacciones t
         JOIN cuentas c ON t.cuenta_id = c.id
         JOIN socios s ON c.socio_id = s.id
         WHERE t.tipo = 'deposito'
           AND t.descripcion LIKE 'Planilla:%'
-    ''').fetchall()
+    ''')
 
-    prestamo_rows = c.execute('''
+    prestamo_rows = db_fetchall(conn, '''
         SELECT pp.fecha, pp.monto, pp.descripcion, pp.boleta_deposito, s.frecuencia
         FROM pagos_prestamo pp
         JOIN prestamos p ON pp.prestamo_id = p.id
         JOIN socios s ON p.socio_id = s.id
         WHERE pp.descripcion LIKE 'Planilla:%'
            OR COALESCE(pp.boleta_deposito, '') <> ''
-    ''').fetchall()
+    ''')
     conn.close()
 
     movimientos = []

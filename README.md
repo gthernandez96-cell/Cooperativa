@@ -8,24 +8,53 @@ Sistema web completo construido con Python + Flask + SQLite.
 
 ## Instalación y ejecución
 
-### 1. Instalar Flask (solo la primera vez)
-```bash
-pip3 install flask
-```
-
-### 2. Entrar a la carpeta del proyecto
+### 1. Entrar a la carpeta del proyecto
 ```bash
 cd cooperativa
 ```
 
-### 3. Ejecutar la aplicación
+### 2. Crear y activar entorno virtual (solo la primera vez)
 ```bash
-python3 app.py
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
-### 4. Abrir en el navegador
+### 3. Instalar dependencias
+```bash
+pip install -r requirements.txt
 ```
-http://localhost:5000
+
+### 4. Ejecutar la aplicación
+```bash
+python app.py
+```
+
+### 5. Abrir en el navegador
+```
+http://localhost:8001
+```
+
+## Sincronizar TODO a PythonAnywhere (SQLite)
+
+Este proyecto incluye un script para sincronizar codigo (opcional), base local SQLite y archivos de `static/uploads`.
+
+### Opcion A: deploy por SSH/SCP (si tu cuenta lo permite)
+```bash
+scripts/deploy_pythonanywhere.sh --user gthernandez96
+```
+
+### Opcion B: sin SSH (cuentas con restriccion)
+1. Generar paquete local:
+```bash
+scripts/deploy_pythonanywhere.sh --user gthernandez96 --bundle-only
+```
+2. Subir estos 3 archivos a `/home/gthernandez96` desde la pestana Files:
+	- `dist/pythonanywhere_sync/cooperativa.db`
+	- `dist/pythonanywhere_sync/uploads_local.tar.gz`
+	- `dist/pythonanywhere_sync/remote_apply.sh`
+3. En consola Bash de PythonAnywhere ejecutar:
+```bash
+bash /home/gthernandez96/remote_apply.sh
 ```
 
 ## Funcionalidades

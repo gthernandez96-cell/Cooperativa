@@ -1,100 +1,277 @@
 {% extends "base.html" %}
 {% block title %}Dashboard — Cooperativa Quetzal{% endblock %}
+
+{% block extra_head %}
+<style>
+.dash {
+  display: grid;
+  gap: 16px;
+}
+
+.dash-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dash-title {
+  font-family: 'Fraunces', serif;
+  font-size: clamp(24px, 3vw, 30px);
+  line-height: 1.1;
+  color: #0b2542;
+}
+
+.dash-subtitle {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.dash-date {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  font-size: 12px;
+  color: #334155;
+  font-weight: 600;
+}
+
+.dash-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.dash-kpis-secondary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.dash-section-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .65px;
+  color: #64748b;
+  font-weight: 700;
+  margin-bottom: -2px;
+}
+
+.dash-kpi {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  padding: 11px 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.dash-kpi-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .65px;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.dash-kpi-value {
+  font-family: 'Fraunces', serif;
+  font-size: clamp(21px, 2.5vw, 27px);
+  color: #111827;
+  line-height: 1;
+}
+
+.dash-kpi-note {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.dash-kpi-breakdown {
+  display: grid;
+  gap: 3px;
+}
+
+.dash-kpi-breakdown-item {
+  font-size: 12px;
+  color: #475569;
+}
+
+.dash-kpi-priority {
+  border-color: #f3e3c3;
+  background: #fffdf7;
+}
+
+.dash-kpi-priority .dash-kpi-value {
+  color: #92400e;
+}
+
+.dash-main {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 12px;
+}
+
+.dash-main-single {
+  grid-template-columns: 1fr;
+}
+
+.dash-panel {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.dash-panel-head {
+  padding: 10px 12px;
+  border-bottom: 1px solid #eef2f7;
+  background: #fafbfc;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: .55px;
+}
+
+.dash-actions {
+  padding: 10px 11px;
+  display: grid;
+  gap: 8px;
+}
+
+.dash-actions .btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.dash-table th {
+  font-size: 10.5px;
+  letter-spacing: .7px;
+}
+
+.dash-table td {
+  font-size: 13px;
+}
+
+.dash-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+}
+
+.dash-chip-pos {
+  background: #ecfdf5;
+  color: #166534;
+}
+
+.dash-chip-neg {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.dash-empty {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+  padding: 24px 8px;
+}
+
+@media (max-width: 960px) {
+  .dash-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dash-kpis-secondary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dash-main {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .dash-kpis {
+    grid-template-columns: 1fr;
+  }
+  .dash-kpis-secondary {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-  <div>
-    <div class="page-title">Dashboard</div>
-    <div class="page-subtitle">Resumen general de la cooperativa</div>
-  </div>
-</div>
-
-<div class="stats-grid">
-  <div class="stat-card accent">
-    <div class="stat-label">Total Socios</div>
-    <div class="stat-value">{{ stats.total_socios }}</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-label">Cuentas Activas</div>
-    <div class="stat-value">{{ stats.total_cuentas }}</div>
-  </div>
-  <div class="stat-card gold">
-    <div class="stat-label">Total en Ahorro</div>
-    <div class="stat-value">Q{{ "{:,.0f}".format(stats.total_ahorros) }}</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-label">Préstamos Activos</div>
-    <div class="stat-value">{{ stats.prestamos_activos }}</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-label">Cartera de Crédito</div>
-    <div class="stat-value" style="font-size:20px;">Q{{ "{:,.0f}".format(stats.cartera_prestamos) }}</div>
-  </div>
-  <div class="stat-card" style="border-left: 3px solid #c9a84c;">
-    <div class="stat-label">Solicitudes Pendientes</div>
-    <div class="stat-value" style="color:#854d0e;">{{ stats.prestamos_pendientes }}</div>
-  </div>
-  <div class="stat-card" style="border-left: 3px solid #17a2b8;">
-    <div class="stat-label">Pagos Préstamos Hoy</div>
-    <div class="stat-value">{{ stats.pagos_prestamos_hoy }}</div>
-    <div class="stat-subtext">Q{{ "{:,.0f}".format(stats.monto_pagos_prestamos_hoy) }}</div>
-  </div>
-  <div class="stat-card" style="border-left: 3px solid #28a745;">
-    <div class="stat-label">Socios Catorcenal</div>
-    <div class="stat-value">{{ stats.socios_catorcenal }}</div>
-  </div>
-  <div class="stat-card" style="border-left: 3px solid #007bff;">
-    <div class="stat-label">Socios Quincenal</div>
-    <div class="stat-value">{{ stats.socios_quincenal }}</div>
-  </div>
-</div>
-
-<div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-bottom:24px;">
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Acciones rápidas</span>
+<div class="dash">
+  <div class="dash-header">
+    <div>
+      <div class="dash-title">Panel Operativo</div>
+      <div class="dash-subtitle">Resumen diario de ahorro, crédito y actividad reciente</div>
     </div>
-    <div class="card-body" style="display:flex; flex-direction:column; gap:10px;">
-      <a href="{{ url_for('nuevo_socio') }}" class="btn btn-primary">
-        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-        Nuevo Socio
-      </a>
-      <a href="{{ url_for('nueva_cuenta') }}" class="btn btn-outline">
-        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
-        Abrir Cuenta
-      </a>
-      <a href="{{ url_for('nuevo_prestamo') }}" class="btn btn-gold">
-        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-        Solicitar Préstamo
-      </a>
+    <div class="dash-date">Fecha de corte: {{ now.strftime('%d/%m/%Y') if now else '' }}</div>
+  </div>
+
+  <div class="dash-section-label">Indicadores Prioritarios</div>
+  <div class="dash-kpis">
+    <div class="dash-kpi dash-kpi-priority">
+      <div class="dash-kpi-label">Solicitudes Pendientes</div>
+      <div class="dash-kpi-value">{{ stats.prestamos_pendientes }}</div>
+    </div>
+
+    <div class="dash-kpi">
+      <div class="dash-kpi-label">Cartera de Ahorro</div>
+      <div class="dash-kpi-value">Q{{ "{:,.0f}".format(stats.total_ahorros) }}</div>
+      {% if stats.ahorro_por_categoria %}
+      <div class="dash-kpi-breakdown">
+        {% for item in stats.ahorro_por_categoria %}
+        <div class="dash-kpi-breakdown-item">{{ item.nombre }}: Q{{ "{:,.0f}".format(item.total) }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="dash-kpi">
+      <div class="dash-kpi-label">Cartera de Préstamos</div>
+      <div class="dash-kpi-value">Q{{ "{:,.0f}".format(stats.cartera_prestamos) }}</div>
+      {% if stats.prestamos_por_categoria %}
+      <div class="dash-kpi-breakdown">
+        {% for item in stats.prestamos_por_categoria %}
+        <div class="dash-kpi-breakdown-item">{{ item.nombre }}: Q{{ "{:,.0f}".format(item.total) }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <div class="dash-section-label">Indicadores Generales</div>
+  <div class="dash-kpis-secondary">
+
+    <div class="dash-kpi">
+      <div class="dash-kpi-label">Préstamos Activos</div>
+      <div class="dash-kpi-value">{{ stats.prestamos_activos }}</div>
+    </div>
+
+    <div class="dash-kpi">
+      <div class="dash-kpi-label">Total Socios</div>
+      <div class="dash-kpi-value">{{ stats.total_socios }}</div>
     </div>
   </div>
 
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Últimas transacciones</span>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Socio</th><th>Tipo</th><th>Monto</th><th>Fecha</th></tr></thead>
-        <tbody>
-          {% for t in transacciones %}
-          <tr>
-            <td style="font-size:13px;">{{ t.socio }}</td>
-            <td>
-              <span class="badge {% if t.tipo|es_transaccion_positiva %}badge-green{% else %}badge-red{% endif %}">
-                {{ t.tipo|tipo_transaccion }}
-              </span>
-            </td>
-            <td class="amount {% if t.tipo|es_transaccion_positiva %}amount-positive{% else %}amount-negative{% endif %}">
-              {% if t.tipo|es_transaccion_positiva %}+{% else %}-{% endif %}Q{{ "{:,.2f}".format(t.monto) }}
-            </td>
-            <td style="font-size:13px; color:#6b7280;">{{ t.fecha[:10] }}</td>
-          </tr>
-          {% else %}
-          <tr><td colspan="4" style="text-align:center; color:#9ca3af; padding:24px;">Sin transacciones</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+  <div class="dash-main dash-main-single">
+    <div class="dash-panel">
+      <div class="dash-panel-head">Accesos Directos</div>
+      <div class="dash-actions">
+        <a href="{{ url_for('transacciones_masivas') }}" class="btn btn-outline">Operaciones masivas</a>
+        <a href="{{ url_for('historial_planillas') }}" class="btn btn-outline">Historial de planillas</a>
+        <a href="{{ url_for('nuevo_socio') }}" class="btn btn-primary">Registrar socio</a>
+        <a href="{{ url_for('nueva_cuenta') }}" class="btn btn-outline">Abrir cuenta de ahorro</a>
+        <a href="{{ url_for('nuevo_prestamo') }}" class="btn btn-gold">Registrar solicitud de préstamo</a>
+      </div>
     </div>
   </div>
 </div>
