@@ -7,7 +7,7 @@
             <div class="page-title">Nueva Planilla de Prestamos</div>
             <div class="page-subtitle">Genere una planilla masiva con prestamos activos segun frecuencia.</div>
         </div>
-        <a href="{{ url_for('planillas_prestamos_pendientes') }}" class="btn btn-outline">Regresar</a>
+        <a href="{{ url_for('prestamos.planillas_prestamos_pendientes') }}" class="btn btn-outline">Regresar</a>
     </div>
 
     <div class="card shadow">
@@ -15,7 +15,7 @@
             <h4 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i>Formulario de Planilla</h4>
         </div>
         <div class="card-body">
-            <form action="{{ url_for('generar_planilla_prestamos') }}" method="POST">
+            <form action="{{ url_for('prestamos.generar_planilla_prestamos') }}" method="POST">
                 <div class="row">
                     <div class="col-md-5 mb-3">
                         <label for="nombre_planilla" class="form-label">Nombre de la Planilla</label>
@@ -36,10 +36,10 @@
                 </div>
                 <div class="alert alert-info py-2 mt-2">
                     <i class="fas fa-info-circle me-2"></i>
-                    Se incluiran unicamente prestamos aprobados y con saldo pendiente de socios activos en la frecuencia seleccionada.
+                    Se incluiran unicamente prestamos aprobados y con saldo pendiente de asociados activos en la frecuencia seleccionada.
                 </div>
                 <div class="text-end mt-3 d-flex justify-content-end gap-2 flex-wrap">
-                    <a href="{{ url_for('planillas_prestamos_pendientes') }}" class="btn btn-outline-secondary">Ver Planillas Guardadas</a>
+                    <a href="{{ url_for('prestamos.planillas_prestamos_pendientes') }}" class="btn btn-outline-secondary">Ver Planillas Guardadas</a>
                     <button type="submit" class="btn btn-warning btn-lg">Generar Planilla</button>
                 </div>
             </form>

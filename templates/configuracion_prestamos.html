@@ -348,7 +348,7 @@
                 <h2 class="cfg-card-title">Configuracion general</h2>
             </div>
             <div class="cfg-card-body">
-                <form id="formConfigGeneralPrestamos" class="cfg-form-grid" method="POST" action="{{ url_for('configuracion_prestamos') }}">
+                <form id="formConfigGeneralPrestamos" class="cfg-form-grid" method="POST" action="{{ url_for('prestamos.configuracion_prestamos') }}">
                     <div class="cfg-field">
                         <label for="tasa_interes_default_prestamos" class="cfg-label">Tasa de interes predeterminada (%)</label>
                         <input type="number" class="cfg-input" id="tasa_interes_default_prestamos" name="prestamo_tasa_interes_default" value="{{ prestamo_cfg.prestamo_tasa_interes_default }}" step="0.1">
@@ -374,7 +374,7 @@
                     </div>
                     <p class="cfg-help">
                         Para ajustar tasas vigentes de prestamo, utilice la configuracion global de tasas.
-                        <a href="{{ url_for('configuraciones') }}">Ir a configuracion global</a>
+                        <a href="{{ url_for('configuraciones.configuraciones') }}">Ir a configuracion global</a>
                     </p>
                     <button type="submit" class="btn btn-primary">Guardar configuracion general</button>
                 </form>
@@ -386,7 +386,7 @@
                 <h2 class="cfg-card-title">Intereses y cargos</h2>
             </div>
             <div class="cfg-card-body">
-                <form id="formConfigIntereses" class="cfg-form-grid" method="POST" action="{{ url_for('configuracion_prestamos') }}">
+                <form id="formConfigIntereses" class="cfg-form-grid" method="POST" action="{{ url_for('prestamos.configuracion_prestamos') }}">
                     <div class="cfg-field">
                         <label for="tasa_mora_diaria" class="cfg-label">Tasa de interes moratorio diaria (%)</label>
                         <input type="number" class="cfg-input" id="tasa_mora_diaria" name="prestamo_tasa_mora_diaria" value="{{ prestamo_cfg.prestamo_tasa_mora_diaria }}" step="0.01">
@@ -418,7 +418,7 @@
             <h2 class="cfg-card-title">Evaluacion de riesgo y credito</h2>
         </div>
             <div class="cfg-card-body">
-                <form method="POST" action="{{ url_for('configuracion_prestamos') }}" class="cfg-form-grid">
+                <form method="POST" action="{{ url_for('prestamos.configuracion_prestamos') }}" class="cfg-form-grid">
                 <div class="cfg-grid-2">
                 <div class="cfg-mini-card">
                     <h3 class="cfg-mini-title">Ratios de evaluacion</h3>
@@ -469,7 +469,7 @@
             <h2 class="cfg-card-title">Configuracion de cobranza</h2>
         </div>
             <div class="cfg-card-body">
-                <form method="POST" action="{{ url_for('configuracion_prestamos') }}" class="cfg-form-grid">
+                <form method="POST" action="{{ url_for('prestamos.configuracion_prestamos') }}" class="cfg-form-grid">
                 <div class="cfg-grid-3">
                 <div class="cfg-mini-card">
                     <h3 class="cfg-mini-title">Limites de morosidad</h3>
@@ -525,7 +525,7 @@
     <section class="cfg-actions">
         <p class="cfg-note">Esta pantalla consolida las reglas internas de originacion y recuperacion de cartera.</p>
         <div class="cfg-buttons">
-            <a href="{{ url_for('menu_prestamos') }}" class="btn btn-outline">Regresar al menu</a>
+            <a href="{{ url_for('prestamos.menu_prestamos') }}" class="btn btn-outline">Regresar al menu</a>
         </div>
     </section>
 </div>

@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS socios (
     telefono            TEXT,
     email               TEXT,
     direccion           TEXT,
+    departamento        TEXT,
+    municipio           TEXT,
     rol                 TEXT    DEFAULT 'Asociado',
     fecha_ingreso       TEXT    NOT NULL,
     estado              TEXT    DEFAULT 'activo',
@@ -37,6 +39,8 @@ CREATE TABLE IF NOT EXISTS socios (
     banco_nombre        TEXT,
     banco_tipo_cuenta   TEXT,
     banco_numero_cuenta TEXT
+    salario REAL,
+    fecha_ingreso_laborar TEXT
 );
 
 -- ── Beneficiarios de socios ───────────────────────────────────────────────────
@@ -46,7 +50,20 @@ CREATE TABLE IF NOT EXISTS socio_beneficiarios (
     nombre      TEXT    NOT NULL,
     parentesco  TEXT    NOT NULL,
     porcentaje  REAL    NOT NULL,
+    dpi         TEXT,
     FOREIGN KEY (socio_id) REFERENCES socios(id)
+);
+
+-- ── Historial de salarios para cálculo de bono 14 ────────────────────────────
+CREATE TABLE IF NOT EXISTS historial_salarios (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    socio_id        INTEGER NOT NULL,
+    salario         REAL    NOT NULL,
+    mes             INTEGER NOT NULL, -- 1-12
+    anio            INTEGER NOT NULL,
+    fecha_registro  TEXT    NOT NULL,
+    FOREIGN KEY (socio_id) REFERENCES socios(id),
+    UNIQUE(socio_id, mes, anio)
 );
 
 -- ── Roles y usuarios ──────────────────────────────────────────────────────────

@@ -3,12 +3,14 @@ tests/test_ahorro.py — Pruebas del módulo de ahorro (cuentas y transacciones)
 """
 import pytest
 import app as app_module
+import utils.db as db_module
 
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
     db_path = tmp_path / "cooperativa_test.db"
     monkeypatch.setattr(app_module, 'DB', str(db_path))
+    monkeypatch.setattr(db_module, 'DB', str(db_path))
     app_module.app.config['TESTING'] = True
     app_module.app.config['WTF_CSRF_ENABLED'] = False
     app_module.init_db()

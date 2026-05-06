@@ -128,3 +128,16 @@ DEFAULT_PRESTAMO_CATEGORIAS = [
 
 # ── Extensiones de imagen permitidas ──────────────────────────────────────────
 ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
+
+ROLE_PERMISSION_DEFAULTS = {
+    'Administrador': {'*'},
+    'Operador': {
+        'socios.ver', 'socios.editar', 'socios.estado',
+        'ahorro.ver', 'ahorro.transaccion', 'ahorro.masivo',
+        'prestamos.ver', 'prestamos.pagar',
+        'reportes.ver',
+    },
+    'Asociado': {
+        'socios.ver',
+    },
+}

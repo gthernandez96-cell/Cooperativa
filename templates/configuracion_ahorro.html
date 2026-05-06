@@ -336,7 +336,7 @@
                 <h2 class="cfg-card-title">Configuracion general</h2>
             </div>
             <div class="cfg-card-body">
-                <form id="formConfigGeneral" class="cfg-form-grid" method="POST" action="{{ url_for('configuracion_ahorro') }}">
+                <form id="formConfigGeneral" class="cfg-form-grid" method="POST" action="{{ url_for('ahorro.configuracion_ahorro') }}">
                     <div class="cfg-field">
                         <label for="tasa_interes_default" class="cfg-label">Tasa de interes predeterminada (%)</label>
                         <input type="number" class="cfg-input" id="tasa_interes_default" name="ahorro_tasa_interes_default" value="{{ ahorro_cfg.ahorro_tasa_interes_default }}" step="0.1">
@@ -364,7 +364,7 @@
                     </div>
                     <p class="cfg-help">
                         Para ajustar tasas vigentes de ahorro, utilice la configuracion global de tasas.
-                        <a href="{{ url_for('configuraciones') }}">Ir a configuracion global</a>
+                        <a href="{{ url_for('configuraciones.configuraciones') }}">Ir a configuracion global</a>
                     </p>
                     <button type="submit" class="btn btn-primary">Guardar configuracion general</button>
                 </form>
@@ -379,7 +379,7 @@
                 <p class="cfg-help">
                     Esta accion calcula el interes mensual acumulado de todas las cuentas de ahorro y lo aplica al saldo.
                 </p>
-                <form action="{{ url_for('aplicar_intereses') }}" method="POST" onsubmit="return confirm('Esta seguro de aplicar los intereses del mes? Esta accion no se puede deshacer.')">
+                <form action="{{ url_for('ahorro.aplicar_intereses') }}" method="POST" onsubmit="return confirm('Esta seguro de aplicar los intereses del mes? Esta accion no se puede deshacer.')">
                     <button type="submit" class="btn btn-primary">Ejecutar capitalizacion mensual</button>
                 </form>
                 <p class="cfg-help" style="margin-top: 10px;">Se recomienda ejecutar este proceso el ultimo dia del mes.</p>
@@ -393,7 +393,7 @@
                 <h2 class="cfg-card-title">Configuracion de fechas</h2>
             </div>
             <div class="cfg-card-body">
-                <form id="formConfigFechas" class="cfg-form-grid" method="POST" action="{{ url_for('configuracion_ahorro') }}">
+                <form id="formConfigFechas" class="cfg-form-grid" method="POST" action="{{ url_for('ahorro.configuracion_ahorro') }}">
                     <div class="cfg-field">
                         <label for="dia_corte" class="cfg-label">Dia de corte mensual</label>
                         <select class="cfg-select" id="dia_corte" name="ahorro_dia_corte">
@@ -424,7 +424,7 @@
                 <h2 class="cfg-card-title">Limites y restricciones</h2>
             </div>
             <div class="cfg-card-body">
-                <form method="POST" action="{{ url_for('configuracion_ahorro') }}" class="cfg-form-grid">
+                <form method="POST" action="{{ url_for('ahorro.configuracion_ahorro') }}" class="cfg-form-grid">
                 <div class="cfg-grid-3">
                     <div class="cfg-mini-card">
                         <h3 class="cfg-mini-title">Por transaccion</h3>
@@ -481,7 +481,7 @@
     <section class="cfg-actions">
         <p class="cfg-note">Esta pantalla concentra la operacion interna del modulo de ahorro.</p>
         <div class="cfg-buttons">
-            <a href="{{ url_for('menu_ahorro') }}" class="btn btn-outline">Regresar al menu</a>
+            <a href="{{ url_for('ahorro.menu_ahorro') }}" class="btn btn-outline">Regresar al menu</a>
         </div>
     </section>
 </div>

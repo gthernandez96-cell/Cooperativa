@@ -100,7 +100,7 @@
       <div class="nr-header-sub">Retiro normal o amortización de préstamo</div>
     </div>
     <div class="nr-header-actions">
-      <a href="{{ url_for('gestiones') }}" class="btn btn-outline btn-sm">&#8592; Gestiones</a>
+      <a href="{{ url_for('prestamos.gestiones') }}" class="btn btn-outline btn-sm">&#8592; Gestiones</a>
     </div>
   </header>
 
@@ -117,7 +117,7 @@
         <span class="nr-card-head-title">Formulario de solicitud</span>
       </div>
       <div class="nr-card-body">
-        <form method="post" action="{{ url_for('nueva_solicitud_retiro') }}" id="form-retiro">
+        <form method="post" action="{{ url_for('ahorro.nueva_solicitud_retiro') }}" id="form-retiro">
           <div class="nr-grid">
 
             <div class="nr-field nr-field-full">
@@ -216,7 +216,7 @@
           </div>
           <div class="nr-actions">
             <button type="submit" class="btn btn-primary">Enviar solicitud</button>
-            <a href="{{ url_for('gestiones') }}" class="btn btn-outline">Cancelar</a>
+            <a href="{{ url_for('prestamos.gestiones') }}" class="btn btn-outline">Cancelar</a>
           </div>
         </form>
       </div>

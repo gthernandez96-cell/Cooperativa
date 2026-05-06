@@ -7,7 +7,7 @@
             <div class="page-title">Nueva Planilla de Ahorro</div>
             <div class="page-subtitle">Configure nombre, fecha, frecuencia y tipo de cuenta para generar la planilla.</div>
         </div>
-        <a href="{{ url_for('planillas_ahorro_pendientes') }}" class="btn btn-outline">Volver</a>
+        <a href="{{ url_for('ahorro.planillas_ahorro_pendientes') }}" class="btn btn-outline">Volver</a>
     </div>
 
     <div class="card shadow">
@@ -15,7 +15,7 @@
             <h4 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i>Formulario de Planilla</h4>
         </div>
         <div class="card-body">
-            <form action="{{ url_for('generar_planilla_cuotas_ahorro') }}" method="POST">
+            <form action="{{ url_for('ahorro.generar_planilla_cuotas_ahorro') }}" method="POST">
                 <div class="row">
                     <div class="col-md-4 mb-3">
                         <label for="nombre_planilla" class="form-label">Nombre de la Planilla</label>
@@ -43,7 +43,7 @@
                     </div>
                 </div>
                 <div class="alert alert-info py-2 mt-2">
-                    <i class="fas fa-info-circle me-2"></i>Esta planilla incluirá a todos los socios activos con cuota de ahorro mayor a Q1.00 según el tipo de cuenta seleccionado.
+                    <i class="fas fa-info-circle me-2"></i>Esta planilla incluirá a todos los asociados activos con cuota de ahorro mayor a Q1.00 según el tipo de cuenta seleccionado.
                 </div>
                 <div class="text-end mt-3">
                     <button type="submit" class="btn btn-success btn-lg">Generar Planilla</button>

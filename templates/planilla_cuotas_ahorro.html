@@ -6,7 +6,7 @@
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Revisión de Planilla: <strong>{{ nombre_planilla }}</strong></h5>
             <div class="d-flex gap-2 align-items-center">
-                <a href="{{ url_for('planillas_ahorro_pendientes') }}" class="btn btn-sm btn-outline-secondary">Regresar</a>
+                <a href="{{ url_for('ahorro.planillas_ahorro_pendientes') }}" class="btn btn-sm btn-outline-secondary">Regresar</a>
                 <span class="badge bg-info text-dark">Tipo: {{ tipo_cuenta_label }}</span>
                 <span class="badge bg-primary">Frecuencia: {{ frecuencia }}</span>
                 <span class="badge {% if planilla and planilla.estado == 'aplicada' %}bg-success{% elif planilla and planilla.estado == 'parcial' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
@@ -70,7 +70,7 @@
             </div>
 
             <div class="text-center mt-4 d-flex justify-content-center gap-2 flex-wrap">
-                <a href="{{ url_for('planillas_ahorro_pendientes') }}" class="btn btn-outline-secondary btn-lg px-4">Ver Planillas Guardadas</a>
+                <a href="{{ url_for('ahorro.planillas_ahorro_pendientes') }}" class="btn btn-outline-secondary btn-lg px-4">Ver Planillas Guardadas</a>
                 {% if not planilla or planilla.estado != 'aplicada' %}
                 <button type="button" class="btn btn-primary btn-lg px-5" id="btnAplicar" data-planilla-id="{{ planilla.id }}">
                     <i class="fas fa-check-circle me-2"></i>Aplicar Planilla a las Cuentas
@@ -162,7 +162,7 @@ btnConfirmarAplicar.addEventListener('click', function() {
     btnConfirmarAplicar.disabled = true;
     btnConfirmarAplicar.textContent = 'Aplicando...';
 
-    fetch('{{ url_for("procesar_abonos_masivos") }}', {
+    fetch('{{ url_for('ahorro.procesar_abonos_masivos') }}', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -193,7 +193,7 @@ btnConfirmarAplicar.addEventListener('click', function() {
         }
 
         alert(mensaje);
-        window.location.href = "{{ url_for('detalle_planilla_ahorro', planilla_id=planilla.id if planilla else 0) }}";
+        window.location.href = "{{ url_for('ahorro.detalle_planilla_ahorro', planilla_id=planilla.id if planilla else 0) }}";
     })
     .catch(err => {
         alert(err.message || 'Ocurrio un error al procesar la planilla.');

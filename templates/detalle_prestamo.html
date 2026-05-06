@@ -7,8 +7,8 @@
     <div class="page-subtitle">{{ prestamo.socio_codigo }} · {{ prestamo.nombre_socio }}</div>
   </div>
   <div style="display:flex;gap:8px;align-items:center;">
-    <a href="{{ url_for('prestamos') }}" class="btn btn-outline">Volver a prestamos</a>
-    <a href="{{ url_for('detalle_socio', sid=prestamo.socio_id) }}" class="btn btn-outline">Ver socio</a>
+    <a href="{{ url_for('prestamos.prestamos') }}" class="btn btn-outline">Volver a prestamos</a>
+    <a href="{{ url_for('socios.detalle_socio', sid=prestamo.socio_id) }}" class="btn btn-outline">Ver socio</a>
   </div>
 </div>
 
@@ -68,7 +68,7 @@
           </td>
           <td>
             {% if pago.id %}
-            <a href="{{ url_for('comprobante_pago_prestamo', pago_id=pago.id) }}" class="btn btn-outline btn-sm">Ver</a>
+            <a href="{{ url_for('prestamos.comprobante_pago_prestamo', pago_id=pago.id) }}" class="btn btn-outline btn-sm">Ver</a>
             {% elif pago.es_amortizacion %}
             —
             {% else %}

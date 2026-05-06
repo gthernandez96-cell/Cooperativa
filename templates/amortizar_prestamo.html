@@ -6,7 +6,7 @@
     <div class="page-title">Amortizar Préstamo</div>
     <div class="page-subtitle">Asociado: {{ socio.codigo }} — {{ socio.nombre }} {{ socio.apellido }}</div>
   </div>
-  <a href="{{ url_for('nuevo_prestamo') }}" class="btn btn-outline">← Cancelar</a>
+  <a href="{{ url_for('prestamos.nuevo_prestamo') }}" class="btn btn-outline">← Cancelar</a>
 </div>
 
 <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start;">
@@ -100,7 +100,7 @@
         
         <div class="form-actions">
           <button type="submit" class="btn btn-primary" id="btn-amortizar" disabled>Procesar Amortización</button>
-          <a href="{{ url_for('nuevo_prestamo') }}" class="btn btn-outline">Cancelar</a>
+          <a href="{{ url_for('prestamos.nuevo_prestamo') }}" class="btn btn-outline">Cancelar</a>
         </div>
       </div>
     </div>

@@ -163,10 +163,10 @@
       <div class="aprobar-sub">Confirme condiciones, desembolso y calendario de pago.</div>
     </div>
     <div class="aprobar-header-actions">
-      <a href="{{ url_for('prestamos') }}" class="btn btn-outline btn-sm">Volver a prestamos</a>
+      <a href="{{ url_for('prestamos.prestamos') }}" class="btn btn-outline btn-sm">Volver a prestamos</a>
       {% if prestamo.estado != 'pendiente' %}
-      <a href="{{ url_for('calendario_prestamo_pdf', pid=prestamo.id) }}" class="btn btn-outline btn-sm">Calendario PDF</a>
-      <a href="{{ url_for('finiquito_prestamo', pid=prestamo.id) }}" class="btn btn-gold btn-sm">Ver finiquito</a>
+      <a href="{{ url_for('prestamos.calendario_prestamo_pdf', pid=prestamo.id) }}" class="btn btn-outline btn-sm">Calendario PDF</a>
+      <a href="{{ url_for('prestamos.finiquito_prestamo', pid=prestamo.id) }}" class="btn btn-gold btn-sm">Ver finiquito</a>
       {% endif %}
     </div>
   </header>
@@ -232,14 +232,24 @@
                 <option value="cheque" {% if desembolso_tipo == 'cheque' %}selected{% endif %}>Cheque</option>
               </select>
             </div>
-            <div class="aprobar-field">
-              <label>Referencia de desembolso</label>
-              <input type="text" name="desembolso_referencia" value="{{ desembolso_referencia or '' }}" placeholder="No. boleta o no. cheque" required>
+            {% if prestamo.banco_numero_cuenta %}
+            <div class="aprobar-field aprobar-field-full" style="background:#f0f7ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 12px;">
+              <label style="color:#1e40af;">Datos bancarios del asociado</label>
+              <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:4px;font-size:13px;color:#0f1f32;">
+                {% if prestamo.banco_nombre %}
+                <span><strong>Banco:</strong> {{ prestamo.banco_nombre }}</span>
+                {% endif %}
+                {% if prestamo.banco_tipo_cuenta %}
+                <span><strong>Tipo:</strong> {{ prestamo.banco_tipo_cuenta }}</span>
+                {% endif %}
+                <span><strong>No. cuenta:</strong> <span style="font-family:monospace;font-size:14px;letter-spacing:.04em;background:#dbeafe;padding:2px 8px;border-radius:5px;">{{ prestamo.banco_numero_cuenta }}</span></span>
+              </div>
             </div>
+            {% endif %}
           </div>
           <div class="aprobar-actions">
             <button type="submit" class="btn btn-primary">Guardar aprobacion y calendario</button>
-            <a href="{{ url_for('prestamos') }}" class="btn btn-outline">Cancelar</a>
+            <a href="{{ url_for('prestamos.prestamos') }}" class="btn btn-outline">Cancelar</a>
           </div>
         </form>
       </div>
@@ -270,7 +280,7 @@
           </div>
           <div class="aprobar-summary-row highlight">
             <span>Última cuota</span>
-            <strong>{{ calendario_preview[-1].fecha_programada if calendario_preview else '—' }}</strong>
+            <strong id="out-ultima-cuota">{{ calendario_preview[-1].fecha_programada if calendario_preview else '—' }}</strong>
           </div>
         </div>
       </div>
@@ -291,20 +301,29 @@
       <div>
         <div class="aprobar-card-title">Calendario estimado de pagos</div>
       </div>
-      <div class="aprobar-badge">{{ calendario_preview|length }} cuota(s)</div>
+      <div class="aprobar-badge" id="out-total-cuotas">{{ calendario_preview|length }} cuota(s)</div>
     </div>
     <div class="aprobar-table-wrap">
       <div class="aprobar-table-shell">
-        <table class="aprobar-table">
+        <table class="aprobar-table" id="tabla-calendario">
           <thead>
-            <tr><th>No. cuota</th><th>Fecha programada</th><th>Monto programado</th><th>Estado</th></tr>
+            <tr>
+              <th>No.</th>
+              <th>Fecha programada</th>
+              <th style="text-align:right;">Capital</th>
+              <th style="text-align:right;">Interés</th>
+              <th style="text-align:right;">Cuota total</th>
+              <th>Estado</th>
+            </tr>
           </thead>
-          <tbody>
+          <tbody id="tbody-calendario">
             {% for cuota in calendario_preview %}
             <tr>
               <td class="aprobar-cuota-numero">{{ cuota.numero_cuota }}</td>
               <td>{{ cuota.fecha_programada }}</td>
-              <td class="amount">Q{{ '{:,.2f}'.format(cuota.monto_programado) }}</td>
+              <td class="amount" style="text-align:right;color:#0b4d83;">Q{{ '{:,.2f}'.format(cuota.capital if cuota.capital is defined else 0) }}</td>
+              <td class="amount" style="text-align:right;color:#c2410c;">Q{{ '{:,.2f}'.format(cuota.interes if cuota.interes is defined else 0) }}</td>
+              <td class="amount" style="text-align:right;font-weight:700;">Q{{ '{:,.2f}'.format(cuota.monto_programado) }}</td>
               <td><span class="badge {% if cuota.estado == 'pagado' %}badge-green{% else %}badge-gold{% endif %}">{{ (cuota.estado or 'pendiente').capitalize() }}</span></td>
             </tr>
             {% endfor %}
@@ -314,4 +333,118 @@
     </div>
   </section>
 </div>
+
+<script>
+const CAL_MONTO        = {{ prestamo.monto_aprobado or prestamo.monto_solicitado }};
+const CAL_TASA         = {{ prestamo.tasa_interes }};
+const CAL_FRECUENCIA   = {{ prestamo.frecuencia | tojson }};
+const CAL_CUOTA        = {{ resumen.cuota }};
+const CAL_TOTAL_CUOTAS = {{ resumen.total_cuotas }};
+const CAL_DIAS         = CAL_FRECUENCIA === 'Catorcenal' ? 14 : 15;
+
+function fmt2(n) {
+  return 'Q' + n.toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+/* ---------- Lógica de fechas quincenales ---------- */
+function ultimoDiaMes(anio, mes) {
+  return new Date(anio, mes, 0).getDate(); // mes en JS: 0=ene,11=dic
+}
+
+function siguienteFechaQuincenal(d) {
+  // d debe ser Date con día 15 o último del mes
+  const ultimo = ultimoDiaMes(d.getFullYear(), d.getMonth() + 1);
+  if (d.getDate() === 15) {
+    return new Date(d.getFullYear(), d.getMonth(), ultimo);
+  } else {
+    // último del mes → día 15 del mes siguiente
+    const next = new Date(d.getFullYear(), d.getMonth() + 1, 15);
+    return next;
+  }
+}
+
+function generarFechasQuincenales(fechaInicio, n) {
+  const fechas = [];
+  let actual = new Date(fechaInicio);
+  for (let i = 0; i < n; i++) {
+    fechas.push(new Date(actual));
+    actual = siguienteFechaQuincenal(actual);
+  }
+  return fechas;
+}
+
+function dateToISO(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+/* -------------------------------------------------- */
+
+function recalcularCalendario() {
+  const inputFecha = document.getElementById('inp-primer-pago');
+  if (!inputFecha || !inputFecha.value) return;
+
+  const fechaBase = new Date(inputFecha.value + 'T00:00:00');
+  const tasaPeriodica = (CAL_TASA / 100) * (CAL_DIAS / 365);
+  const cuota = CAL_CUOTA;
+  const totalCuotas = CAL_TOTAL_CUOTAS;
+
+  // Generar fechas según frecuencia
+  let fechas;
+  if (CAL_FRECUENCIA === 'Catorcenal') {
+    fechas = Array.from({length: totalCuotas}, (_, i) => {
+      const d = new Date(fechaBase);
+      d.setDate(d.getDate() + i * 14);
+      return d;
+    });
+  } else {
+    fechas = generarFechasQuincenales(fechaBase, totalCuotas);
+  }
+
+  let saldo = CAL_MONTO;
+  let filas = '';
+  let ultimaFecha = '';
+
+  fechas.forEach((fecha, idx) => {
+    const numero = idx + 1;
+    const fechaStr = dateToISO(fecha);
+    let interes = 0, capital = cuota;
+
+    if (tasaPeriodica > 0 && saldo > 0) {
+      interes = Math.round(saldo * tasaPeriodica * 100) / 100;
+      capital = Math.min(Math.round((cuota - interes) * 100) / 100, saldo);
+      if (numero === totalCuotas) {
+        capital = Math.round(saldo * 100) / 100;
+        interes = Math.round((cuota - capital) * 100) / 100;
+      }
+      saldo = Math.max(0, Math.round((saldo - capital) * 100) / 100);
+    }
+
+    ultimaFecha = fechaStr;
+    filas += `<tr>
+      <td class="aprobar-cuota-numero">${numero}</td>
+      <td>${fechaStr}</td>
+      <td class="amount" style="text-align:right;color:#0b4d83;">${fmt2(capital)}</td>
+      <td class="amount" style="text-align:right;color:#c2410c;">${fmt2(interes)}</td>
+      <td class="amount" style="text-align:right;font-weight:700;">${fmt2(cuota)}</td>
+      <td><span class="badge badge-gold">Pendiente</span></td>
+    </tr>`;
+  });
+
+  document.getElementById('tbody-calendario').innerHTML = filas;
+  const outUltima = document.getElementById('out-ultima-cuota');
+  const outTotal  = document.getElementById('out-total-cuotas');
+  if (outUltima) outUltima.textContent = ultimaFecha;
+  if (outTotal)  outTotal.textContent  = totalCuotas + ' cuota(s)';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const inp = document.querySelector('input[name="fecha_primer_pago"]');
+  if (inp) {
+    inp.id = 'inp-primer-pago';
+    inp.addEventListener('change', recalcularCalendario);
+  }
+});
+</script>
 {% endblock %}

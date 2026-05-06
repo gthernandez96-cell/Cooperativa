@@ -7,7 +7,7 @@
     <div class="page-subtitle">{{ pago.numero_comprobante or ('REC-' ~ '%06d'|format(pago.id)) }}</div>
   </div>
   <div style="display:flex;gap:8px;">
-    <a href="{{ url_for('prestamos') }}" class="btn btn-outline" onclick="history.back();return false;">Volver</a>
+    <a href="{{ url_for('prestamos.prestamos') }}" class="btn btn-outline" onclick="history.back();return false;">Volver</a>
     <button type="button" class="btn btn-gold" onclick="window.print()">Imprimir</button>
   </div>
 </div>

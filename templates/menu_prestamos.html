@@ -75,7 +75,7 @@
             <p class="page-subtitle">Operaciones de préstamos con flujo claro, controlado y consistente</p>
         </div>
         <div>
-            <a href="{{ url_for('transacciones_masivas') }}" class="btn btn-outline">Volver a Transacciones Masivas</a>
+            <a href="{{ url_for('prestamos.transacciones_masivas') }}" class="btn btn-outline">Volver a Transacciones Masivas</a>
         </div>
     </div>
 
@@ -89,7 +89,7 @@
             </div>
             <div class="mp-desc">Procesar pagos de cuotas para múltiples préstamos en una sola planilla.</div>
             <div class="mp-actions">
-                <a href="{{ url_for('planilla_prestamos') }}" class="btn btn-primary">Ejecutar operación</a>
+                <a href="{{ url_for('prestamos.planilla_prestamos') }}" class="btn btn-primary">Ejecutar operación</a>
             </div>
         </div>
 
@@ -102,7 +102,7 @@
             </div>
             <div class="mp-desc">Aplicar amortizaciones y recalcular condiciones de pago.</div>
             <div class="mp-actions">
-                <a href="{{ url_for('planilla_amortizaciones') }}" class="btn btn-primary">Ejecutar operación</a>
+                <a href="{{ url_for('prestamos.planilla_amortizaciones') }}" class="btn btn-primary">Ejecutar operación</a>
             </div>
         </div>
 
@@ -115,7 +115,7 @@
             </div>
             <div class="mp-desc">Modificar condiciones de préstamos activos por reestructuración.</div>
             <div class="mp-actions">
-                <a href="{{ url_for('planilla_refinanciamientos') }}" class="btn btn-primary">Ejecutar operación</a>
+                <a href="{{ url_for('prestamos.planilla_refinanciamientos') }}" class="btn btn-primary">Ejecutar operación</a>
             </div>
         </div>
 
@@ -128,7 +128,7 @@
             </div>
             <div class="mp-desc">Consultas de cartera, estado de pagos y desempeño de préstamos.</div>
             <div class="mp-actions">
-                <a href="{{ url_for('reportes_prestamos') }}" class="btn btn-outline">Consultar reportes</a>
+                <a href="{{ url_for('prestamos.reportes_prestamos') }}" class="btn btn-outline">Consultar reportes</a>
             </div>
         </div>
 
@@ -141,7 +141,7 @@
             </div>
             <div class="mp-desc">Parámetros operativos de tasas, plazos y políticas de crédito.</div>
             <div class="mp-actions">
-                <a href="{{ url_for('configuracion_prestamos') }}" class="btn btn-outline">Administrar configuración</a>
+                <a href="{{ url_for('prestamos.configuracion_prestamos') }}" class="btn btn-outline">Administrar configuración</a>
             </div>
         </div>
 
@@ -154,8 +154,8 @@
             </div>
             <div class="mp-desc">Seguimiento de cobranza y control de cierres operativos por periodo.</div>
             <div class="mp-actions">
-                <a href="{{ url_for('cobranza_prestamos') }}" class="btn btn-primary">Administrar cobranza</a>
-                <a href="{{ url_for('cierres_periodo') }}" class="btn btn-outline">Administrar cierres</a>
+                <a href="{{ url_for('prestamos.cobranza_prestamos') }}" class="btn btn-primary">Administrar cobranza</a>
+                <a href="{{ url_for('configuraciones.cierres_periodo') }}" class="btn btn-outline">Administrar cierres</a>
             </div>
         </div>
     </div>

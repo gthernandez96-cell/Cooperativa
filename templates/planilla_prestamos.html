@@ -18,7 +18,7 @@
       Exportar
     </button>
     {% if not planilla or planilla.estado != 'aplicada' %}
-    <button class="btn btn-gold" id="btnAbrirModalPagos" data-planilla-id="{{ planilla.id }}" data-detalle-url="{{ url_for('detalle_planilla_prestamos', planilla_id=planilla.id) }}">
+    <button class="btn btn-gold" id="btnAbrirModalPagos" data-planilla-id="{{ planilla.id }}" data-detalle-url="{{ url_for('prestamos.detalle_planilla_prestamos', planilla_id=planilla.id) }}">
       <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right: 6px;">
         <path d="M9 12l2 2 4-4M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"/>
       </svg>

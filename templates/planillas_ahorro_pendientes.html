@@ -7,16 +7,16 @@
       <h1 class="page-title">Planillas de Ahorro Guardadas</h1>
       <p class="page-subtitle">Revise, retome o aplique planillas pendientes cuando lo necesite</p>
     </div>
-    <a href="{{ url_for('transacciones_masivas') }}" class="btn btn-outline">Volver</a>
+    <a href="{{ url_for('prestamos.transacciones_masivas') }}" class="btn btn-outline">Volver</a>
   </div>
 
   <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
       <h3 class="card-title">Filtros</h3>
-      <a href="{{ url_for('planillas_ahorro_pendientes') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
+      <a href="{{ url_for('ahorro.planillas_ahorro_pendientes') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
     </div>
     <div class="card-body">
-      <form method="GET" action="{{ url_for('planillas_ahorro_pendientes') }}">
+      <form method="GET" action="{{ url_for('ahorro.planillas_ahorro_pendientes') }}">
         <div class="row">
           <div class="col-md-3 mb-3">
             <label class="form-label">Nombre de Planilla</label>
@@ -69,7 +69,7 @@
   <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
       <h3 class="card-title">Listado de Planillas</h3>
-      <a href="{{ url_for('generar_planilla_cuotas_ahorro') }}" class="btn btn-success">Nueva Planilla</a>
+      <a href="{{ url_for('ahorro.generar_planilla_cuotas_ahorro') }}" class="btn btn-success">Nueva Planilla</a>
     </div>
     <div class="card-body">
       <div class="table-wrap">
@@ -104,10 +104,10 @@
               <td>{{ p.boleta_deposito or 'Pendiente' }}</td>
               <td>
                 <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                  <a href="{{ url_for('detalle_planilla_ahorro', planilla_id=p.id) }}" class="btn btn-sm btn-primary">Abrir</a>
+                  <a href="{{ url_for('ahorro.detalle_planilla_ahorro', planilla_id=p.id) }}" class="btn btn-sm btn-primary">Abrir</a>
                   {% if p.estado != 'aplicada' %}
-                  <a href="{{ url_for('editar_planilla_ahorro', planilla_id=p.id) }}" class="btn btn-sm btn-warning">Modificar</a>
-                  <form method="POST" action="{{ url_for('eliminar_planilla_ahorro', planilla_id=p.id) }}" onsubmit="return confirm('¿Desea eliminar esta planilla de ahorro?');" style="display:inline;">
+                  <a href="{{ url_for('ahorro.editar_planilla_ahorro', planilla_id=p.id) }}" class="btn btn-sm btn-warning">Modificar</a>
+                  <form method="POST" action="{{ url_for('ahorro.eliminar_planilla_ahorro', planilla_id=p.id) }}" onsubmit="return confirm('¿Desea eliminar esta planilla de ahorro?');" style="display:inline;">
                     <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
                   </form>
                   {% endif %}

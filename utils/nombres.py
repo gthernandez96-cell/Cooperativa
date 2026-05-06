@@ -19,6 +19,11 @@ def construir_nombre_completo(primer_nombre='', segundo_nombre='', tercer_nombre
 def construir_apellido_completo(primer_apellido='', segundo_apellido=''):
     return ' '.join(p for p in [primer_apellido, segundo_apellido] if p).strip()
 
+def validar_dpi(dpi):
+    """Valida que el DPI consista en exactamente 13 dígitos numéricos."""
+    dpi = (dpi or '').strip()
+    return dpi.isdigit() and len(dpi) == 13
+
 
 def preparar_datos_socio(socio):
     """Normaliza y completa los campos de nombre/apellido de un socio."""
@@ -53,6 +58,8 @@ def preparar_datos_socio(socio):
     data['nombre_completo'] = ' '.join(p for p in [data['nombre'], data['apellido']] if p).strip()
     data['apellido_casada'] = data.get('apellido_casada') or ''
     data['estado_civil'] = data.get('estado_civil') or 'Soltero'
+    data['departamento'] = data.get('departamento') or ''
+    data['municipio'] = data.get('municipio') or ''
     data['banco_nombre'] = data.get('banco_nombre') or ''
     data['banco_tipo_cuenta'] = data.get('banco_tipo_cuenta') or ''
     data['banco_numero_cuenta'] = data.get('banco_numero_cuenta') or ''

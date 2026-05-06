@@ -7,7 +7,7 @@
     <div class="page-subtitle">{{ retiro.numero or ('RET-' ~ '%06d'|format(retiro.id)) }}</div>
   </div>
   <div style="display:flex;gap:8px;">
-    <a href="{{ url_for('gestiones', tipo='retiro', estado='pendiente') }}" class="btn btn-outline">Volver a Gestiones</a>
+    <a href="{{ url_for('prestamos.gestiones', tipo='retiro', estado='pendiente') }}" class="btn btn-outline">Volver a Gestiones</a>
     <button type="button" class="btn btn-gold" onclick="window.print()">Imprimir</button>
   </div>
 </div>

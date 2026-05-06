@@ -7,16 +7,16 @@
       <h1 class="page-title">Planillas de Prestamos Guardadas</h1>
       <p class="page-subtitle">Revise, retome o aplique planillas pendientes de prestamos cuando lo necesite</p>
     </div>
-    <a href="{{ url_for('transacciones_masivas') }}" class="btn btn-outline">Volver</a>
+    <a href="{{ url_for('prestamos.transacciones_masivas') }}" class="btn btn-outline">Volver</a>
   </div>
 
   <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
       <h3 class="card-title">Filtros</h3>
-      <a href="{{ url_for('planillas_prestamos_pendientes') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
+      <a href="{{ url_for('prestamos.planillas_prestamos_pendientes') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
     </div>
     <div class="card-body">
-      <form method="GET" action="{{ url_for('planillas_prestamos_pendientes') }}">
+      <form method="GET" action="{{ url_for('prestamos.planillas_prestamos_pendientes') }}">
         <div class="row">
           <div class="col-md-3 mb-3">
             <label class="form-label">Nombre de Planilla</label>
@@ -69,7 +69,7 @@
   <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
       <h3 class="card-title">Listado de Planillas</h3>
-      <a href="{{ url_for('generar_planilla_prestamos') }}" class="btn btn-warning">Nueva Planilla</a>
+      <a href="{{ url_for('prestamos.generar_planilla_prestamos') }}" class="btn btn-warning">Nueva Planilla</a>
     </div>
     <div class="card-body">
       <div class="mb-3" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
@@ -113,7 +113,7 @@
               </td>
               <td>{{ p.boleta_deposito or 'Pendiente' }}</td>
               <td>
-                <a href="{{ url_for('detalle_planilla_prestamos', planilla_id=p.id) }}" class="btn btn-sm btn-primary">
+                <a href="{{ url_for('prestamos.detalle_planilla_prestamos', planilla_id=p.id) }}" class="btn btn-sm btn-primary">
                   {% if p.estado == 'aplicada' %}Ver{% else %}Abrir{% endif %}
                 </a>
               </td>

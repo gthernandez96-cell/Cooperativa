@@ -6,7 +6,7 @@
     <div class="page-title">{{ cuenta.numero }}</div>
     <div class="page-subtitle">{{ cuenta.socio }} · {{ cuenta.tipo.capitalize() }}</div>
   </div>
-  <a href="{{ url_for('cuentas') }}" class="btn btn-outline">← Cuentas</a>
+  <a href="{{ url_for('ahorro.cuentas') }}" class="btn btn-outline">← Cuentas</a>
 </div>
 
 <div style="display:grid;grid-template-columns:300px 1fr;gap:20px;">
@@ -20,7 +20,7 @@
     <div class="card">
       <div class="card-header"><span class="card-title">Depósito</span></div>
       <div class="card-body">
-        <form method="post" action="{{ url_for('hacer_transaccion', cid=cuenta.id) }}">
+        <form method="post" action="{{ url_for('ahorro.hacer_transaccion', cid=cuenta.id) }}">
           <input type="hidden" name="tipo" value="deposito">
           <div class="form-group" style="margin-bottom:10px;">
             <label>Monto (Q)</label>
@@ -38,7 +38,7 @@
     <div class="card">
       <div class="card-header"><span class="card-title">Retiro</span></div>
       <div class="card-body">
-        <form method="post" action="{{ url_for('hacer_transaccion', cid=cuenta.id) }}">
+        <form method="post" action="{{ url_for('ahorro.hacer_transaccion', cid=cuenta.id) }}">
           <input type="hidden" name="tipo" value="retiro">
           <div class="form-group" style="margin-bottom:10px;">
             <label>Monto (Q)</label>

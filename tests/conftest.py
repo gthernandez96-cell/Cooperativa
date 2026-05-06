@@ -3,6 +3,7 @@ tests/conftest.py — Fixtures compartidos para toda la suite de pruebas.
 """
 import pytest
 import app as app_module
+import utils.db as db_module
 
 
 @pytest.fixture
@@ -10,6 +11,7 @@ def app_client(tmp_path, monkeypatch):
     """Cliente HTTP con BD limpia en directorio temporal. CSRF desactivado."""
     db_path = tmp_path / "cooperativa_test.db"
     monkeypatch.setattr(app_module, 'DB', str(db_path))
+    monkeypatch.setattr(db_module, 'DB', str(db_path))
     app_module.app.config['TESTING'] = True
     app_module.app.config['WTF_CSRF_ENABLED'] = False
     app_module.init_db()

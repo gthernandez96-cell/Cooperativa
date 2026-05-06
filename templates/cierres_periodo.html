@@ -6,13 +6,13 @@
     <div class="page-title">Cierres de Periodo</div>
     <div class="page-subtitle">Bloquea movimientos historicos por modulo y rango de fechas</div>
   </div>
-  <a href="{{ url_for('menu_prestamos') }}" class="btn btn-outline">Volver</a>
+  <a href="{{ url_for('prestamos.menu_prestamos') }}" class="btn btn-outline">Volver</a>
 </div>
 
 <div class="card" style="margin-bottom:16px;">
   <div class="card-header"><span class="card-title">Nuevo cierre</span></div>
   <div class="card-body">
-    <form method="POST" action="{{ url_for('cierres_periodo') }}" class="form-grid" style="align-items:end;">
+    <form method="POST" action="{{ url_for('configuraciones.cierres_periodo') }}" class="form-grid" style="align-items:end;">
       <div class="form-group">
         <label>Modulo</label>
         <select name="modulo" required>

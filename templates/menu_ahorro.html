@@ -75,7 +75,7 @@
             <p class="page-subtitle">Operaciones de ahorro con flujo claro, controlado y consistente</p>
         </div>
         <div>
-            <a href="{{ url_for('transacciones_masivas') }}" class="btn btn-outline">Volver a Transacciones Masivas</a>
+            <a href="{{ url_for('prestamos.transacciones_masivas') }}" class="btn btn-outline">Volver a Transacciones Masivas</a>
         </div>
     </div>
 
@@ -89,7 +89,7 @@
             </div>
             <div class="ma-desc">Registrar depósitos simultáneos para múltiples cuentas de ahorro.</div>
             <div class="ma-actions">
-                <a href="{{ url_for('planilla_ahorro') }}" class="btn btn-primary">Ejecutar operación</a>
+                <a href="{{ url_for('ahorro.planilla_ahorro') }}" class="btn btn-primary">Ejecutar operación</a>
             </div>
         </div>
 
@@ -102,8 +102,8 @@
             </div>
             <div class="ma-desc">Generar planillas según la frecuencia de cobro configurada.</div>
             <div class="ma-actions">
-                <a href="{{ url_for('generar_planilla_cuotas_ahorro') }}" class="btn btn-primary">Generar planilla</a>
-                <a href="{{ url_for('planillas_ahorro_pendientes') }}" class="btn btn-outline">Consultar planillas</a>
+                <a href="{{ url_for('ahorro.generar_planilla_cuotas_ahorro') }}" class="btn btn-primary">Generar planilla</a>
+                <a href="{{ url_for('ahorro.planillas_ahorro_pendientes') }}" class="btn btn-outline">Consultar planillas</a>
             </div>
         </div>
 
@@ -116,7 +116,7 @@
             </div>
             <div class="ma-desc">Procesar retiros simultáneos para múltiples cuentas.</div>
             <div class="ma-actions">
-                <a href="{{ url_for('planilla_retiros_ahorro') }}" class="btn btn-primary">Ejecutar operación</a>
+                <a href="{{ url_for('ahorro.planilla_retiros_ahorro') }}" class="btn btn-primary">Ejecutar operación</a>
             </div>
         </div>
 
@@ -129,7 +129,7 @@
             </div>
             <div class="ma-desc">Transferencias entre cuentas de ahorro dentro del sistema.</div>
             <div class="ma-actions">
-                <a href="{{ url_for('planilla_transferencias_ahorro') }}" class="btn btn-primary">Ejecutar operación</a>
+                <a href="{{ url_for('ahorro.planilla_transferencias_ahorro') }}" class="btn btn-primary">Ejecutar operación</a>
             </div>
         </div>
 
@@ -142,7 +142,7 @@
             </div>
             <div class="ma-desc">Consulta de reportes y comportamiento de operaciones de ahorro.</div>
             <div class="ma-actions">
-                <a href="{{ url_for('reportes_ahorro') }}" class="btn btn-outline">Consultar reportes</a>
+                <a href="{{ url_for('ahorro.reportes_ahorro') }}" class="btn btn-outline">Consultar reportes</a>
             </div>
         </div>
 
@@ -155,7 +155,7 @@
             </div>
             <div class="ma-desc">Parámetros y políticas operativas del módulo de ahorro.</div>
             <div class="ma-actions">
-                <a href="{{ url_for('configuracion_ahorro') }}" class="btn btn-outline">Abrir configuración</a>
+                <a href="{{ url_for('ahorro.configuracion_ahorro') }}" class="btn btn-outline">Abrir configuración</a>
             </div>
         </div>
     </div>

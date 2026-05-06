@@ -1,11 +1,13 @@
 import pytest
 import app as app_module
+import utils.db as db_module
 from werkzeug.security import generate_password_hash
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
     db_path = tmp_path / "cooperativa_test.db"
     monkeypatch.setattr(app_module, 'DB', str(db_path))
+    monkeypatch.setattr(db_module, 'DB', str(db_path))
     app_module.app.config['TESTING'] = True
     app_module.app.config['WTF_CSRF_ENABLED'] = False  # Desactivar CSRF en tests
     app_module.init_db()

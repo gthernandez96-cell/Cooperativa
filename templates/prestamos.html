@@ -156,11 +156,11 @@
     <div class="page-title">Préstamos</div>
     <div class="page-subtitle">{{ subtitulo or 'Gestión de cartera de crédito' }}</div>
   </div>
-  <a href="{{ url_for('nuevo_prestamo') }}" class="btn btn-primary">+ Nueva Solicitud</a>
+  <a href="{{ url_for('prestamos.nuevo_prestamo') }}" class="btn btn-primary">+ Nueva Solicitud</a>
 </div>
 
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:18px;">
-  <a href="{{ url_for('prestamos', vista='activos') }}" style="text-decoration:none;color:inherit;">
+  <a href="{{ url_for('prestamos.prestamos', vista='activos') }}" style="text-decoration:none;color:inherit;">
     <div class="card" style="border:1px solid {% if vista == 'activos' %}#003b74{% else %}#dbe4ef{% endif %}; box-shadow:{% if vista == 'activos' %}0 10px 24px rgba(0,59,116,.14){% else %}var(--shadow){% endif %}; background:{% if vista == 'activos' %}linear-gradient(135deg,#eef6ff 0%,#ffffff 100%){% else %}#fff{% endif %};">
       <div class="card-body" style="display:flex;flex-direction:column;gap:6px;min-height:112px;justify-content:center;position:relative;overflow:hidden;">
         <div style="position:absolute;top:14px;right:16px;font-size:30px;opacity:.18;">💼</div>
@@ -172,7 +172,7 @@
     </div>
   </a>
 
-  <a href="{{ url_for('prestamos', vista='pagados') }}" style="text-decoration:none;color:inherit;">
+  <a href="{{ url_for('prestamos.prestamos', vista='pagados') }}" style="text-decoration:none;color:inherit;">
     <div class="card" style="border:1px solid {% if vista == 'pagados' %}#0f766e{% else %}#dbe4ef{% endif %}; box-shadow:{% if vista == 'pagados' %}0 10px 24px rgba(15,118,110,.14){% else %}var(--shadow){% endif %}; background:{% if vista == 'pagados' %}linear-gradient(135deg,#ecfdf5 0%,#ffffff 100%){% else %}#fff{% endif %};">
       <div class="card-body" style="display:flex;flex-direction:column;gap:6px;min-height:112px;justify-content:center;position:relative;overflow:hidden;">
         <div style="position:absolute;top:14px;right:16px;font-size:30px;opacity:.18;">✓</div>
@@ -184,7 +184,7 @@
     </div>
   </a>
 
-  <a href="{{ url_for('prestamos', vista='pendientes') }}" style="text-decoration:none;color:inherit;">
+  <a href="{{ url_for('prestamos.prestamos', vista='pendientes') }}" style="text-decoration:none;color:inherit;">
     <div class="card" style="border:1px solid {% if vista == 'pendientes' %}#b45309{% else %}#dbe4ef{% endif %}; box-shadow:{% if vista == 'pendientes' %}0 10px 24px rgba(180,83,9,.14){% else %}var(--shadow){% endif %}; background:{% if vista == 'pendientes' %}linear-gradient(135deg,#fff7ed 0%,#ffffff 100%){% else %}#fff{% endif %};">
       <div class="card-body" style="display:flex;flex-direction:column;gap:6px;min-height:112px;justify-content:center;position:relative;overflow:hidden;">
         <div style="position:absolute;top:14px;right:16px;font-size:30px;opacity:.18;">⏳</div>
@@ -206,7 +206,7 @@
 
 <div class="card" style="margin-bottom:18px;">
   <div class="card-body">
-    <form method="GET" action="{{ url_for('prestamos') }}" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+    <form method="GET" action="{{ url_for('prestamos.prestamos') }}" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
       <input type="hidden" name="vista" value="{{ vista }}">
       <input type="hidden" name="page" value="1">
       <input
@@ -244,7 +244,7 @@
       </select>
       <button type="submit" class="btn btn-primary">Buscar prestamo</button>
       {% if q or estado_filtro or fecha_desde or fecha_hasta or ordenar_por != 'fecha_solicitud' or direccion != 'desc' %}
-      <a href="{{ url_for('prestamos', vista=vista) }}" class="btn btn-outline">Limpiar</a>
+      <a href="{{ url_for('prestamos.prestamos', vista=vista) }}" class="btn btn-outline">Limpiar</a>
       {% endif %}
     </form>
   </div>
@@ -257,26 +257,26 @@
         <tr>
           <th class="col-numero">Número</th>
           <th class="col-socio">
-            <a href="{{ url_for('prestamos', vista=vista, q=q, estado=estado_filtro, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ordenar_por='nombre_socio', direccion=('asc' if ordenar_por == 'nombre_socio' and direccion == 'desc' else 'desc')) }}" style="text-decoration:none;color:inherit;">
+            <a href="{{ url_for('prestamos.prestamos', vista=vista, q=q, estado=estado_filtro, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ordenar_por='nombre_socio', direccion=('asc' if ordenar_por == 'nombre_socio' and direccion == 'desc' else 'desc')) }}" style="text-decoration:none;color:inherit;">
               Socio{% if ordenar_por == 'nombre_socio' %} {{ '↓' if direccion == 'desc' else '↑' }}{% endif %}
             </a>
           </th>
           <th class="col-categoria">Categoría</th>
           <th class="col-desembolso">Desembolso</th>
           <th class="col-monto">
-            <a href="{{ url_for('prestamos', vista=vista, q=q, estado=estado_filtro, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ordenar_por='monto_solicitado', direccion=('asc' if ordenar_por == 'monto_solicitado' and direccion == 'desc' else 'desc')) }}" style="text-decoration:none;color:inherit;">
+            <a href="{{ url_for('prestamos.prestamos', vista=vista, q=q, estado=estado_filtro, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ordenar_por='monto_solicitado', direccion=('asc' if ordenar_por == 'monto_solicitado' and direccion == 'desc' else 'desc')) }}" style="text-decoration:none;color:inherit;">
               Monto{% if ordenar_por == 'monto_solicitado' %} {{ '↓' if direccion == 'desc' else '↑' }}{% endif %}
             </a>
           </th>
           <th class="col-tasa">Tasa</th>
           <th class="col-plazo">Plazo</th>
           <th class="col-cuota">
-            <a href="{{ url_for('prestamos', vista=vista, q=q, estado=estado_filtro, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ordenar_por='cuota_mensual', direccion=('asc' if ordenar_por == 'cuota_mensual' and direccion == 'desc' else 'desc')) }}" style="text-decoration:none;color:inherit;">
+            <a href="{{ url_for('prestamos.prestamos', vista=vista, q=q, estado=estado_filtro, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ordenar_por='cuota_mensual', direccion=('asc' if ordenar_por == 'cuota_mensual' and direccion == 'desc' else 'desc')) }}" style="text-decoration:none;color:inherit;">
               Cuota{% if ordenar_por == 'cuota_mensual' %} {{ '↓' if direccion == 'desc' else '↑' }}{% endif %}
             </a>
           </th>
           <th class="col-saldo">
-            <a href="{{ url_for('prestamos', vista=vista, q=q, estado=estado_filtro, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ordenar_por='saldo_pendiente', direccion=('asc' if ordenar_por == 'saldo_pendiente' and direccion == 'desc' else 'desc')) }}" style="text-decoration:none;color:inherit;">
+            <a href="{{ url_for('prestamos.prestamos', vista=vista, q=q, estado=estado_filtro, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ordenar_por='saldo_pendiente', direccion=('asc' if ordenar_por == 'saldo_pendiente' and direccion == 'desc' else 'desc')) }}" style="text-decoration:none;color:inherit;">
               Saldo{% if ordenar_por == 'saldo_pendiente' %} {{ '↓' if direccion == 'desc' else '↑' }}{% endif %}
             </a>
           </th>
@@ -324,28 +324,28 @@
           <td class="col-acciones">
             {% if p.estado == 'pendiente' %}
             <div class="action-group">
-              <a href="{{ url_for('detalle_prestamo', pid=p.id) }}" class="icon-btn" title="Ver detalle">👁</a>
-              <a href="{{ url_for('aprobar_prestamo', pid=p.id) }}" class="icon-btn ok" title="Aprobar">✓</a>
-              <form method="post" action="{{ url_for('marcar_prestamo_no_procede', pid=p.id) }}" style="display:inline;">
+              <a href="{{ url_for('prestamos.detalle_prestamo', pid=p.id) }}" class="icon-btn" title="Ver detalle">👁</a>
+              <a href="{{ url_for('prestamos.aprobar_prestamo', pid=p.id) }}" class="icon-btn ok" title="Aprobar">✓</a>
+              <form method="post" action="{{ url_for('prestamos.marcar_prestamo_no_procede', pid=p.id) }}" style="display:inline;">
                 <button type="submit" class="icon-btn warn" title="No procede" onclick="return confirm('Marcar esta solicitud como no procede?')">✕</button>
               </form>
             </div>
             {% elif p.estado == 'aprobado' and p.saldo_pendiente > 0 %}
             <div class="action-group">
-              <a href="{{ url_for('detalle_prestamo', pid=p.id) }}" class="icon-btn" title="Ver detalle">👁</a>
-              <form method="post" action="{{ url_for('pagar_prestamo', pid=p.id) }}" style="display:inline;">
+              <a href="{{ url_for('prestamos.detalle_prestamo', pid=p.id) }}" class="icon-btn" title="Ver detalle">👁</a>
+              <form method="post" action="{{ url_for('prestamos.pagar_prestamo', pid=p.id) }}" style="display:inline;">
                 <button type="submit" class="icon-btn" title="Registrar pago" onclick="return confirm('Registrar cuota de Q{{ '{:,.2f}'.format(p.cuota_mensual) if p.cuota_mensual else 0 }}?')">$</button>
               </form>
-              <a href="{{ url_for('finiquito_prestamo', pid=p.id) }}" class="icon-btn warn" title="Finiquito">📄</a>
+              <a href="{{ url_for('prestamos.finiquito_prestamo', pid=p.id) }}" class="icon-btn warn" title="Finiquito">📄</a>
             </div>
             {% elif p.estado == 'pagado' %}
             <div class="action-group">
-              <a href="{{ url_for('detalle_prestamo', pid=p.id) }}" class="icon-btn" title="Ver detalle">👁</a>
-              <a href="{{ url_for('finiquito_prestamo', pid=p.id) }}" class="icon-btn warn" title="Finiquito">📄</a>
+              <a href="{{ url_for('prestamos.detalle_prestamo', pid=p.id) }}" class="icon-btn" title="Ver detalle">👁</a>
+              <a href="{{ url_for('prestamos.finiquito_prestamo', pid=p.id) }}" class="icon-btn warn" title="Finiquito">📄</a>
             </div>
             {% else %}
             <div class="action-group">
-              <a href="{{ url_for('detalle_prestamo', pid=p.id) }}" class="icon-btn" title="Ver detalle">👁</a>
+              <a href="{{ url_for('prestamos.detalle_prestamo', pid=p.id) }}" class="icon-btn" title="Ver detalle">👁</a>
             </div>
             {% endif %}
           </td>
@@ -372,10 +372,10 @@
     <div style="font-size:13px;color:#6b7280;">Página {{ page }} de {{ total_pages }}</div>
     <div style="display:flex;gap:8px;">
       {% if page > 1 %}
-      <a class="btn btn-outline btn-sm" href="{{ url_for('prestamos', vista=vista, q=q, estado=estado_filtro, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ordenar_por=ordenar_por, direccion=direccion, per_page=per_page, page=page-1) }}">Anterior</a>
+      <a class="btn btn-outline btn-sm" href="{{ url_for('prestamos.prestamos', vista=vista, q=q, estado=estado_filtro, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ordenar_por=ordenar_por, direccion=direccion, per_page=per_page, page=page-1) }}">Anterior</a>
       {% endif %}
       {% if page < total_pages %}
-      <a class="btn btn-outline btn-sm" href="{{ url_for('prestamos', vista=vista, q=q, estado=estado_filtro, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ordenar_por=ordenar_por, direccion=direccion, per_page=per_page, page=page+1) }}">Siguiente</a>
+      <a class="btn btn-outline btn-sm" href="{{ url_for('prestamos.prestamos', vista=vista, q=q, estado=estado_filtro, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ordenar_por=ordenar_por, direccion=direccion, per_page=per_page, page=page+1) }}">Siguiente</a>
       {% endif %}
     </div>
   </div>

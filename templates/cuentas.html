@@ -6,7 +6,7 @@
     <div class="page-title">Cuentas</div>
     <div class="page-subtitle">{{ cuentas|length }} cuenta(s) registrada(s)</div>
   </div>
-  <a href="{{ url_for('nueva_cuenta') }}" class="btn btn-primary">+ Nueva Cuenta</a>
+  <a href="{{ url_for('ahorro.nueva_cuenta') }}" class="btn btn-primary">+ Nueva Cuenta</a>
 </div>
 
 <div class="card">
@@ -38,7 +38,7 @@
           <td style="font-size:13px;color:#6b7280;">{{ c.tasa_interes }}%</td>
           <td style="font-size:13px;color:#6b7280;">{{ c.fecha_apertura }}</td>
           <td><span class="badge {% if c.estado=='activa' %}badge-green{% else %}badge-gray{% endif %}">{{ c.estado }}</span></td>
-          <td><a href="{{ url_for('detalle_cuenta', cid=c.id) }}" class="btn btn-outline btn-sm">Gestionar</a></td>
+          <td><a href="{{ url_for('ahorro.detalle_cuenta', cid=c.id) }}" class="btn btn-outline btn-sm">Gestionar</a></td>
         </tr>
         {% endfor %}
       </tbody>

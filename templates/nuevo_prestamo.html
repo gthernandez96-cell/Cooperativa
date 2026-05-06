@@ -107,6 +107,15 @@
 
 .np-hint { font-size:12px;color:#9ca3af;line-height:1.6;padding:0 2px; }
 
+/* Estilos para validación de elegibilidad */
+.elegibilidad-icon {
+  font-size:16px;margin-right:6px;
+  display:inline-block;width:20px;text-align:center;
+}
+#elegibilidad-text.elegible { color:#059669; }
+#elegibilidad-text.no-elegible { color:#dc2626; }
+#elegibilidad-text.evaluando { color:#6b7280; }
+
 @media(max-width:900px){ .np-main{ grid-template-columns:1fr; } .np-side{ order:-1; } }
 @media(max-width:640px){ .np-grid{ grid-template-columns:1fr; } .np-field-full{ grid-column:span 1; } }
 </style>
@@ -120,12 +129,12 @@
       <div class="np-header-sub">Calcule cuotas y envíe la solicitud de crédito</div>
     </div>
     <div class="np-header-actions">
-      <a href="{{ url_for('prestamos') }}" class="btn btn-outline btn-sm">&#8592; Préstamos</a>
+      <a href="{{ url_for('prestamos.prestamos') }}" class="btn btn-outline btn-sm">&#8592; Préstamos</a>
     </div>
   </header>
 
   <form method="post" id="form-prestamo">
-    <input type="hidden" name="prestamo_a_amortizar_id" id="inp-prestamo-a-amortizar-id">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
     <div class="np-main">
       <div class="np-panel">
@@ -228,8 +237,11 @@
             <span class="np-card-head-title">Área de amortización</span>
           </div>
           <div class="np-card-body" style="display:flex;flex-direction:column;gap:12px;">
-            <div class="np-amort-warning">
-              El asociado tiene préstamos vigentes. Para otorgar un nuevo préstamo seleccione cuál se amortizará.
+            <div id="amort-aviso-obligatorio" class="np-amort-warning" style="display:none;">
+              ⚠️ Este asociado tiene un préstamo vigente de la <strong>misma categoría</strong>. Debe seleccionarlo para amortizarlo.
+            </div>
+            <div id="amort-aviso-opcional" style="display:none;padding:10px 14px;border:1px solid #bfdbfe;border-radius:7px;background:#eff6ff;color:#1e40af;font-size:13px;">
+              ℹ️ El asociado tiene préstamos de <strong>diferente categoría</strong>. Puede amortizarlos opcionalmente.
             </div>
             <div id="lista-prestamos-vigentes" class="np-amort-list"></div>
           </div>
@@ -237,7 +249,7 @@
 
         <div class="np-actions">
           <button type="submit" class="btn btn-primary" id="btn-enviar-prestamo">Enviar solicitud</button>
-          <a href="{{ url_for('prestamos') }}" class="btn btn-outline">Cancelar</a>
+          <a href="{{ url_for('prestamos.prestamos') }}" class="btn btn-outline">Cancelar</a>
         </div>
       </div>
 
@@ -279,6 +291,23 @@
           </div>
         </div>
 
+        <div class="np-cuota-card">
+          <div class="np-cuota-head">
+            <div class="ch-label">Validación de Elegibilidad</div>
+          </div>
+          <div class="np-summary-body">
+            <!-- Elegibilidad field removed per user request -->
+            <div class="np-row">
+              <span class="r-label">Bono 14</span>
+              <strong class="r-value" id="out-bono14">&mdash;</strong>
+            </div>
+            <div class="np-row">
+              <span class="r-label">Aguinaldo</span>
+              <strong class="r-value" id="out-aguinaldo">&mdash;</strong>
+            </div>
+          </div>
+        </div>
+
         <div class="np-amort-summary" id="resumen-amortizacion" style="display:none;">
           <div class="np-amort-summary-head">Resumen de amortización</div>
           <div class="np-amort-summary-body">
@@ -314,7 +343,7 @@ function fmtFecha(fecha) {
 const prestamosVigentesPorSocio = {{ prestamos_vigentes_por_socio|tojson }};
 const inputBusquedaSocio = document.getElementById('busqueda-socio');
 const selectSocio = document.getElementById('inp-socio');
-const inputPrestamoAmortizar = document.getElementById('inp-prestamo-a-amortizar-id');
+const selectCategoria = document.getElementById('inp-categoria');
 const opcionesSocio = Array.from(selectSocio.options).slice(1).map(option => ({
   value: option.value, text: option.textContent,
   frecuencia: option.dataset.frecuencia || 'Quincenal',
@@ -328,12 +357,11 @@ function obtenerFrecuenciaSeleccionada() {
   return option && option.value ? (option.dataset.frecuencia || 'Quincenal') : '';
 }
 function obtenerDiasFrecuencia(frecuencia) { return frecuencia === 'Catorcenal' ? 14 : 15; }
-function obtenerPrestamosVigentesSeleccionados() {
+function obtenerPrestamosVigentes() {
   return prestamosVigentesPorSocio[String(selectSocio.value || '')] || [];
 }
-function obtenerPrestamoSeleccionado() {
-  const prestamos = obtenerPrestamosVigentesSeleccionados();
-  return prestamos.find(item => String(item.id) === String(inputPrestamoAmortizar.value)) || null;
+function obtenerCategoriaSeleccionada() {
+  return selectCategoria.value || '';
 }
 
 function renderOpcionesSocio(filtro) {
@@ -394,61 +422,199 @@ function actualizarMetodoDesembolso() {
 function renderPanelAmortizacion() {
   const panel = document.getElementById('panel-amortizacion');
   const lista = document.getElementById('lista-prestamos-vigentes');
-  const prestamos = obtenerPrestamosVigentesSeleccionados();
+  const avisoObl = document.getElementById('amort-aviso-obligatorio');
+  const avisoOpc = document.getElementById('amort-aviso-opcional');
   const botonEnviar = document.getElementById('btn-enviar-prestamo');
+  const prestamos = obtenerPrestamosVigentes();
+  const categoriaId = obtenerCategoriaSeleccionada();
+
   if (!prestamos.length) {
-    panel.style.display = 'none'; lista.innerHTML = '';
-    inputPrestamoAmortizar.value = '';
+    panel.style.display = 'none';
+    lista.innerHTML = '';
+    avisoObl.style.display = 'none';
+    avisoOpc.style.display = 'none';
     botonEnviar.textContent = 'Enviar solicitud';
-    document.getElementById('resumen-amortizacion').style.display = 'none'; return;
+    return;
   }
+
   panel.style.display = '';
-  botonEnviar.textContent = 'Procesar amortizaci\u00f3n';
-  const ids = prestamos.map(item => String(item.id));
-  if (!ids.includes(String(inputPrestamoAmortizar.value))) {
-    inputPrestamoAmortizar.value = String(prestamos[0].id);
-  }
+  const tienesMismaCategoria = prestamos.some(p => String(p.categoria_id) === String(categoriaId));
+  avisoObl.style.display = tienesMismaCategoria ? '' : 'none';
+  avisoOpc.style.display = tienesMismaCategoria ? 'none' : '';
+  botonEnviar.textContent = 'Procesar solicitud';
+
   lista.innerHTML = prestamos.map(item => {
-    const activo = String(item.id) === String(inputPrestamoAmortizar.value);
-    return '<button type="button" onclick="seleccionarPrestamoAmortizacion(\'' + item.id + '\')" class="np-amort-btn' + (activo ? ' active' : '') + '">' +
-      '<div style="display:flex;justify-content:space-between;gap:12px;align-items:center;">' +
-      '<strong>' + item.numero + '</strong><span style="font-size:12px;color:#6b7280;">' + item.estado + '</span></div>' +
-      '<div style="font-size:13px;color:#6b7280;">Categor\u00eda: ' + item.categoria_nombre + '</div>' +
-      '<div style="display:flex;justify-content:space-between;font-size:13px;gap:12px;">' +
-      '<span>Solicitado: ' + fmt(Number(item.monto_solicitado || 0)) + '</span>' +
-      '<strong style="color:#dc2626;">Pendiente: ' + fmt(Number(item.saldo_vigente || 0)) + '</strong></div></button>';
+    const esMismaCateg = String(item.categoria_id) === String(categoriaId);
+    const checkedAttr = esMismaCateg ? 'checked' : '';
+    const labelColor = esMismaCateg ? '#b91c1c' : '#374151';
+    return `
+    <div class="np-amort-item" id="amort-item-${item.id}" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:4px;">
+      <label style="display:flex;align-items:flex-start;gap:10px;padding:12px;cursor:pointer;background:#fafafa;">
+        <input type="checkbox" name="prestamos_a_amortizar[]" value="${item.id}"
+               id="chk-amort-${item.id}" ${checkedAttr}
+               onchange="toggleDesglose(${item.id})"
+               style="margin-top:3px;width:16px;height:16px;accent-color:#0057a3;flex-shrink:0;">
+        <div style="flex:1;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+            <strong style="color:${labelColor};">${item.numero}</strong>
+            <span style="font-size:11px;background:${esMismaCateg ? '#fef2f2' : '#f1f5f9'};color:${esMismaCateg ? '#b91c1c' : '#64748b'};padding:2px 8px;border-radius:99px;font-weight:700;">
+              ${esMismaCateg ? 'Misma categoría' : 'Otra categoría'}
+            </span>
+          </div>
+          <div style="font-size:12px;color:#6b7280;margin-top:2px;">${item.categoria_nombre}</div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px;">
+            <span>Solicitado: ${fmt(item.monto_solicitado)}</span>
+            <strong style="color:#dc2626;">Saldo: ${fmt(item.saldo_vigente)}</strong>
+          </div>
+        </div>
+      </label>
+      <div id="desglose-${item.id}" style="display:${checkedAttr ? '' : 'none'};padding:10px 12px 12px;border-top:1px dashed #e5e7eb;background:#fff;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;margin-bottom:8px;">Desglose de amortización</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div class="np-field">
+            <label for="cap-${item.id}">Capital (Q)</label>
+            <input type="number" step="0.01" min="0" id="cap-${item.id}"
+                   name="capital_amortizado_${item.id}"
+                   placeholder="0.00"
+                   value="${checkedAttr ? item.capital_periodo.toFixed(2) : ''}"
+                   oninput="actualizarTotalAmort(${item.id})">
+          </div>
+          <div class="np-field">
+            <label for="int-${item.id}">Interés (Q)</label>
+            <input type="number" step="0.01" min="0" id="int-${item.id}"
+                   name="interes_amortizado_${item.id}"
+                   placeholder="0.00"
+                   value="${checkedAttr ? item.interes_periodo.toFixed(2) : ''}"
+                   oninput="actualizarTotalAmort(${item.id})">
+          </div>
+        </div>
+        <div id="total-amort-${item.id}" style="margin-top:8px;font-size:13px;color:#374151;font-weight:600;"></div>
+      </div>
+    </div>`;
   }).join('');
+
+  // Disparar el cálculo de total para préstamos pre-marcados
+  prestamos.forEach(item => {
+    const esMismaCateg = String(item.categoria_id) === String(categoriaId);
+    if (esMismaCateg) {
+      actualizarTotalAmort(item.id);
+    }
+  });
+
   actualizarResumenAmortizacion();
 }
 
-function seleccionarPrestamoAmortizacion(prestamoId) {
-  inputPrestamoAmortizar.value = String(prestamoId);
-  renderPanelAmortizacion();
+function toggleDesglose(id) {
+  const chk = document.getElementById(`chk-amort-${id}`);
+  const desglose = document.getElementById(`desglose-${id}`);
+  desglose.style.display = chk.checked ? '' : 'none';
+  if (chk.checked) {
+    const capInput = document.getElementById(`cap-${id}`);
+    const intInput = document.getElementById(`int-${id}`);
+    if (!capInput.value && !intInput.value) {
+      const prestamos = obtenerPrestamosVigentes();
+      const prestamo = prestamos.find(p => String(p.id) === String(id));
+      if (prestamo) {
+        capInput.value = prestamo.capital_periodo.toFixed(2);
+        intInput.value = prestamo.interes_periodo.toFixed(2);
+        actualizarTotalAmort(id);
+      }
+    }
+  } else {
+    document.getElementById(`cap-${id}`).value = '';
+    document.getElementById(`int-${id}`).value = '';
+    document.getElementById(`total-amort-${id}`).textContent = '';
+  }
+  actualizarResumenAmortizacion();
+}
+
+function actualizarTotalAmort(id) {
+  const cap = parseFloat(document.getElementById(`cap-${id}`).value) || 0;
+  const int = parseFloat(document.getElementById(`int-${id}`).value) || 0;
+  const total = cap + int;
+  const el = document.getElementById(`total-amort-${id}`);
+  if (total > 0) {
+    el.innerHTML = `Total a cobrar: <span style="color:#0b4d83;font-size:15px;">${fmt(total)}</span>` +
+      `<span style="font-size:11px;color:#6b7280;margin-left:8px;">(Capital: ${fmt(cap)} + Interés: ${fmt(int)})</span>`;
+  } else {
+    el.textContent = '';
+  }
+  actualizarResumenAmortizacion();
+}
+
+function obtenerSeleccionados() {
+  return Array.from(document.querySelectorAll('input[name="prestamos_a_amortizar[]"]:checked'))
+    .map(chk => chk.value);
 }
 
 function actualizarResumenAmortizacion() {
   const resumen = document.getElementById('resumen-amortizacion');
-  const prestamo = obtenerPrestamoSeleccionado();
-  if (!prestamo) {
-    resumen.style.display = 'none';
-    document.getElementById('out-prestamo-amortizar').textContent = '\u2014';
-    document.getElementById('out-saldo-amortizar').textContent = '\u2014';
-    document.getElementById('out-desembolso-real').textContent = '\u2014'; return;
-  }
+  const seleccionados = obtenerSeleccionados();
+  const prestamos = obtenerPrestamosVigentes();
   const monto = parseFloat(document.getElementById('inp-monto').value) || 0;
-  const desembolsoReal = Math.max(0, monto - Number(prestamo.saldo_vigente || 0));
+
+  if (!seleccionados.length) {
+    resumen.style.display = 'none';
+    return;
+  }
+
+  let totalCapital = 0;
+  let totalInteres = 0;
+  seleccionados.forEach(id => {
+    const cap = parseFloat((document.getElementById(`cap-${id}`) || {}).value) || 0;
+    const int = parseFloat((document.getElementById(`int-${id}`) || {}).value) || 0;
+    if (cap + int > 0) {
+      totalCapital += cap;
+      totalInteres += int;
+    } else {
+      const p = prestamos.find(x => String(x.id) === String(id));
+      if (p) { totalCapital += p.capital_periodo; totalInteres += p.interes_periodo; }
+    }
+  });
+
+  const totalAmortizado = totalCapital + totalInteres;
+  // El desembolso real = nuevo monto - capital amortizado (el interés no descuenta el desembolso)
+  const desembolsoReal = Math.max(0, monto - totalCapital);
   resumen.style.display = '';
-  document.getElementById('out-prestamo-amortizar').textContent = prestamo.numero;
-  document.getElementById('out-saldo-amortizar').textContent = fmt(Number(prestamo.saldo_vigente || 0));
+  document.getElementById('out-prestamo-amortizar').textContent =
+    seleccionados.length === 1
+      ? (prestamos.find(p => String(p.id) === seleccionados[0]) || {}).numero || '\u2014'
+      : `${seleccionados.length} pr\u00e9stamos`;
+  document.getElementById('out-saldo-amortizar').textContent =
+    `${fmt(totalCapital)} + ${fmt(totalInteres)} int. = ${fmt(totalAmortizado)}`;
   document.getElementById('out-desembolso-real').textContent = monto > 0 ? fmt(desembolsoReal) : '\u2014';
 }
 
 function actualizarSocio() {
   const frecuencia = obtenerFrecuenciaSeleccionada();
   document.getElementById('inp-frecuencia').value = frecuencia || '';
-  document.getElementById('inp-periodicidad').value = frecuencia ? 'Cada ' + obtenerDiasFrecuencia(frecuencia) + ' d\u00edas' : '';
-  document.getElementById('out-frecuencia').textContent = frecuencia || '\u2014';
-  actualizarDatosBancarios(); renderPanelAmortizacion();
+  document.getElementById('inp-periodicidad').value = frecuencia ? 'Cada ' + obtenerDiasFrecuencia(frecuencia) + ' días' : '';
+  document.getElementById('out-frecuencia').textContent = frecuencia || '—';
+  actualizarDatosBancarios();
+  renderPanelAmortizacion();
+
+  const socioId = selectSocio.value;
+  if (socioId) {
+    actualizarElegibilidadYBonos(socioId);
+  } else {
+    document.getElementById('out-bono14').textContent = '—';
+    document.getElementById('out-aguinaldo').textContent = '—';
+  }
+}
+
+function actualizarElegibilidadYBonos(socioId) {
+  document.getElementById('out-bono14').textContent = '...';
+  document.getElementById('out-aguinaldo').textContent = '...';
+  fetch(`/api/calcular_prestamo_detalles?socio_id=${socioId}`)
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('out-bono14').textContent = data.bono_14 ? fmt(data.bono_14) : '—';
+      document.getElementById('out-aguinaldo').textContent = data.aguinaldo ? fmt(data.aguinaldo) : '—';
+    })
+    .catch(() => {
+      document.getElementById('out-bono14').textContent = '—';
+      document.getElementById('out-aguinaldo').textContent = '—';
+    });
 }
 
 function calcular() {
@@ -458,9 +624,9 @@ function calcular() {
   const frecuencia = obtenerFrecuenciaSeleccionada();
   if (monto <= 0 || !frecuencia || tasa <= 0 || plazo <= 0) {
     ['out-cuota','out-monto','out-total','out-intereses','out-cuotas','out-proximo-pago','out-fecha-final'].forEach(id => {
-      document.getElementById(id).textContent = '\u2014';
+      document.getElementById(id).textContent = '—';
     });
-    document.getElementById('out-frecuencia').textContent = frecuencia || '\u2014';
+    document.getElementById('out-frecuencia').textContent = frecuencia || '—';
     actualizarResumenAmortizacion(); return;
   }
   const dias = obtenerDiasFrecuencia(frecuencia);
@@ -474,7 +640,7 @@ function calcular() {
   document.getElementById('out-total').textContent = fmt(total);
   document.getElementById('out-intereses').textContent = fmt(intereses);
   document.getElementById('out-cuotas').textContent = cuotas;
-  document.getElementById('out-frecuencia').textContent = frecuencia + ' (' + dias + ' d\u00edas)';
+  document.getElementById('out-frecuencia').textContent = frecuencia + ' (' + dias + ' días)';
   const hoy = new Date();
   const proximoPago = new Date(hoy); proximoPago.setDate(proximoPago.getDate() + dias);
   const fechaFinal = new Date(hoy); fechaFinal.setDate(fechaFinal.getDate() + (cuotas * dias));
@@ -483,11 +649,27 @@ function calcular() {
   actualizarResumenAmortizacion();
 }
 
+// Re-render amortización al cambiar categoría
+selectCategoria.addEventListener('change', () => { renderPanelAmortizacion(); calcular(); });
+
+document.getElementById('inp-monto').addEventListener('input', actualizarResumenAmortizacion);
+
 document.getElementById('form-prestamo').addEventListener('submit', function(event) {
-  const prestamos = obtenerPrestamosVigentesSeleccionados();
-  if (prestamos.length && !inputPrestamoAmortizar.value) {
-    event.preventDefault();
-    alert('Debe seleccionar el pr\u00e9stamo vigente que se amortizar\u00e1.');
+  const categoriaId = obtenerCategoriaSeleccionada();
+  const prestamos = obtenerPrestamosVigentes();
+  const seleccionados = obtenerSeleccionados();
+
+  // Si hay préstamos de misma categoría, obligatorio seleccionar uno
+  const mismaCategoria = prestamos.filter(p => String(p.categoria_id) === String(categoriaId));
+  if (mismaCategoria.length) {
+    const seleccionadosMismaCateg = seleccionados.filter(id =>
+      mismaCategoria.some(p => String(p.id) === id)
+    );
+    if (!seleccionadosMismaCateg.length) {
+      event.preventDefault();
+      alert('Debe seleccionar el préstamo de la misma categoría para amortizarlo.');
+      return;
+    }
   }
 });
 

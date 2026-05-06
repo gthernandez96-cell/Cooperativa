@@ -6,12 +6,12 @@
     <div class="page-title">Bitacora de Auditoria</div>
     <div class="page-subtitle">Seguimiento de acciones del sistema por modulo y usuario</div>
   </div>
-  <a href="{{ url_for('index') }}" class="btn btn-outline">Volver</a>
+  <a href="{{ url_for('main.index') }}" class="btn btn-outline">Volver</a>
 </div>
 
 <div class="card" style="margin-bottom:16px;">
   <div class="card-body">
-    <form method="GET" action="{{ url_for('auditoria_eventos') }}" class="form-grid" style="align-items:end;">
+    <form method="GET" action="{{ url_for('configuraciones.auditoria_eventos') }}" class="form-grid" style="align-items:end;">
       <div class="form-group">
         <label>Modulo</label>
         <select name="modulo">

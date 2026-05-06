@@ -7,7 +7,7 @@
       <h1 class="page-title">Historial de Planillas</h1>
       <p class="page-subtitle">Consulta por nombre, fecha, boleta y frecuencia</p>
     </div>
-    <a href="{{ url_for('transacciones_masivas') }}" class="btn btn-outline">Volver</a>
+    <a href="{{ url_for('prestamos.transacciones_masivas') }}" class="btn btn-outline">Volver</a>
   </div>
 
   <div class="card mb-4">
@@ -15,7 +15,7 @@
       <h3 class="card-title">Filtros</h3>
     </div>
     <div class="card-body">
-      <form method="GET" action="{{ url_for('historial_planillas') }}">
+      <form method="GET" action="{{ url_for('configuraciones.historial_planillas') }}">
         <div class="row">
           <div class="col-md-2 mb-3">
             <label class="form-label">Tipo</label>
@@ -51,16 +51,16 @@
           </div>
         </div>
         <div class="text-end">
-          <a href="{{ url_for('historial_planillas') }}" class="btn btn-outline-secondary">Limpiar</a>
+          <a href="{{ url_for('configuraciones.historial_planillas') }}" class="btn btn-outline-secondary">Limpiar</a>
           <button type="submit" class="btn btn-primary">Buscar</button>
         </div>
       </form>
 
       <div class="text-end mt-3" style="display:flex; gap:10px; justify-content:flex-end;">
-        <a class="btn btn-outline" href="{{ url_for('historial_planillas', tipo=filtros.tipo, nombre=filtros.nombre, boleta=filtros.boleta, frecuencia=filtros.frecuencia, fecha_desde=filtros.fecha_desde, fecha_hasta=filtros.fecha_hasta, export='csv') }}">
+        <a class="btn btn-outline" href="{{ url_for('configuraciones.historial_planillas', tipo=filtros.tipo, nombre=filtros.nombre, boleta=filtros.boleta, frecuencia=filtros.frecuencia, fecha_desde=filtros.fecha_desde, fecha_hasta=filtros.fecha_hasta, export='csv') }}">
           Exportar CSV
         </a>
-        <a class="btn btn-gold" href="{{ url_for('historial_planillas', tipo=filtros.tipo, nombre=filtros.nombre, boleta=filtros.boleta, frecuencia=filtros.frecuencia, fecha_desde=filtros.fecha_desde, fecha_hasta=filtros.fecha_hasta, export='excel') }}">
+        <a class="btn btn-gold" href="{{ url_for('configuraciones.historial_planillas', tipo=filtros.tipo, nombre=filtros.nombre, boleta=filtros.boleta, frecuencia=filtros.frecuencia, fecha_desde=filtros.fecha_desde, fecha_hasta=filtros.fecha_hasta, export='excel') }}">
           Exportar Excel
         </a>
       </div>

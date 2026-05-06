@@ -5,10 +5,10 @@
   <div class="card shadow">
     <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
       <h4 class="mb-0">Modificar Planilla de Ahorro</h4>
-      <a href="{{ url_for('planillas_ahorro_pendientes') }}" class="btn btn-light btn-sm">Volver</a>
+      <a href="{{ url_for('ahorro.planillas_ahorro_pendientes') }}" class="btn btn-light btn-sm">Volver</a>
     </div>
     <div class="card-body">
-      <form method="POST" action="{{ url_for('editar_planilla_ahorro', planilla_id=planilla.id) }}">
+      <form method="POST" action="{{ url_for('ahorro.editar_planilla_ahorro', planilla_id=planilla.id) }}">
         <div class="row">
           <div class="col-md-4 mb-3">
             <label class="form-label">Nombre de la Planilla</label>

@@ -342,8 +342,8 @@
       <div class="g-header-subtitle">Solicitudes de retiro y préstamo — vista consolidada</div>
     </div>
     <div class="g-header-actions">
-      <a href="{{ url_for('gestion_retiro') }}" class="btn btn-primary btn-sm">+ Nuevo retiro</a>
-      <a href="{{ url_for('gestion_solicitud_prestamo') }}" class="btn btn-outline btn-sm">+ Nuevo préstamo</a>
+      <a href="{{ url_for('ahorro.gestion_retiro') }}" class="btn btn-primary btn-sm">+ Nuevo retiro</a>
+      <a href="{{ url_for('prestamos.gestion_solicitud_prestamo') }}" class="btn btn-outline btn-sm">+ Nuevo préstamo</a>
     </div>
   </header>
 
@@ -377,7 +377,7 @@
   </div>
 
   <!-- ── Filter toolbar ────────────────── -->
-  <form method="get" action="{{ url_for('gestiones') }}" class="g-toolbar">
+  <form method="get" action="{{ url_for('prestamos.gestiones') }}" class="g-toolbar">
     <div class="g-toolbar-field">
       <label for="ft-tipo">Tipo</label>
       <select id="ft-tipo" name="tipo">
@@ -415,7 +415,7 @@
     <div class="g-toolbar-sep"></div>
     <div class="g-toolbar-btns">
       <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
-      <a href="{{ url_for('gestiones') }}" class="btn btn-outline btn-sm">Limpiar</a>
+      <a href="{{ url_for('prestamos.gestiones') }}" class="btn btn-outline btn-sm">Limpiar</a>
     </div>
   </form>
 
@@ -467,6 +467,9 @@
             <td>
               <div class="g-number">{{ item.numero }}</div>
               <div class="g-date">{{ item.fecha_solicitud }}</div>
+              {% if item.tipo_solicitud == 'retiro' and item.destino == 'amortizacion_prestamo' and item.prestamo_numero %}
+              <div class="g-sub">Amortización · {{ item.prestamo_numero }}</div>
+              {% endif %}
             </td>
             <td>
               <div class="g-name">{{ item.socio_nombre }}</div>
@@ -483,7 +486,7 @@
             <td>
               {% if item.tipo_solicitud == 'retiro' %}
                 {% if item.destino == 'amortizacion_prestamo' %}
-                <div>Aplicación a préstamo vigente</div>
+                <div>Amortización de préstamo</div>
                 {% elif item.metodo_retiro == 'deposito' %}
                 <div>Depósito bancario</div>
                 <div class="g-sub">{{ item.banco_tipo_cuenta or '' }}{% if item.banco_numero_cuenta %} · {{ item.banco_numero_cuenta }}{% endif %}</div>
@@ -506,14 +509,14 @@
             <td>
               <div class="g-actions">
                 {% if item.tipo_solicitud == 'retiro' and item.estado == 'pendiente' %}
-                <form method="post" action="{{ url_for('aprobar_solicitud_retiro', rid=item.id) }}">
+                <form method="post" action="{{ url_for('ahorro.aprobar_solicitud_retiro', rid=item.id) }}">
                   <button type="submit" class="btn btn-sm btn-primary" onclick="return confirm('¿Aprobar esta solicitud de retiro?')">Aprobar</button>
                 </form>
-                <form method="post" action="{{ url_for('marcar_solicitud_retiro_no_procede', rid=item.id) }}">
+                <form method="post" action="{{ url_for('ahorro.marcar_solicitud_retiro_no_procede', rid=item.id) }}">
                   <button type="submit" class="btn btn-sm btn-outline" onclick="return confirm('¿Marcar como no procede?')">No procede</button>
                 </form>
                 {% elif item.tipo_solicitud == 'prestamo' and item.estado == 'pendiente' %}
-                <a href="{{ url_for('aprobar_prestamo', pid=item.id) }}" class="btn btn-sm btn-primary">Revisar</a>
+                <a href="{{ url_for('prestamos.aprobar_prestamo', pid=item.id) }}" class="btn btn-sm btn-primary">Revisar</a>
                 {% else %}
                 <span style="font-size:12px;color:#d1d5db;">—</span>
                 {% endif %}

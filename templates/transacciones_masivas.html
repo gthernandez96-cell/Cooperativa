@@ -90,7 +90,7 @@
       <p class="page-subtitle">Seleccione el módulo y ejecute operaciones masivas de forma controlada</p>
     </div>
     <div>
-      <a href="{{ url_for('historial_planillas') }}" class="btn btn-outline">
+      <a href="{{ url_for('configuraciones.historial_planillas') }}" class="btn btn-outline">
         Consultar historial de planillas
       </a>
     </div>
@@ -115,9 +115,9 @@
         <span class="tm-tag">Planillas</span>
       </div>
       <div class="tm-actions">
-        <a href="{{ url_for('menu_ahorro') }}" class="btn btn-primary">Abrir módulo</a>
-        <a href="{{ url_for('generar_planilla_cuotas_ahorro') }}" class="btn btn-outline">Generar planilla de cuotas</a>
-        <a href="{{ url_for('planillas_ahorro_pendientes') }}" class="btn btn-outline">Consultar planillas</a>
+        <a href="{{ url_for('ahorro.menu_ahorro') }}" class="btn btn-primary">Abrir módulo</a>
+        <a href="{{ url_for('ahorro.generar_planilla_cuotas_ahorro') }}" class="btn btn-outline">Generar planilla de cuotas</a>
+        <a href="{{ url_for('ahorro.planillas_ahorro_pendientes') }}" class="btn btn-outline">Consultar planillas</a>
       </div>
     </div>
 
@@ -139,9 +139,9 @@
         <span class="tm-tag">Planillas</span>
       </div>
       <div class="tm-actions">
-        <a href="{{ url_for('menu_prestamos') }}" class="btn btn-gold">Abrir módulo</a>
-        <a href="{{ url_for('generar_planilla_prestamos') }}" class="btn btn-outline">Generar planilla de cuotas</a>
-        <a href="{{ url_for('planillas_prestamos_pendientes') }}" class="btn btn-outline">Consultar planillas</a>
+        <a href="{{ url_for('prestamos.menu_prestamos') }}" class="btn btn-gold">Abrir módulo</a>
+        <a href="{{ url_for('prestamos.generar_planilla_prestamos') }}" class="btn btn-outline">Generar planilla de cuotas</a>
+        <a href="{{ url_for('prestamos.planillas_prestamos_pendientes') }}" class="btn btn-outline">Consultar planillas</a>
       </div>
     </div>
   </div>

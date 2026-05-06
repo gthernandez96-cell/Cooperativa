@@ -3,11 +3,18 @@ tests/test_prestamos.py — Pruebas de cálculos financieros de préstamos.
 """
 import pytest
 import app as app_module
+import utils.db as db_module
+from datetime import date
 from app import (
     calcular_resumen_prestamo,
     calcular_total_cuotas_prestamo,
     obtener_dias_frecuencia,
     generar_calendario_prestamo,
+)
+from utils.helpers import (
+    calcular_bono_14,
+    calcular_aguinaldo,
+    guardar_historial_salario_actual
 )
 
 
@@ -93,12 +100,126 @@ class TestGenerarCalendarioPrestamo:
         assert cal == []
 
 
+class TestCalculosBonoYAguinaldo:
+    def test_calcular_bono_14_se_calcula_desde_ultimo_30_de_junio(self, client, monkeypatch):
+        fixed_today = date(2026, 5, 1)
+
+        class FakeDate(date):
+            @classmethod
+            def today(cls):
+                return fixed_today
+
+        import utils.helpers as helpers_module
+        monkeypatch.setattr(helpers_module, 'date', FakeDate)
+
+        conn = app_module.get_db()
+        try:
+            conn.execute(
+                """
+                INSERT INTO socios (codigo, nombre, apellido, dpi, fecha_ingreso, estado, frecuencia, salario, fecha_ingreso_laborar)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                ('SOC-CTE-001', 'Carlos', 'Pérez', '1000000000111', '2025-01-01', 'activo', 'Quincenal', 1000, '2024-01-01')
+            )
+            socio_id = conn.execute("SELECT id FROM socios WHERE codigo = ?", ('SOC-CTE-001',)).fetchone()['id']
+            conn.commit()
+
+            dias_comerciales = (2026 - 2025) * 360 + (5 - 6) * 30 + (1 - 30)
+            esperado = 1000 * dias_comerciales / 360.0
+            bono = calcular_bono_14(socio_id, conn)
+            assert bono == pytest.approx(esperado)
+        finally:
+            conn.close()
+
+    def test_calcular_bono_14_parcial_con_fecha_ingreso_y_sin_historial(self, client, monkeypatch):
+        fixed_today = date(2026, 5, 1)
+
+        class FakeDate(date):
+            @classmethod
+            def today(cls):
+                return fixed_today
+
+        import utils.helpers as helpers_module
+        monkeypatch.setattr(helpers_module, 'date', FakeDate)
+
+        conn = app_module.get_db()
+        try:
+            conn.execute(
+                """
+                INSERT INTO socios (codigo, nombre, apellido, dpi, fecha_ingreso, estado, frecuencia, salario, fecha_ingreso_laborar)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                ('SOC-CTE-004', 'María', 'López', '1000000000444', '2025-01-01', 'activo', 'Quincenal', 1000, '2026-01-01')
+            )
+            socio_id = conn.execute("SELECT id FROM socios WHERE codigo = ?", ('SOC-CTE-004',)).fetchone()['id']
+            conn.commit()
+
+            bono = calcular_bono_14(socio_id, conn)
+            esperado = 1000 * 120 / 360.0
+            assert bono == pytest.approx(esperado)
+        finally:
+            conn.close()
+
+    def test_calcular_aguinaldo_se_usa_corte_30_noviembre(self, client, monkeypatch):
+        fixed_today = date(2025, 11, 30)
+
+        class FakeDate(date):
+            @classmethod
+            def today(cls):
+                return fixed_today
+
+        import utils.helpers as helpers_module
+        monkeypatch.setattr(helpers_module, 'date', FakeDate)
+
+        conn = app_module.get_db()
+        try:
+            conn.execute(
+                """
+                INSERT INTO socios (codigo, nombre, apellido, dpi, fecha_ingreso, estado, frecuencia, salario, fecha_ingreso_laborar)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                ('SOC-CTE-002', 'Ana', 'Gómez', '1000000000222', '2025-12-01', 'activo', 'Quincenal', 1000, '2025-11-01')
+            )
+            socio_id = conn.execute("SELECT id FROM socios WHERE codigo = ?", ('SOC-CTE-002',)).fetchone()['id']
+            conn.commit()
+
+            aguinaldo = calcular_aguinaldo(socio_id, conn)
+            assert aguinaldo == pytest.approx((1000 / 360.0) * 29)
+        finally:
+            conn.close()
+
+    def test_guardar_historial_salario_actual_inserta_registro_mes_actual(self, client):
+        conn = app_module.get_db()
+        try:
+            conn.execute(
+                """
+                INSERT INTO socios (codigo, nombre, apellido, dpi, fecha_ingreso, estado, frecuencia, salario, fecha_ingreso_laborar)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                ('SOC-CTE-003', 'Luis', 'Martínez', '1000000000333', '2025-01-01', 'activo', 'Quincenal', 1250, '2024-01-01')
+            )
+            socio_id = conn.execute("SELECT id FROM socios WHERE codigo = ?", ('SOC-CTE-003',)).fetchone()['id']
+            conn.commit()
+
+            guardar_historial_salario_actual(socio_id, 1250, conn)
+            registro = conn.execute(
+                "SELECT salario, mes, anio FROM historial_salarios WHERE socio_id = ? AND mes = ? AND anio = ?",
+                (socio_id, date.today().month, date.today().year)
+            ).fetchone()
+
+            assert registro is not None
+            assert registro['salario'] == 1250
+        finally:
+            conn.close()
+
+
 # ── Rutas de préstamos (con BD) ───────────────────────────────────────────────
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
     db_path = tmp_path / "cooperativa_test.db"
     monkeypatch.setattr(app_module, 'DB', str(db_path))
+    monkeypatch.setattr(db_module, 'DB', str(db_path))
     app_module.app.config['TESTING'] = True
     app_module.app.config['WTF_CSRF_ENABLED'] = False
     app_module.init_db()
