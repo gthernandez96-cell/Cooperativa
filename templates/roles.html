@@ -1,35 +1,82 @@
 {% extends "base.html" %}
-{% block title %}Roles — Cooperativa Quetzal{% endblock %}
-{% block content %}
-<div class="page-header">
-  <div>
-    <div class="page-title">Roles</div>
-    <div class="page-subtitle">Administrar perfiles y permisos</div>
-  </div>
-  <a href="{{ url_for('usuarios.nuevo_rol') }}" class="btn btn-primary">+ Nuevo Rol</a>
-</div>
+{% block title %}Roles y Permisos — {{ cooperativa_nombre }}{% endblock %}
 
-<div class="card">
-  <div class="card-body">
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>ID</th><th>Nombre</th><th>Descripción</th><th>Estado</th></tr>
-        </thead>
-        <tbody>
-          {% for r in roles %}
-          <tr>
-            <td>{{ r.id }}</td>
-            <td>{{ r.nombre }}</td>
-            <td>{{ r.descripcion or '-' }}</td>
-            <td>{{ r.estado }}</td>
-          </tr>
-          {% else %}
-          <tr><td colspan="4" style="text-align:center; color:#9ca3af;">No hay roles registrados</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+{% block content %}
+<style>
+  .r-shell { display: flex; flex-direction: column; gap: 24px; }
+  
+  .role-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+  }
+  
+  .role-card {
+    background: #fff; border-radius: 16px; border: 1px solid var(--c-border);
+    padding: 24px; display: flex; flex-direction: column; gap: 16px;
+    transition: all 0.2s;
+  }
+  .role-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: var(--c-blue-light); }
+  
+  .role-header { display: flex; align-items: center; justify-content: space-between; }
+  .role-name { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 700; color: var(--c-blue); }
+  
+  .role-desc { font-size: 14px; color: var(--c-gray); line-height: 1.5; min-height: 42px; }
+  
+  .role-footer {
+    padding-top: 16px; border-top: 1px solid var(--c-gray-light);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  
+  .perm-count { font-size: 12px; font-weight: 600; color: var(--c-blue-mid); background: #f0f7ff; padding: 4px 10px; border-radius: 20px; }
+</style>
+
+<div class="r-shell">
+  <header class="page-header">
+    <div>
+      <div class="page-title">Roles del Sistema</div>
+      <div class="page-subtitle">Define los perfiles de acceso y permisos para los usuarios</div>
     </div>
+    <div style="display:flex; gap:10px;">
+      <a href="{{ url_for('usuarios.usuarios') }}" class="btn btn-outline">&#8592; Volver a Usuarios</a>
+      <a href="{{ url_for('usuarios.nuevo_rol') }}" class="btn btn-primary">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        Nuevo Rol
+      </a>
+    </div>
+  </header>
+
+  <div class="role-grid">
+    {% for r in roles %}
+    <div class="role-card">
+      <div class="role-header">
+        <div class="role-name">{{ r.nombre }}</div>
+        <span class="badge {% if r.estado == 'activo' %}badge-green{% else %}badge-red{% endif %}">
+          {{ r.estado | capitalize }}
+        </span>
+      </div>
+      
+      <div class="role-desc">
+        {{ r.descripcion or 'Sin descripción disponible para este rol.' }}
+      </div>
+      
+      <div class="role-footer">
+        <span class="perm-count">
+          Acceso Completo
+        </span>
+        <div style="display:flex; gap:8px;">
+          <a href="#" class="btn btn-sm btn-outline" style="padding:4px 8px; min-height:32px;">Editar</a>
+          {% if r.nombre != 'Administrador' %}
+          <a href="#" class="btn btn-sm btn-danger" style="padding:4px 8px; min-height:32px; background:transparent; border:1px solid #fee2e2;">Eliminar</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="card" style="grid-column: 1 / -1; padding: 40px; text-align: center;">
+      <p style="color: var(--c-gray);">No hay roles definidos en el sistema.</p>
+    </div>
+    {% endfor %}
   </div>
 </div>
 {% endblock %}

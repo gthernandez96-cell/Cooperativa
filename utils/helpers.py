@@ -1,8 +1,10 @@
 from datetime import date, datetime
 import json
+import re
 from flask import session
 from utils.db import get_db, db_execute, db_fetchone, db_fetchall
-from utils.financial import normalizar_fecha_referencia
+from utils.financial import normalizar_fecha_referencia, calcular_proximo_pago
+
 from config import TRANSACCION_LABELS, TRANSACCIONES_POSITIVAS, CONFIG_LABELS
 def get_config_label(tipo):
     """Retorna una etiqueta amigable para mostrar configuraciones al usuario."""
@@ -42,7 +44,6 @@ def validar_pago_frecuencia(socio_id, tipo_pago, fecha_referencia=None):
 
     socio = db_fetchone(conn, "SELECT frecuencia, cuota_ahorro FROM socios WHERE id=?", [socio_id])
     if not socio or not socio['frecuencia']:
-        pass
         return True
 
     hoy = normalizar_fecha_referencia(fecha_referencia)
@@ -64,8 +65,7 @@ def validar_pago_frecuencia(socio_id, tipo_pago, fecha_referencia=None):
         )
         if ultimo_deposito:
             proximo_pago = calcular_proximo_pago(ultimo_deposito['fecha'], socio['frecuencia'])
-            if hoy < proximo_pago.date():
-                pass
+            if hoy < proximo_pago:
                 return False
 
     elif tipo_pago == 'prestamo':
@@ -82,11 +82,9 @@ def validar_pago_frecuencia(socio_id, tipo_pago, fecha_referencia=None):
         )
         if ultimo_pago_prestamo:
             proximo_pago = calcular_proximo_pago(ultimo_pago_prestamo['fecha'], socio['frecuencia'])
-            if hoy < proximo_pago.date():
-                pass
+            if hoy < proximo_pago:
                 return False
 
-    pass
     return True
 
 def obtener_mensaje_validacion_frecuencia(socio_id, tipo_pago, fecha_referencia=None):
@@ -95,7 +93,6 @@ def obtener_mensaje_validacion_frecuencia(socio_id, tipo_pago, fecha_referencia=
     """
     conn = get_db()
     socio = db_fetchone(conn, "SELECT frecuencia FROM socios WHERE id=?", [socio_id])
-    pass
     
     if not socio or not socio['frecuencia']:
         return ""
@@ -124,7 +121,6 @@ def log_auditoria_evento(modulo, entidad, accion, entidad_id=None, descripcion='
         ),
     )
     conn.commit()
-    pass
 
 def periodo_cerrado(modulo, fecha_evento=None):
     fecha_eval = normalizar_fecha_referencia(fecha_evento).isoformat()
@@ -140,7 +136,6 @@ def periodo_cerrado(modulo, fecha_evento=None):
         ''',
         (modulo, fecha_eval),
     )
-    pass
     return cierre is not None
 
 def generar_numero_comprobante(conn):
@@ -206,7 +201,6 @@ def log_auditoria_socio(socio_id, user_id, accion, datos_previos=None, datos_nue
         VALUES (?, ?, ?, ?, ?, ?)
     ''', (socio_id, user_id, accion, datos_previos, datos_nuevos, datetime.now().isoformat()))
     conn.commit()
-    pass
 
 def calcular_bono_14(socio_id, conn):
     socio = conn.execute("SELECT salario, fecha_ingreso_laborar FROM socios WHERE id = ?", (socio_id,)).fetchone()
@@ -263,3 +257,12 @@ def guardar_historial_salario_actual(socio_id, salario, conn):
         (socio_id, salario, hoy.month, hoy.year, hoy.isoformat())
     )
     conn.commit()
+
+def limpiar_descripcion_filter(s):
+    """Elimina referencias a boletas de la descripción para reportes limpios."""
+    if not s:
+        return ""
+    # Eliminar el patrón "| Boleta: XXXX" o "Boleta: XXXX |" o similares
+    s = re.sub(r'\s*\|\s*Boleta:\s*[^|]+', '', s)
+    s = re.sub(r'^Boleta:\s*[^|]+\s*\|?\s*', '', s)
+    return s.strip()

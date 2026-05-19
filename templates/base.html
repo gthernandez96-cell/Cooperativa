@@ -827,13 +827,13 @@ tr:hover td { background: var(--c-cream); }
         Cuentas
       </a>
       {% if session.get('user_role') in ['Administrador', 'Operador'] %}
-      {% set gestion_activa = request.endpoint in ['gestiones', 'gestion_retiro', 'gestion_solicitud_prestamo'] %}
-      <a href="{{ url_for('prestamos.gestiones') }}" class="nav-link {% if gestion_activa %}active{% endif %}">
+      {% set is_gestion = request.endpoint in ['prestamos.gestiones', 'ahorro.gestion_retiro', 'prestamos.gestion_solicitud_prestamo'] %}
+      <a href="{{ url_for('prestamos.gestiones') }}" class="nav-link {% if is_gestion %}active{% endif %}">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         Gestiones
       </a>
       {% endif %}
-      <a href="{{ url_for('prestamos.prestamos') }}" class="nav-link {% if 'prestamo' in request.endpoint %}active{% endif %}">
+      <a href="{{ url_for('prestamos.prestamos') }}" class="nav-link {% if request.blueprint == 'prestamos' and not is_gestion and request.endpoint != 'prestamos.transacciones_masivas' %}active{% endif %}">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
         Préstamos
       </a>
@@ -882,11 +882,12 @@ tr:hover td { background: var(--c-cream); }
     <a href="{{ url_for('socios.socios') }}" class="mobile-nav-link {% if 'socio' in request.endpoint %}active{% endif %}">Asociados</a>
     <a href="{{ url_for('ahorro.cuentas') }}" class="mobile-nav-link {% if 'cuenta' in request.endpoint %}active{% endif %}">Cuentas</a>
     {% if session.get('user_role') in ['Administrador', 'Operador'] %}
-    <a href="{{ url_for('prestamos.gestiones') }}" class="mobile-nav-link {% if request.endpoint=='gestiones' %}active{% endif %}">Gestiones</a>
-    <a href="{{ url_for('ahorro.gestion_retiro') }}" class="mobile-nav-link {% if request.endpoint=='gestion_retiro' %}active{% endif %}">Retiro</a>
-    <a href="{{ url_for('prestamos.gestion_solicitud_prestamo') }}" class="mobile-nav-link {% if request.endpoint=='gestion_solicitud_prestamo' %}active{% endif %}">Solicitud de prestamos</a>
+    {% set is_gestion_mob = request.endpoint in ['prestamos.gestiones', 'ahorro.gestion_retiro', 'prestamos.gestion_solicitud_prestamo'] %}
+    <a href="{{ url_for('prestamos.gestiones') }}" class="mobile-nav-link {% if request.endpoint=='prestamos.gestiones' %}active{% endif %}">Gestiones</a>
+    <a href="{{ url_for('ahorro.gestion_retiro') }}" class="mobile-nav-link {% if request.endpoint=='ahorro.gestion_retiro' %}active{% endif %}">Retiro</a>
+    <a href="{{ url_for('prestamos.gestion_solicitud_prestamo') }}" class="mobile-nav-link {% if request.endpoint=='prestamos.gestion_solicitud_prestamo' %}active{% endif %}">Solicitud de prestamos</a>
     {% endif %}
-    <a href="{{ url_for('prestamos.prestamos') }}" class="mobile-nav-link {% if 'prestamo' in request.endpoint %}active{% endif %}">Préstamos</a>
+    <a href="{{ url_for('prestamos.prestamos') }}" class="mobile-nav-link {% if request.blueprint == 'prestamos' and not is_gestion_mob and request.endpoint != 'prestamos.transacciones_masivas' %}active{% endif %}">Préstamos</a>
     <a href="{{ url_for('prestamos.transacciones_masivas') }}" class="mobile-nav-link {% if 'prestamos.transacciones_masivas' in request.endpoint %}active{% endif %}">Transacciones Masivas</a>
     <a href="{{ url_for('usuarios.roles') }}" class="mobile-nav-link {% if 'usuarios.roles' in request.endpoint %}active{% endif %}">Roles</a>
     <a href="{{ url_for('usuarios.usuarios') }}" class="mobile-nav-link {% if 'usuarios.usuarios' in request.endpoint %}active{% endif %}">Usuarios</a>

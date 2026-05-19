@@ -15,6 +15,9 @@ ROLE_PERMISSION_DEFAULTS = {
     'Asociado': {
         'socios.ver',
     },
+    'Promotora': {
+        'promotora.ver',
+    },
 }
 
 def usuario_tiene_permiso(conn, user_id, user_role, permiso):

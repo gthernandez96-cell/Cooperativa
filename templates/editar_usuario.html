@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Editar Usuario — {{ cooperativa_nombre }}{% endblock %}
+
+{% block content %}
+<style>
+  .nu-container { max-width: 540px; margin: 40px auto; }
+  .nu-card { background: #fff; border-radius: 20px; border: 1px solid var(--c-border); box-shadow: var(--shadow-lg); overflow: hidden; }
+  .nu-head { background: linear-gradient(135deg, var(--c-blue) 0%, var(--c-blue-mid) 100%); padding: 32px; color: #fff; text-align: center; }
+  .nu-head h2 { font-family: 'Fraunces', serif; font-size: 24px; margin-bottom: 8px; }
+  .nu-body { padding: 32px; }
+  .nu-form { display: flex; flex-direction: column; gap: 20px; }
+  .nu-group { display: flex; flex-direction: column; gap: 8px; }
+  .nu-group label { font-size: 13px; font-weight: 600; color: var(--c-dark); }
+  .nu-input { padding: 12px 16px; border: 1px solid var(--c-border); border-radius: 12px; font-size: 15px; background: var(--c-gray-light); transition: all 0.2s; }
+  .nu-input:focus { background: #fff; border-color: var(--c-blue); outline: none; }
+  .nu-actions { margin-top: 12px; display: flex; flex-direction: column; gap: 12px; }
+</style>
+
+<div class="nu-container">
+  <div class="nu-card">
+    <div class="nu-head">
+      <h2>Editar Usuario</h2>
+      <p>Modifica la información de <strong>{{ user.username }}</strong></p>
+    </div>
+    
+    <div class="nu-body">
+      <form method="post" class="nu-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
+        <div class="nu-group">
+          <label for="username">Nombre de usuario</label>
+          <input type="text" id="username" name="username" class="nu-input" value="{{ user.username }}" required autofocus>
+        </div>
+        
+        <div class="nu-group">
+          <label for="rol_id">Rol asignado</label>
+          <select id="rol_id" name="rol_id" class="nu-input" required>
+            {% for r in roles %}
+            <option value="{{ r.id }}" {% if user.rol_id == r.id %}selected{% endif %}>{{ r.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        
+        <div class="nu-actions">
+          <button type="submit" class="btn btn-primary" style="width: 100%; min-height: 48px;">
+            Guardar Cambios
+          </button>
+          <a href="{{ url_for('usuarios.usuarios') }}" class="btn btn-outline" style="width: 100%; min-height: 48px;">
+            Cancelar
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

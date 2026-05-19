@@ -198,17 +198,10 @@
                 </select>
               </div>
               <div class="np-field">
-                <label for="inp-plazo">Plazo (meses) *</label>
-                <select name="plazo" id="inp-plazo" onchange="calcular()">
-                  <option value="6">6 meses</option>
-                  <option value="12" selected>12 meses</option>
-                  <option value="18">18 meses</option>
-                  <option value="24">24 meses</option>
-                  <option value="36">36 meses</option>
-                  <option value="48">48 meses</option>
-                  <option value="60">60 meses</option>
-                </select>
+                <label for="inp-plazo">Plazo (pagos) *</label>
+                <input type="number" name="plazo" id="inp-plazo" value="12" min="1" step="1" required oninput="calcular()">
               </div>
+
               <div class="np-field">
                 <label for="inp-forma-desembolso">Forma de desembolso *</label>
                 <select name="forma_desembolso" id="inp-forma-desembolso" required onchange="actualizarMetodoDesembolso()">
@@ -293,10 +286,9 @@
 
         <div class="np-cuota-card">
           <div class="np-cuota-head">
-            <div class="ch-label">Validación de Elegibilidad</div>
+            <div class="ch-label">Garantías</div>
           </div>
           <div class="np-summary-body">
-            <!-- Elegibilidad field removed per user request -->
             <div class="np-row">
               <span class="r-label">Bono 14</span>
               <strong class="r-value" id="out-bono14">&mdash;</strong>
@@ -305,8 +297,17 @@
               <span class="r-label">Aguinaldo</span>
               <strong class="r-value" id="out-aguinaldo">&mdash;</strong>
             </div>
+            <div class="np-row">
+              <span class="r-label">Saldo de ahorro</span>
+              <strong class="r-value" id="out-ahorro">&mdash;</strong>
+            </div>
+            <div class="np-row highlight" style="background:#f0fdf4; border-top:1.5px solid #bbf7d0; margin-top:5px; padding-top:12px;">
+              <span class="r-label" style="color:#166534; font-weight:700;">Total Garantías</span>
+              <strong class="r-value" id="out-total-garantias" style="color:#15803d; font-size:16px;">&mdash;</strong>
+            </div>
           </div>
         </div>
+
 
         <div class="np-amort-summary" id="resumen-amortizacion" style="display:none;">
           <div class="np-amort-summary-head">Resumen de amortización</div>
@@ -464,7 +465,7 @@ function renderPanelAmortizacion() {
           <div style="font-size:12px;color:#6b7280;margin-top:2px;">${item.categoria_nombre}</div>
           <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px;">
             <span>Solicitado: ${fmt(item.monto_solicitado)}</span>
-            <strong style="color:#dc2626;">Saldo: ${fmt(item.saldo_vigente)}</strong>
+            <strong style="color:#dc2626;">Saldo Total: ${fmt(item.saldo_vigente + item.interes_periodo)}</strong>
           </div>
         </div>
       </label>
@@ -573,17 +574,17 @@ function actualizarResumenAmortizacion() {
   });
 
   const totalAmortizado = totalCapital + totalInteres;
-  // El desembolso real = nuevo monto - capital amortizado (el interés no descuenta el desembolso)
-  const desembolsoReal = Math.max(0, monto - totalCapital);
+  // El desembolso real = nuevo monto - (capital amortizado + interes amortizado)
+  const desembolsoReal = Math.max(0, monto - totalAmortizado);
   resumen.style.display = '';
   document.getElementById('out-prestamo-amortizar').textContent =
     seleccionados.length === 1
       ? (prestamos.find(p => String(p.id) === seleccionados[0]) || {}).numero || '\u2014'
       : `${seleccionados.length} pr\u00e9stamos`;
-  document.getElementById('out-saldo-amortizar').textContent =
-    `${fmt(totalCapital)} + ${fmt(totalInteres)} int. = ${fmt(totalAmortizado)}`;
+  document.getElementById('out-saldo-amortizar').textContent = fmt(totalAmortizado);
   document.getElementById('out-desembolso-real').textContent = monto > 0 ? fmt(desembolsoReal) : '\u2014';
 }
+
 
 function actualizarSocio() {
   const frecuencia = obtenerFrecuenciaSeleccionada();
@@ -599,23 +600,36 @@ function actualizarSocio() {
   } else {
     document.getElementById('out-bono14').textContent = '—';
     document.getElementById('out-aguinaldo').textContent = '—';
+    document.getElementById('out-ahorro').textContent = '—';
+    document.getElementById('out-total-garantias').textContent = '—';
   }
 }
 
+
 function actualizarElegibilidadYBonos(socioId) {
-  document.getElementById('out-bono14').textContent = '...';
-  document.getElementById('out-aguinaldo').textContent = '...';
+  ['out-bono14', 'out-aguinaldo', 'out-ahorro', 'out-total-garantias'].forEach(id => {
+    document.getElementById(id).textContent = '...';
+  });
   fetch(`/api/calcular_prestamo_detalles?socio_id=${socioId}`)
     .then(r => r.json())
     .then(data => {
-      document.getElementById('out-bono14').textContent = data.bono_14 ? fmt(data.bono_14) : '—';
-      document.getElementById('out-aguinaldo').textContent = data.aguinaldo ? fmt(data.aguinaldo) : '—';
+      const b14 = data.bono_14 || 0;
+      const agui = data.aguinaldo || 0;
+      const aho = data.saldo_ahorro || 0;
+      const total = b14 + agui + aho;
+      
+      document.getElementById('out-bono14').textContent = fmt(b14);
+      document.getElementById('out-aguinaldo').textContent = fmt(agui);
+      document.getElementById('out-ahorro').textContent = fmt(aho);
+      document.getElementById('out-total-garantias').textContent = fmt(total);
     })
     .catch(() => {
-      document.getElementById('out-bono14').textContent = '—';
-      document.getElementById('out-aguinaldo').textContent = '—';
+      ['out-bono14', 'out-aguinaldo', 'out-ahorro', 'out-total-garantias'].forEach(id => {
+        document.getElementById(id).textContent = '—';
+      });
     });
 }
+
 
 function calcular() {
   const monto = parseFloat(document.getElementById('inp-monto').value) || 0;
@@ -630,7 +644,8 @@ function calcular() {
     actualizarResumenAmortizacion(); return;
   }
   const dias = obtenerDiasFrecuencia(frecuencia);
-  const cuotas = Math.max(1, Math.ceil((plazo * 30) / dias));
+  const cuotas = plazo; // Plazo ahora se interpreta directamente como número de pagos
+
   const tasaPeriodo = (tasa / 100) * (dias / 365);
   const cuota = tasaPeriodo > 0 ? monto * tasaPeriodo / (1 - Math.pow(1 + tasaPeriodo, -cuotas)) : monto / cuotas;
   const total = cuota * cuotas;
@@ -670,6 +685,28 @@ document.getElementById('form-prestamo').addEventListener('submit', function(eve
       alert('Debe seleccionar el préstamo de la misma categoría para amortizarlo.');
       return;
     }
+  }
+
+  // Validación de monto vs amortización
+  const montoInput = document.getElementById('inp-monto');
+  const monto = parseFloat(montoInput.value) || 0;
+  
+  let totalAmort = 0;
+  seleccionados.forEach(id => {
+    const cap = parseFloat((document.getElementById(`cap-${id}`) || {}).value) || 0;
+    const int = parseFloat((document.getElementById(`int-${id}`) || {}).value) || 0;
+    if (cap + int > 0) {
+      totalAmort += cap + int;
+    } else {
+      const p = prestamos.find(x => String(x.id) === String(id));
+      if (p) { totalAmort += p.capital_periodo + p.interes_periodo; }
+    }
+  });
+
+  if (seleccionados.length && totalAmort > monto) {
+    event.preventDefault();
+    alert(`El saldo total a amortizar (${fmt(totalAmort)}) no puede ser mayor al monto solicitado (${fmt(monto)}).`);
+    return;
   }
 });
 

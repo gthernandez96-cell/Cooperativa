@@ -1,111 +1,386 @@
 {% extends "base.html" %}
-{% block title %}Prestamo {{ prestamo.numero }} - {{ cooperativa_nombre }}{% endblock %}
+{% block title %}Préstamo {{ prestamo.numero }} — {{ cooperativa_nombre }}{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Fraunces:opsz,wght@9..144,300;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --c-swiss-black: #0a0a0a;
+    --c-swiss-gray: #64748b;
+    --c-swiss-light: #f8fafc;
+    --c-swiss-border: #e2e8f0;
+    --c-swiss-accent: #003b74;
+  }
+
+  .loan-detail {
+    max-width: 1100px;
+    margin: 0 auto;
+    font-family: 'Outfit', sans-serif;
+    color: var(--c-swiss-black);
+  }
+
+  /* Header Section */
+  .loan-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-bottom: 24px;
+    border-bottom: 2px solid var(--c-swiss-black);
+    margin-bottom: 32px;
+  }
+
+  .loan-title-group h1 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(32px, 5vw, 42px);
+    font-weight: 700;
+    line-height: 1;
+    margin: 0;
+    letter-spacing: -1px;
+  }
+
+  .loan-subtitle {
+    font-size: 16px;
+    color: var(--c-swiss-gray);
+    margin-top: 8px;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .loan-actions {
+    display: flex;
+    gap: 12px;
+  }
+
+  /* KPI Cards - Grid Style */
+  .loan-kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1px;
+    background: var(--c-swiss-border);
+    border: 1px solid var(--c-swiss-border);
+    margin-bottom: 40px;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .loan-kpi-card {
+    background: #fff;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .kpi-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--c-swiss-gray);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .kpi-value {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--c-swiss-black);
+  }
+
+  .kpi-value.mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 24px;
+  }
+
+  /* Info Grid */
+  .loan-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 40px;
+    margin-bottom: 48px;
+  }
+
+  .info-section-title {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 600;
+    border-bottom: 1px solid var(--c-swiss-black);
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+  }
+
+  .info-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--c-swiss-light);
+    font-size: 14px;
+  }
+
+  .info-label {
+    color: var(--c-swiss-gray);
+    font-weight: 500;
+  }
+
+  .info-value {
+    font-weight: 600;
+    text-align: right;
+  }
+
+  /* Tables */
+  .swiss-table-container {
+    margin-top: 40px;
+  }
+
+  .swiss-table-title {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .swiss-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  .swiss-table th {
+    text-align: left;
+    padding: 12px 16px;
+    background: var(--c-swiss-black);
+    color: #fff;
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+  }
+
+  .swiss-table td {
+    padding: 16px;
+    border-bottom: 1px solid var(--c-swiss-border);
+  }
+
+  .swiss-table tr:hover td {
+    background: var(--c-swiss-light);
+  }
+
+  .amount-cell {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+    text-align: right;
+  }
+
+  /* Badges */
+  .swiss-badge {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .badge-aprobado { background: #eff6ff; color: #1e40af; }
+  .badge-pagado { background: #f0fdf4; color: #166534; }
+  .badge-pendiente { background: #fffbeb; color: #92400e; }
+
+  /* Buttons Custom */
+  .btn-swiss {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+  }
+
+  .btn-swiss-outline {
+    border: 1.5px solid var(--c-swiss-black);
+    background: transparent;
+    color: var(--c-swiss-black);
+  }
+
+  .btn-swiss-outline:hover {
+    background: var(--c-swiss-black);
+    color: #fff;
+  }
+
+  .btn-swiss-black {
+    background: var(--c-swiss-black);
+    color: #fff;
+    border: 1.5px solid var(--c-swiss-black);
+  }
+
+  .btn-swiss-black:hover {
+    opacity: 0.9;
+  }
+
+  @media (max-width: 768px) {
+    .loan-header { flex-direction: column; align-items: flex-start; gap: 20px; }
+    .loan-actions { width: 100%; flex-wrap: wrap; }
+    .btn-swiss { flex: 1; text-align: center; }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-  <div>
-    <div class="page-title">Prestamo {{ prestamo.numero }}</div>
-    <div class="page-subtitle">{{ prestamo.socio_codigo }} · {{ prestamo.nombre_socio }}</div>
-  </div>
-  <div style="display:flex;gap:8px;align-items:center;">
-    <a href="{{ url_for('prestamos.prestamos') }}" class="btn btn-outline">Volver a prestamos</a>
-    <a href="{{ url_for('socios.detalle_socio', sid=prestamo.socio_id) }}" class="btn btn-outline">Ver socio</a>
-  </div>
-</div>
+<div class="loan-detail">
+  <!-- Header -->
+  <header class="loan-header">
+    <div class="loan-title-group">
+      <div class="loan-subtitle">Expediente {{ prestamo.numero }}</div>
+      <h1>Préstamo {{ (prestamo.categoria_nombre or 'General') }}</h1>
+      <p style="margin-top: 8px; color: var(--c-swiss-gray);">{{ prestamo.socio_codigo }} · {{ prestamo.nombre_socio }}</p>
+    </div>
+    <div class="loan-actions">
+      <a href="{{ url_for('prestamos.prestamos') }}" class="btn btn-swiss btn-swiss-outline">Volver</a>
+      <a href="{{ url_for('socios.detalle_socio', sid=prestamo.socio_id) }}" class="btn btn-swiss btn-swiss-outline">Perfil Socio</a>
+      {% if prestamo.estado == 'aprobado' and prestamo.saldo_pendiente > 0 %}
+      <a href="{{ url_for('prestamos.pagar_prestamo', pid=prestamo.id) }}" class="btn btn-swiss btn-swiss-black">Registrar Pago</a>
+      {% endif %}
+    </div>
+  </header>
 
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px;">
-  <div class="stat-card"><div class="stat-label">Monto solicitado</div><div class="stat-value">Q{{ '{:,.2f}'.format(prestamo.monto_solicitado or 0) }}</div></div>
-  <div class="stat-card"><div class="stat-label">Monto aprobado</div><div class="stat-value">Q{{ '{:,.2f}'.format(prestamo.monto_aprobado or prestamo.monto_solicitado or 0) }}</div></div>
-  <div class="stat-card"><div class="stat-label">Saldo pendiente</div><div class="stat-value">Q{{ '{:,.2f}'.format(prestamo.saldo_pendiente or 0) }}</div></div>
-  <div class="stat-card"><div class="stat-label">Cuotas pagadas</div><div class="stat-value">{{ prestamo.cuotas_pagadas_calendario }} / {{ prestamo.total_cuotas }}</div></div>
-</div>
-
-<div class="card" style="margin-bottom:16px;">
-  <div class="card-header">
-    <span class="card-title">Informacion del prestamo</span>
+  <!-- KPIs -->
+  <div class="loan-kpis">
+    <div class="loan-kpi-card">
+      <span class="kpi-label">Monto Aprobado</span>
+      <span class="kpi-value">Q{{ '{:,.2f}'.format(prestamo.monto_aprobado or prestamo.monto_solicitado or 0) }}</span>
+    </div>
+    <div class="loan-kpi-card">
+      <span class="kpi-label">Saldo Pendiente</span>
+      <span class="kpi-value" style="color: var(--c-danger);">Q{{ '{:,.2f}'.format(prestamo.saldo_pendiente or 0) }}</span>
+    </div>
+    <div class="loan-kpi-card">
+      <span class="kpi-label">Cuota Periódica</span>
+      <span class="kpi-value">Q{{ '{:,.2f}'.format(prestamo.cuota_mensual or 0) }}</span>
+    </div>
+    <div class="loan-kpi-card">
+      <span class="kpi-label">Progreso</span>
+      <span class="kpi-value mono">{{ prestamo.cuotas_pagadas_calendario }} / {{ prestamo.total_cuotas }}</span>
+    </div>
   </div>
-  <div class="card-body">
-    <div class="form-grid">
-      <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Estado</div><div style="margin-top:4px;"><span class="badge {% if prestamo.estado=='aprobado' %}badge-green{% elif prestamo.estado=='pendiente' %}badge-gold{% elif prestamo.estado=='pagado' %}badge-gray{% elif prestamo.estado=='no_procede' %}badge-red{% else %}badge-red{% endif %}">{{ 'No procede' if prestamo.estado == 'no_procede' else prestamo.estado.capitalize() }}</span></div></div>
-      <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Categoria</div><div style="margin-top:4px;">{{ prestamo.categoria_nombre or 'General' }}</div></div>
-      <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Frecuencia</div><div style="margin-top:4px;">{{ prestamo.frecuencia or 'Quincenal' }}</div></div>
-      <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Tasa</div><div style="margin-top:4px;">{{ prestamo.tasa_interes }}%</div></div>
-      <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Plazo</div><div style="margin-top:4px;">{{ prestamo.plazo_meses }} meses</div></div>
-      <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Cuota</div><div style="margin-top:4px;">Q{{ '{:,.2f}'.format(prestamo.cuota_mensual or 0) }}</div></div>
-      <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Fecha solicitud</div><div style="margin-top:4px;">{{ prestamo.fecha_solicitud or '—' }}</div></div>
-      <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Fecha aprobacion</div><div style="margin-top:4px;">{{ prestamo.fecha_aprobacion or '—' }}</div></div>
-      <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Desembolso</div><div style="margin-top:4px;">{{ (prestamo.desembolso_tipo or '—')|capitalize }}{% if prestamo.desembolso_referencia %} · {{ prestamo.desembolso_referencia }}{% endif %}</div></div>
-      <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Ultimo pago</div><div style="margin-top:4px;">{{ prestamo.ultimo_pago or 'Sin pagos' }}</div></div>
-      <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Total pagado</div><div style="margin-top:4px;">Q{{ '{:,.2f}'.format(prestamo.monto_pagado or 0) }}</div></div>
+
+  <!-- Info Grid -->
+  <div class="loan-info-grid">
+    <div>
+      <h3 class="info-section-title">Condiciones</h3>
+      <div class="info-item"><span class="info-label">Estado</span> <span class="info-value"><span class="swiss-badge badge-{{ prestamo.estado }}">{{ prestamo.estado|capitalize }}</span></span></div>
+      <div class="info-item"><span class="info-label">Frecuencia</span> <span class="info-value">{{ prestamo.frecuencia or 'Quincenal' }}</span></div>
+      <div class="info-item"><span class="info-label">Tasa Anual</span> <span class="info-value">{{ prestamo.tasa_interes }}%</span></div>
+      <div class="info-item"><span class="info-label">Plazo Original</span> <span class="info-value">{{ prestamo.plazo_meses }} meses</span></div>
+    </div>
+    <div>
+      <h3 class="info-section-title">Actividad</h3>
+      <div class="info-item"><span class="info-label">Fecha Solicitud</span> <span class="info-value">{{ prestamo.fecha_solicitud or '—' }}</span></div>
+      <div class="info-item"><span class="info-label">Fecha Aprobación</span> <span class="info-value">{{ prestamo.fecha_aprobacion or '—' }}</span></div>
+      <div class="info-item"><span class="info-label">Último Pago</span> <span class="info-value">{{ prestamo.ultimo_pago or 'Sin pagos' }}</span></div>
+      <div class="info-item"><span class="info-label">Total Recaudado</span> <span class="info-value" style="color: var(--c-green-mid);">Q{{ '{:,.2f}'.format(prestamo.monto_pagado or 0) }}</span></div>
+    </div>
+    <div>
+      <h3 class="info-section-title">Desembolso</h3>
+      <div class="info-item"><span class="info-label">Método</span> <span class="info-value">{{ (prestamo.desembolso_tipo or '—')|capitalize }}</span></div>
+      {% if prestamo.desembolso_referencia %}
+      <div class="info-item"><span class="info-label">Referencia</span> <span class="info-value">{{ prestamo.desembolso_referencia }}</span></div>
+      {% endif %}
+      <div class="info-item" style="border:none; margin-top:10px;">
+        <a href="{{ url_for('prestamos.calendario_prestamo_pdf', pid=prestamo.id) }}" class="btn btn-swiss btn-swiss-outline" style="width:100%;">Descargar Calendario PDF</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Table -->
+  <div class="swiss-table-container">
+    <h2 class="swiss-table-title">
+      Historial de Pagos
+      <span style="font-size: 14px; color: var(--c-swiss-gray); font-weight: 400;">({{ pagos|length }} registros)</span>
+    </h2>
+    <div class="table-wrap">
+      <table class="swiss-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th style="text-align:right;">Monto</th>
+            <th style="text-align:right;">Capital</th>
+            <th style="text-align:right;">Interés</th>
+            <th style="text-align:right;">Saldo</th>
+            <th>Referencia</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pago in pagos %}
+          <tr>
+            <td style="font-weight: 600;">{{ pago.fecha }}</td>
+            <td class="amount-cell" style="font-weight: 700;">Q{{ '{:,.2f}'.format(pago.monto or 0) }}</td>
+            <td class="amount-cell" style="color: #0b4d83;">Q{{ '{:,.2f}'.format(pago.capital or 0) }}</td>
+            <td class="amount-cell" style="color: #c2410c;">Q{{ '{:,.2f}'.format(pago.interes or 0) }}</td>
+            <td class="amount-cell">Q{{ '{:,.2f}'.format(pago.saldo_restante or 0) }}</td>
+            <td style="font-size: 12px; color: var(--c-swiss-gray);">
+              {% if pago.es_amortizacion %}
+                {% if pago.prestamo_origen_numero %}
+                Amortización desde {{ pago.prestamo_origen_numero }}
+                {% else %}
+                Amortización de {{ pago.prestamo_amortizado_numero }}
+                {% endif %}
+              {% else %}
+                <div style="font-weight: 500; color: var(--c-swiss-black);">{{ pago.boleta_deposito or '—' }}</div>
+                {% if pago.descripcion %}
+                <div style="font-size: 11px; opacity: 0.8;">{{ pago.descripcion }}</div>
+                {% endif %}
+              {% endif %}
+            </td>
+            <td style="text-align:right;">
+              {% if pago.id %}
+              <a href="{{ url_for('prestamos.comprobante_pago_prestamo', pago_id=pago.id) }}" class="btn btn-swiss btn-swiss-outline btn-sm" style="padding:4px 8px;">Recibo</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" style="text-align:center; padding:40px; color: var(--c-swiss-gray);">No se registran pagos para este préstamo.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Calendar Table -->
+  <div class="swiss-table-container" style="margin-bottom: 60px;">
+    <h2 class="swiss-table-title">Calendario de Cuotas</h2>
+    <div class="table-wrap">
+      <table class="swiss-table">
+        <thead>
+          <tr>
+            <th>Cuota</th>
+            <th>Fecha Programada</th>
+            <th style="text-align:right;">Monto</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cuota in calendario %}
+          <tr>
+            <td style="font-family: 'Fraunces', serif; font-size: 16px;">{{ cuota.numero_cuota }}</td>
+            <td>{{ cuota.fecha_programada }}</td>
+            <td class="amount-cell">Q{{ '{:,.2f}'.format(cuota.monto_programado or 0) }}</td>
+            <td><span class="swiss-badge badge-{{ cuota.estado }}">{{ cuota.estado|capitalize }}</span></td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4" style="text-align:center; padding:40px; color: var(--c-swiss-gray);">Calendario no disponible.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
 </div>
-
-<div class="card" style="margin-bottom:16px;">
-  <div class="card-header">
-    <span class="card-title">Cuotas pagadas ({{ pagos|length }})</span>
-  </div>
-  <div class="table-wrap">
-    <table>
-      <thead><tr><th>Fecha</th><th>Monto</th><th>Capital</th><th>Interes</th><th>Saldo restante</th><th>Boleta</th><th>Comprobante</th></tr></thead>
-      <tbody>
-        {% for pago in pagos %}
-        <tr>
-          <td>{{ pago.fecha }}</td>
-          <td class="amount">Q{{ '{:,.2f}'.format(pago.monto or 0) }}</td>
-          <td class="amount">Q{{ '{:,.2f}'.format(pago.capital or 0) }}</td>
-          <td class="amount">Q{{ '{:,.2f}'.format(pago.interes or 0) }}</td>
-          <td class="amount">Q{{ '{:,.2f}'.format(pago.saldo_restante or 0) }}</td>
-          <td>
-            {% if pago.es_amortizacion %}
-            {% if pago.prestamo_origen_numero %}
-            Pagado con préstamo {{ pago.prestamo_origen_numero }} · Total préstamo: Q{{ '{:,.2f}'.format(pago.total_prestamo_origen or 0) }}
-            {% else %}
-            Amortización {{ pago.prestamo_amortizado_numero }} · Total préstamo: Q{{ '{:,.2f}'.format(pago.total_prestamo_amortizado or 0) }}
-            {% endif %}
-            {% else %}
-            {{ pago.boleta_deposito or '—' }}
-            {% endif %}
-          </td>
-          <td>
-            {% if pago.id %}
-            <a href="{{ url_for('prestamos.comprobante_pago_prestamo', pago_id=pago.id) }}" class="btn btn-outline btn-sm">Ver</a>
-            {% elif pago.es_amortizacion %}
-            —
-            {% else %}
-            —
-            {% endif %}
-          </td>
-        </tr>
-        {% else %}
-        <tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:20px;">Este prestamo aun no tiene cuotas pagadas.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
-
-<div class="card">
-  <div class="card-header">
-    <span class="card-title">Calendario de cuotas</span>
-  </div>
-  <div class="table-wrap">
-    <table>
-      <thead><tr><th>Cuota</th><th>Fecha programada</th><th>Monto programado</th><th>Estado</th></tr></thead>
-      <tbody>
-        {% for cuota in calendario %}
-        <tr>
-          <td>{{ cuota.numero_cuota }}</td>
-          <td>{{ cuota.fecha_programada }}</td>
-          <td class="amount">Q{{ '{:,.2f}'.format(cuota.monto_programado or 0) }}</td>
-          <td>
-            <span class="badge {% if cuota.estado == 'pagado' %}badge-green{% else %}badge-gold{% endif %}">{{ cuota.estado.capitalize() }}</span>
-          </td>
-        </tr>
-        {% else %}
-        <tr><td colspan="4" style="text-align:center;color:#9ca3af;padding:20px;">No hay calendario generado para este prestamo.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
 {% endblock %}
+

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Dashboard — Cooperativa Quetzal{% endblock %}
+{% block title %}Dashboard — {{ cooperativa_nombre }}{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -76,7 +76,7 @@
 .kpi-card {
   position: relative;
   border-radius: 28px;
-  padding: 28px;
+  padding: 16px;
   overflow: hidden;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
@@ -110,9 +110,9 @@
 }
 
 .kpi-icon-wrap {
-  width: 54px;
-  height: 54px;
-  border-radius: 16px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -135,7 +135,7 @@
 
 .kpi-value {
   font-family: 'Fraunces', serif;
-  font-size: clamp(32px, 3.5vw, 42px);
+  font-size: clamp(28px, 3vw, 36px);
   font-weight: 600;
   line-height: 1;
 }
@@ -144,18 +144,18 @@
   margin-top: auto;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 2px;
 }
 
 .kpi-breakdown-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
-  background: rgba(255, 255, 255, 0.25);
-  padding: 10px 14px;
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 3px 8px;
+  border-radius: 4px;
   transition: background 0.2s;
 }
 
@@ -381,9 +381,7 @@
       <div class="kpi-top">
         <div class="kpi-label">Préstamos Activos</div>
         <div class="kpi-icon-wrap">
-          <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
         </div>
       </div>
       <div class="kpi-value">{{ stats.prestamos_activos }}</div>
@@ -394,16 +392,79 @@
       <div class="kpi-top">
         <div class="kpi-label">Total Socios</div>
         <div class="kpi-icon-wrap">
-          <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
         </div>
       </div>
       <div class="kpi-value">{{ stats.total_socios }}</div>
+      <div class="kpi-breakdown">
+        <div class="kpi-breakdown-item" style="background:#f8fafb;"><span>Quincenal</span><span style="font-weight:700;">{{ stats.socios_quincenal }}</span></div>
+        <div class="kpi-breakdown-item" style="background:#f8fafb;"><span>Catorcenal</span><span style="font-weight:700;">{{ stats.socios_catorcenal }}</span></div>
+      </div>
+    </div>
+
+    <!-- Mora -->
+    <div class="kpi-card kpi-theme-glass" style="border-left:4px solid #dc2626;">
+      <div class="kpi-top">
+        <div class="kpi-label" style="color:#dc2626;">Cartera en Mora</div>
+        <div class="kpi-icon-wrap" style="background:#fee2e2;color:#dc2626;">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+        </div>
+      </div>
+      <div class="kpi-value" style="color:#dc2626;">{{ stats.prestamos_en_mora }}</div>
+      <div class="kpi-breakdown">
+        <div class="kpi-breakdown-item" style="background:#fef2f2;color:#991b1b;"><span>Saldo en mora</span><span>Q{{ "{:,.0f}".format(stats.monto_mora) }}</span></div>
+      </div>
+    </div>
+
+    <!-- Actividad hoy -->
+    <div class="kpi-card kpi-theme-glass" style="border-left:4px solid #0057a3;">
+      <div class="kpi-top">
+        <div class="kpi-label" style="color:#0057a3;">Cobros de Hoy</div>
+        <div class="kpi-icon-wrap" style="background:#eff6ff;color:#0057a3;">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 01-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75" /></svg>
+        </div>
+      </div>
+      <div class="kpi-value" style="color:#0057a3;">Q{{ "{:,.0f}".format(stats.pagos_hoy_monto) }}</div>
+      <div class="kpi-breakdown">
+        <div class="kpi-breakdown-item" style="background:#eff6ff;color:#1e40af;"><span>Pagos registrados</span><span>{{ stats.pagos_hoy_count }}</span></div>
+        <div class="kpi-breakdown-item" style="background:#f0fdf4;color:#065f46;"><span>Depósitos ahorro</span><span>{{ stats.depositos_hoy_count }}</span></div>
+      </div>
     </div>
   </div>
 
   <div class="dash-section-label fade-in-up" style="animation-delay: 0.4s;">Accesos Directos</div>
+
+  {% if alertas_cuotas %}
+  <div class="fade-in-up" style="animation-delay:0.38s;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div class="dash-section-label" style="margin:0;">
+        ⏰ Cuotas próximas a vencer
+        <span style="background:#dc2626;color:#fff;font-size:10px;padding:2px 8px;border-radius:99px;margin-left:8px;font-weight:700;">{{ alertas_cuotas|length }}</span>
+      </div>
+      <a href="{{ url_for('prestamos.prestamos', vista='activos') }}" style="font-size:12px;color:#0057a3;text-decoration:none;">Ver todos →</a>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;">
+      {% for a in alertas_cuotas[:6] %}
+      <a href="{{ url_for('prestamos.detalle_prestamo', pid=a.id) }}" style="text-decoration:none;color:inherit;">
+        <div style="background:#fff;border-radius:14px;border:1.5px solid {% if a.dias_restantes == 0 %}#dc2626{% elif a.dias_restantes <= 2 %}#f59e0b{% else %}#dbeafe{% endif %};padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;transition:box-shadow .15s;" onmouseover="this.style.boxShadow='0 6px 20px rgba(0,42,80,.1)'" onmouseout="this.style.boxShadow=''">
+          <div>
+            <div style="font-size:12px;color:#6b7280;margin-bottom:2px;">{{ a.numero }}</div>
+            <div style="font-size:13px;font-weight:600;color:#1a1a1a;">{{ a.socio }}</div>
+            <div style="font-size:12px;color:#6b7280;margin-top:2px;">Vence: <strong>{{ a.proximo_pago }}</strong></div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-family:'Fraunces',serif;font-size:16px;font-weight:600;color:#003b74;">Q{{ "{:,.2f}".format(a.cuota) }}</div>
+            <div style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;margin-top:4px;{% if a.dias_restantes == 0 %}background:#fee2e2;color:#991b1b;{% elif a.dias_restantes <= 2 %}background:#fef3c7;color:#92400e;{% else %}background:#dbeafe;color:#1e40af;{% endif %}">
+              {% if a.dias_restantes == 0 %}HOY{% elif a.dias_restantes == 1 %}MAÑANA{% else %}{{ a.dias_restantes }}d{% endif %}
+            </div>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
   <div class="dash-actions-grid fade-in-up" style="animation-delay: 0.45s;">
     <a href="{{ url_for('prestamos.transacciones_masivas') }}" class="action-card">
       <div class="action-card-icon">

@@ -1,41 +1,110 @@
 {% extends "base.html" %}
-{% block title %}Crear Usuario — Cooperativa Quetzal{% endblock %}
-{% block content %}
-<div class="page-header">
-  <div>
-    <div class="page-title">Crear Usuario</div>
-    <div class="page-subtitle">Asignar acceso al sistema</div>
-  </div>
-  <a href="{{ url_for('usuarios.usuarios') }}" class="btn btn-outline">← Volver</a>
-</div>
+{% block title %}Nuevo Usuario — {{ cooperativa_nombre }}{% endblock %}
 
-<div class="card" style="max-width:700px;">
-  <div class="card-body">
-    <form method="post">
-      <div class="form-grid">
-        <div class="form-group">
-          <label>Nombre de usuario *</label>
-          <input name="username" required placeholder="Ej: jgomez">
+{% block content %}
+<style>
+  .nu-container {
+    max-width: 540px;
+    margin: 40px auto;
+  }
+  
+  .nu-card {
+    background: #fff;
+    border-radius: 20px;
+    border: 1px solid var(--c-border);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+  }
+  
+  .nu-head {
+    background: linear-gradient(135deg, var(--c-blue) 0%, var(--c-blue-mid) 100%);
+    padding: 32px;
+    color: #fff;
+    text-align: center;
+  }
+  .nu-head h2 { font-family: 'Fraunces', serif; font-size: 24px; margin-bottom: 8px; }
+  .nu-head p { font-size: 14px; opacity: 0.8; }
+  
+  .nu-body { padding: 32px; }
+  
+  .nu-form { display: flex; flex-direction: column; gap: 20px; }
+  
+  .nu-group { display: flex; flex-direction: column; gap: 8px; }
+  .nu-group label { font-size: 13px; font-weight: 600; color: var(--c-dark); }
+  
+  .nu-input {
+    padding: 12px 16px;
+    border: 1px solid var(--c-border);
+    border-radius: 12px;
+    font-size: 15px;
+    background: var(--c-gray-light);
+    transition: all 0.2s;
+  }
+  .nu-input:focus {
+    background: #fff;
+    border-color: var(--c-blue);
+    box-shadow: 0 0 0 4px rgba(0, 59, 116, 0.05);
+    outline: none;
+  }
+  
+  .nu-actions { margin-top: 12px; display: flex; flex-direction: column; gap: 12px; }
+  
+  .nu-footer {
+    padding: 20px;
+    background: #fafafa;
+    border-top: 1px solid var(--c-border);
+    text-align: center;
+    font-size: 13px;
+    color: var(--c-gray);
+  }
+</style>
+
+<div class="nu-container">
+  <div class="nu-card">
+    <div class="nu-head">
+      <h2>Nuevo Usuario</h2>
+      <p>Crea una nueva cuenta de acceso al sistema</p>
+    </div>
+    
+    <div class="nu-body">
+      <form method="post" class="nu-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
+        <div class="nu-group">
+          <label for="username">Nombre de usuario</label>
+          <input type="text" id="username" name="username" class="nu-input" placeholder="Ej: jlopez" required autofocus>
         </div>
-        <div class="form-group">
-          <label>Contraseña *</label>
-          <input name="password" type="password" required placeholder="******">
+        
+        <div class="nu-group">
+          <label for="password">Contraseña</label>
+          <input type="password" id="password" name="password" class="nu-input" placeholder="••••••••" required>
         </div>
-        <div class="form-group" style="grid-column: span 2;">
-          <label>Rol *</label>
-          <select name="rol_id" required>
-            <option value="">Seleccionar rol</option>
+        
+        <div class="nu-group">
+          <label for="rol_id">Rol asignado</label>
+          <select id="rol_id" name="rol_id" class="nu-input" required>
+            <option value="">Seleccionar rol...</option>
             {% for r in roles %}
             <option value="{{ r.id }}">{{ r.nombre }}</option>
             {% endfor %}
           </select>
         </div>
-      </div>
-      <div class="form-actions">
-        <button type="submit" class="btn btn-primary">Crear usuario</button>
-        <a href="{{ url_for('usuarios.usuarios') }}" class="btn btn-outline">Cancelar</a>
-      </div>
-    </form>
+        
+        <div class="nu-actions">
+          <button type="submit" class="btn btn-primary" style="width: 100%; min-height: 48px;">
+            Crear Usuario
+          </button>
+          <a href="{{ url_for('usuarios.usuarios') }}" class="btn btn-outline" style="width: 100%; min-height: 48px;">
+            Cancelar
+          </a>
+        </div>
+      </form>
+    </div>
+    
+    <div class="nu-footer">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="vertical-align: middle; margin-right: 4px;"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+      La contraseña será cifrada de forma segura.
+    </div>
   </div>
 </div>
 {% endblock %}

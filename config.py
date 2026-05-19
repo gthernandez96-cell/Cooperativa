@@ -50,6 +50,10 @@ REQUIRED_CONFIGURACIONES = [
 SYSTEM_SETTINGS_DEFAULTS = {
     'cooperativa_nombre': DEFAULT_COOPERATIVA_NOMBRE,
     'cooperativa_foto': '',
+    'login_background_image': '',
+    'cooperativa_mision': 'Nuestra misión es fomentar el ahorro y crédito para el bienestar de nuestros asociados.',
+    'cooperativa_vision': 'Ser la cooperativa líder en servicios financieros integrales de la región.',
+    'cooperativa_principios': 'Adhesión voluntaria, gestión democrática, participación económica, autonomía, educación e interés por la comunidad.',
     'retiro_comprobante_texto': (
         'Por este medio, {cooperativa_nombre} deja constancia del retiro efectuado por el asociado '
         '{socio_nombre} con codigo {socio_codigo}, por un monto de Q{monto_retiro}, '

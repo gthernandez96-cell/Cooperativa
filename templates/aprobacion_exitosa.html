@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Aprobación Exitosa — {{ cooperativa_nombre }}{% endblock %}
+
+{% block content %}
+<style>
+  .ae-container { max-width: 650px; margin: 60px auto; text-align: center; }
+  .ae-card { background: #fff; border-radius: 24px; padding: 48px; border: 1px solid var(--c-border); box-shadow: var(--shadow-xl); }
+  .ae-icon { width: 80px; height: 80px; background: #ecfdf5; color: #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; }
+  .ae-title { font-family: 'Fraunces', serif; font-size: 32px; color: var(--c-dark); margin-bottom: 12px; }
+  .ae-subtitle { color: #6b7280; font-size: 16px; margin-bottom: 40px; line-height: 1.5; }
+  .ae-info { background: var(--c-gray-light); border-radius: 16px; padding: 24px; margin-bottom: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; text-align: left; }
+  .ae-info-label { font-size: 12px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; margin-bottom: 4px; }
+  .ae-info-value { font-size: 15px; color: var(--c-dark); font-weight: 600; }
+  .ae-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .ae-btn-print { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 24px; border-radius: 16px; border: 2px solid #e5e7eb; transition: all 0.2s; cursor: pointer; text-decoration: none; color: var(--c-dark); }
+  .ae-btn-print:hover { border-color: var(--c-blue); background: #f8fafc; transform: translateY(-2px); }
+  .ae-btn-print svg { width: 32px; height: 32px; color: var(--c-blue); }
+  .ae-btn-print span { font-weight: 600; font-size: 15px; }
+  .ae-footer { margin-top: 32px; }
+</style>
+
+<div class="ae-container">
+  <div class="ae-card">
+    <div class="ae-icon">
+      <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    
+    <h1 class="ae-title">¡Crédito Aprobado!</h1>
+    <p class="ae-subtitle">El préstamo se ha procesado correctamente y el calendario de pagos ha sido generado.</p>
+    
+    <div class="ae-info">
+      <div>
+        <div class="ae-info-label">Asociado</div>
+        <div class="ae-info-value">{{ prestamo.nombre_socio }}</div>
+      </div>
+      <div>
+        <div class="ae-info-label">No. Préstamo</div>
+        <div class="ae-info-value">{{ prestamo.numero }}</div>
+      </div>
+      <div>
+        <div class="ae-info-label">Monto Aprobado</div>
+        <div class="ae-info-value">Q{{ "{:,.2f}".format(prestamo.monto_aprobado or 0) }}</div>
+      </div>
+      <div>
+        <div class="ae-info-label">Cuota</div>
+        <div class="ae-info-value">Q{{ "{:,.2f}".format(prestamo.cuota_mensual or 0) }}</div>
+      </div>
+    </div>
+    
+    <div class="ae-actions">
+      <a href="{{ url_for('prestamos.finiquito_prestamo', pid=prestamo.id, formato='pdf') }}" target="_blank" class="ae-btn-print">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <span>Imprimir Finiquito</span>
+      </a>
+      
+      <a href="{{ url_for('prestamos.calendario_prestamo_pdf', pid=prestamo.id) }}" target="_blank" class="ae-btn-print">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <span>Calendario de Pagos</span>
+      </a>
+    </div>
+    
+    <div class="ae-footer">
+      <a href="{{ url_for('prestamos.prestamos') }}" class="btn btn-outline" style="width: 100%;">Volver al Listado de Préstamos</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

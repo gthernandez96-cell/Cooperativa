@@ -6,12 +6,16 @@ import csv
 import io
 from datetime import date, datetime, timedelta
 from werkzeug.utils import secure_filename
-from utils.db import get_db, db_fetchone, db_fetchall, db_execute, db_insert_and_get_id, db_executemany
+from utils.db import (
+    get_db, get_db_connection, db_fetchone, db_fetchall, db_execute, 
+    db_insert_and_get_id, db_executemany, ensure_system_settings, 
+    ensure_module_settings, get_system_setting, set_system_setting
+)
 from utils.decorators import login_required, permission_required
 from utils.nombres import preparar_datos_socio, construir_nombre_completo, construir_apellido_completo, validar_dpi, resumen_beneficiarios
 from utils.financial import normalizar_fecha_referencia
-from utils.helpers import  log_auditoria_evento, periodo_cerrado, generar_numero_comprobante, validar_pago_frecuencia, obtener_mensaje_validacion_frecuencia
-from config import SYSTEM_SETTINGS_DEFAULTS
+from utils.helpers import log_auditoria_evento, periodo_cerrado, generar_numero_comprobante, validar_pago_frecuencia, obtener_mensaje_validacion_frecuencia, obtener_tipo_cuenta_desde_planilla
+from config import SYSTEM_SETTINGS_DEFAULTS, AHORRO_SETTINGS_DEFAULTS
 
 bp = Blueprint('ahorro', __name__)
 
@@ -30,15 +34,6 @@ def cuentas():
 @bp.route('/cuentas/nueva', methods=['GET','POST'])
 def nueva_cuenta():
     conn = get_db()
-    socios = db_fetchall(
-        conn,
-        """
-        SELECT id, codigo, nombre, apellido
-        FROM socios
-        WHERE estado='activo'
-        ORDER BY codigo, nombre, apellido
-        """
-    )
 
     tipos_ahorro = db_fetchall(
         conn,
@@ -117,7 +112,6 @@ def nueva_cuenta():
     conn.close()
     return render_template(
         'nueva_cuenta.html',
-        socios=socios,
         tipos_ahorro=tipos_ahorro,
         selected_socio_id=selected_socio_id,
         selected_producto=selected_producto,
@@ -135,26 +129,57 @@ def aplicar_intereses():
     )
     
     procesados = 0
-    total_pagado = 0
+    total_interes_bruto = 0
+    total_isr = 0
     
     for c in cuentas:
-        # Cálculo: (Saldo * (Tasa/100)) / 12 meses
-        monto_interes = round(c['saldo'] * (c['tasa_interes'] / 100 / 12), 2)
-        if monto_interes > 0:
-            nuevo_saldo = round(c['saldo'] + monto_interes, 2)
-            db_execute(conn, "UPDATE cuentas SET saldo=? WHERE id=?", (nuevo_saldo, c['id']))
+        # Cálculo Bruto: (Saldo * (Tasa/100)) / 12 meses
+        monto_interes_bruto = round(c['saldo'] * (c['tasa_interes'] / 100 / 12), 2)
+        
+        if monto_interes_bruto > 0:
+            # Cálculo ISR (10% sobre el interés generado)
+            monto_isr = round(monto_interes_bruto * 0.10, 2)
+            
+            # 1. Registrar Crédito de INTERES
+            saldo_con_interes = round(c['saldo'] + monto_interes_bruto, 2)
             db_execute(
                 conn,
                 """INSERT INTO transacciones (cuenta_id, tipo, monto, saldo_despues, descripcion, fecha)
                    VALUES (?, 'interes', ?, ?, ?, ?)""",
-                (c['id'], monto_interes, nuevo_saldo, f"Capitalización Interés - {hoy.strftime('%B %Y')}", datetime.now().isoformat())
+                (c['id'], monto_interes_bruto, saldo_con_interes, f"INTERES - {hoy.strftime('%B %Y')}", datetime.now().isoformat())
             )
+            
+            # 2. Registrar Débito de ISR (si aplica)
+            nuevo_saldo = saldo_con_interes
+            if monto_isr > 0:
+                nuevo_saldo = round(saldo_con_interes - monto_isr, 2)
+                db_execute(
+                    conn,
+                    """INSERT INTO transacciones (cuenta_id, tipo, monto, saldo_despues, descripcion, fecha)
+                       VALUES (?, 'isr', ?, ?, ?, ?)""",
+                    (c['id'], monto_isr, nuevo_saldo, f"ISR 10% s/Interés - {hoy.strftime('%B %Y')}", datetime.now().isoformat())
+                )
+            
+            # 3. Actualizar Saldo Final en la Cuenta
+            db_execute(conn, "UPDATE cuentas SET saldo=? WHERE id=?", (nuevo_saldo, c['id']))
+            
             procesados += 1
-            total_pagado += monto_interes
+            total_interes_bruto += monto_interes_bruto
+            total_isr += monto_isr
             
     conn.commit()
     conn.close()
-    flash(f'Proceso finalizado: Se aplicaron intereses a {procesados} cuentas por un total de Q{total_pagado:,.2f}', 'success')
+    
+    log_auditoria_evento(
+        modulo='ahorro',
+        entidad='cuentas',
+        entidad_id=None,
+        accion='capitalizacion',
+        descripcion=f'Capitalización mensual procesada: {procesados} cuentas. Total Interés: Q{total_interes_bruto:.2f}, Total ISR: Q{total_isr:.2f}',
+        datos={'cuentas_procesadas': procesados, 'interes_total': total_interes_bruto, 'isr_total': total_isr}
+    )
+    
+    flash(f'Proceso finalizado: Se aplicaron intereses a {procesados} cuentas. (Total Interés: Q{total_interes_bruto:,.2f}, Total ISR: Q{total_isr:,.2f})', 'success')
     return redirect(url_for('ahorro.configuracion_ahorro'))
 
 @bp.route('/cuentas/<int:cid>')
@@ -174,6 +199,41 @@ def detalle_cuenta(cid):
     txns = db_fetchall(conn, "SELECT * FROM transacciones WHERE cuenta_id=? ORDER BY id DESC", [cid])
     conn.close()
     return render_template('detalle_cuenta.html', cuenta=cuenta, transacciones=txns)
+
+@bp.route('/cuentas/<int:cid>/imprimir')
+def imprimir_estado_cuenta(cid):
+    conn = get_db()
+    # Obtener datos de la cuenta y socio con más detalle
+    cuenta = db_fetchone(
+        conn,
+        '''SELECT c.*, s.nombre, s.apellido, s.codigo as socio_codigo, s.dpi, s.direccion
+           FROM cuentas c 
+           JOIN socios s ON c.socio_id = s.id
+           WHERE c.id = ?''',
+        [cid]
+    )
+    if not cuenta:
+        conn.close()
+        flash('Cuenta no encontrada.', 'danger')
+        return redirect(url_for('ahorro.cuentas'))
+    
+    # Obtener historial completo para el reporte
+    txns = db_fetchall(conn, "SELECT * FROM transacciones WHERE cuenta_id=? ORDER BY fecha ASC", [cid])
+    conn.close()
+    
+    # Calcular resumen para el reporte
+    total_depositos = sum(t['monto'] for t in txns if t['tipo'] in ['deposito', 'interes'])
+    total_retiros = sum(t['monto'] for t in txns if t['tipo'] in ['retiro', 'isr', 'debito'])
+    
+    return render_template('imprimir_estado_cuenta.html', 
+                           cuenta=cuenta, 
+                           transacciones=txns,
+                           resumen={
+                               'depositos': total_depositos,
+                               'retiros': total_retiros,
+                               'neto': total_depositos - total_retiros
+                           },
+                           hoy=datetime.now())
 
 @bp.route('/cuentas/<int:cid>/transaccion', methods=['POST'])
 def hacer_transaccion(cid):
@@ -228,7 +288,20 @@ def hacer_transaccion(cid):
 @bp.route('/menu_ahorro')
 @login_required()
 def menu_ahorro():
-    return render_template('menu_ahorro.html')
+    conn = get_db()
+    stats = db_fetchone(
+        conn,
+        """
+        SELECT 
+            COUNT(*) as total_cuentas,
+            COALESCE(SUM(saldo), 0) as saldo_total,
+            COALESCE((SELECT SUM(monto) FROM transacciones WHERE tipo='interes'), 0) as intereses_pagados
+        FROM cuentas 
+        WHERE tipo='ahorro' AND estado='activa'
+        """
+    )
+    conn.close()
+    return render_template('menu_ahorro.html', stats=stats)
 
 @bp.route('/gestiones/retiro')
 @login_required(role=('Administrador', 'Operador'))
@@ -729,9 +802,6 @@ def procesar_retiros_ahorro():
         return jsonify({'success': False, 'error': 'No hay retiros para procesar'}), 400
 
     conn = get_db()
-    if not validate_idempotency(conn, 'procesar_retiros_ahorro'):
-        conn.close()
-        return jsonify({'success': False, 'error': 'Solicitud duplicada detectada (idempotencia).'}), 409
     procesados = 0
     monto_total = 0.0
     errores = []
@@ -871,9 +941,6 @@ def procesar_transferencias_ahorro():
         return jsonify({'success': False, 'error': 'No hay transferencias para procesar'}), 400
 
     conn = get_db()
-    if not validate_idempotency(conn, 'procesar_transferencias_ahorro'):
-        conn.close()
-        return jsonify({'success': False, 'error': 'Solicitud duplicada detectada (idempotencia).'}), 409
     procesados = 0
     monto_total = 0.0
     errores = []
@@ -1474,10 +1541,6 @@ def procesar_abonos_masivos():
         return jsonify({'error': 'Debe indicar numero de boleta de pago para aplicar la planilla.'}), 400
     
     conn = get_db_connection()
-    if not validate_idempotency(conn, 'procesar_abonos_masivos'):
-        conn.close()
-        return jsonify({'error': 'Solicitud duplicada detectada (idempotencia).'}), 409
-
     planilla = None
     detalles_planilla = []
     if planilla_id:

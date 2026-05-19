@@ -2,380 +2,353 @@
 {% block title %}Préstamos — {{ cooperativa_nombre }}{% endblock %}
 {% block extra_head %}
 <style>
-.prestamos-table {
-  width: 100%;
-  table-layout: fixed;
-}
+/* ── KPI Cards ──────────────────────────────────────────────── */
+.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px;}
+.kpi-card{background:#fff;border-radius:16px;border:1.5px solid #e5e7eb;padding:22px 24px 18px;cursor:pointer;text-decoration:none;color:inherit;display:block;position:relative;overflow:hidden;transition:transform .18s,box-shadow .18s,border-color .18s;}
+.kpi-card:hover{transform:translateY(-3px);box-shadow:0 12px 32px rgba(0,42,80,.13);}
+.kpi-card.active-activos{border-color:#003b74;background:linear-gradient(135deg,#eef6ff,#fff);}
+.kpi-card.active-pagados{border-color:#0f766e;background:linear-gradient(135deg,#ecfdf5,#fff);}
+.kpi-card.active-pendientes{border-color:#b45309;background:linear-gradient(135deg,#fff7ed,#fff);}
+.kpi-accent{position:absolute;top:-18px;right:-18px;width:80px;height:80px;border-radius:50%;opacity:.08;}
+.kpi-accent.blue{background:#003b74;}
+.kpi-accent.green{background:#0f766e;}
+.kpi-accent.amber{background:#b45309;}
+.kpi-label{font-size:11px;text-transform:uppercase;letter-spacing:.9px;color:#6b7280;margin-bottom:4px;}
+.kpi-title{font-family:'Fraunces',serif;font-size:22px;font-weight:600;line-height:1.1;margin-bottom:8px;}
+.kpi-title.blue{color:#003b74;}
+.kpi-title.green{color:#0f766e;}
+.kpi-title.amber{color:#b45309;}
+.kpi-count{font-size:38px;font-weight:700;line-height:1;letter-spacing:-1px;color:#1a1a1a;}
+.kpi-desc{font-size:12px;color:#9ca3af;margin-top:6px;}
 
-.prestamos-table th,
-.prestamos-table td {
-  vertical-align: middle;
-  padding: 9px 8px;
-  font-size: 12px;
-  line-height: 1.25;
-  word-break: break-word;
-}
+/* ── Search bar ─────────────────────────────────────────────── */
+.filter-card{background:#fff;border-radius:14px;border:1px solid #e5e7eb;padding:16px 18px;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,32,68,.05);}
+.filter-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.filter-input{padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:13px;font-family:inherit;background:#fff;color:#1a1a1a;transition:border-color .15s;}
+.filter-input:focus{outline:none;border-color:#003b74;box-shadow:0 0 0 3px rgba(0,59,116,.1);}
+.filter-input.search{flex:1;min-width:220px;}
+.filter-btn{padding:9px 18px;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;border:none;font-family:inherit;transition:all .15s;min-height:40px;}
+.filter-btn.primary{background:#003b74;color:#fff;}
+.filter-btn.primary:hover{background:#0057a3;}
+.filter-btn.outline{background:#fff;border:1.5px solid #e5e7eb;color:#374151;}
+.filter-btn.outline:hover{background:#f9fafb;}
 
-.prestamos-table th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: var(--c-cream);
-}
+/* ── Info bar ───────────────────────────────────────────────── */
+.info-bar{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:#f8fafb;border-radius:10px;border:1px solid #e5e7eb;margin-bottom:14px;font-size:13px;color:#6b7280;}
+.info-bar strong{color:#1a1a1a;}
 
-.prestamos-table .col-numero { width: 7%; }
-.prestamos-table .col-socio { width: 12%; }
-.prestamos-table .col-categoria { width: 8%; }
-.prestamos-table .col-desembolso { width: 11%; }
-.prestamos-table .col-monto { width: 8%; }
-.prestamos-table .col-tasa { width: 5%; }
-.prestamos-table .col-plazo { width: 5%; }
-.prestamos-table .col-cuota { width: 8%; }
-.prestamos-table .col-saldo { width: 8%; }
-.prestamos-table .col-cuotas { width: 8%; }
-.prestamos-table .col-semaforo { width: 9%; }
-.prestamos-table .col-estado { width: 6%; }
-.prestamos-table .col-acciones { width: 13%; }
+/* ── Table ──────────────────────────────────────────────────── */
+.loans-table{width:100%;border-collapse:separate;border-spacing:0;}
+.loans-table th{background:#f8fafb;padding:10px 12px;text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;color:#6b7280;border-bottom:1.5px solid #e5e7eb;font-weight:600;white-space:nowrap;}
+.loans-table td{padding:12px 12px;border-bottom:1px solid #f1f5f9;vertical-align:middle;font-size:13px;}
+.loans-table tr:last-child td{border-bottom:none;}
+.loans-table tbody tr{transition:background .12s;}
+.loans-table tbody tr:hover td{background:#f0f7ff;}
+.loan-num{font-family:'Fraunces',serif;font-size:13px;color:#2d6a4f;font-weight:600;}
+.loan-socio-name{font-weight:600;color:#1a1a1a;font-size:13px;}
+.loan-socio-code{font-size:11px;color:#9ca3af;margin-top:1px;}
 
-.prestamos-table .cell-main {
-  display: block;
-  font-weight: 600;
-  color: #1f2937;
-}
+/* Amount cells */
+.amt{font-family:'Fraunces',serif;font-weight:500;font-size:13px;}
+.amt-danger{color:#dc2626;}
+.amt-ok{color:#047857;}
 
-.prestamos-table .cell-sub {
-  display: block;
-  margin-top: 2px;
-  font-size: 10px;
-  color: #6b7280;
-}
+/* Semáforo chips */
+.chip{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap;}
+.chip-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.chip.vencido{background:#fee2e2;color:#991b1b;}.chip.vencido .chip-dot{background:#dc2626;}
+.chip.por_vencer{background:#fef3c7;color:#92400e;}.chip.por_vencer .chip-dot{background:#f59e0b;}
+.chip.al_dia{background:#d1fae5;color:#065f46;}.chip.al_dia .chip-dot{background:#10b981;}
 
-.prestamos-table .action-group {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-  flex-wrap: wrap;
-}
+/* Estado badges */
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+.badge-aprobado{background:#dbeafe;color:#1e40af;}
+.badge-pendiente{background:#fef9c3;color:#854d0e;}
+.badge-pagado{background:#d1fae5;color:#047857;}
+.badge-amortizado{background:#e0f2fe;color:#075985;}
+.badge-noprocede{background:#f3f4f6;color:#6b7280;}
 
-.prestamos-table .icon-btn {
-  width: 24px;
-  height: 24px;
-  border-radius: 7px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #d4dee9;
-  background: #fff;
-  text-decoration: none;
-  color: #334155;
-  font-size: 12px;
-  line-height: 1;
-}
+/* Action buttons */
+.action-wrap{display:flex;gap:5px;align-items:center;}
+.act-btn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;border:1.5px solid #e5e7eb;background:#fff;text-decoration:none;color:#374151;font-size:13px;cursor:pointer;transition:all .15s;}
+.act-btn:hover{background:#f0f7ff;border-color:#93c5fd;}
+.act-btn.approve{border-color:#bbf7d0;background:#f0fdf4;color:#047857;}
+.act-btn.approve:hover{background:#dcfce7;}
+.act-btn.warn{border-color:#fecaca;background:#fff5f5;color:#dc2626;}
+.act-btn.warn:hover{background:#fee2e2;}
+.act-btn.pay{border-color:#ddd6fe;background:#f5f3ff;color:#6d28d9;}
+.act-btn.pay:hover{background:#ede9fe;}
 
-.prestamos-table .icon-btn:hover {
-  background: #f8fbff;
-  border-color: #afc6dd;
-}
+/* Sort links */
+.sort-link{text-decoration:none;color:inherit;display:inline-flex;align-items:center;gap:3px;}
+.sort-link:hover{color:#003b74;}
 
-.prestamos-table .icon-btn.ok {
-  border-color: #d9d2a2;
-  background: #fff8dc;
-}
+/* Cuotas progress */
+.cuotas-bar{width:64px;height:5px;background:#e5e7eb;border-radius:99px;margin-top:4px;overflow:hidden;}
+.cuotas-fill{height:100%;background:linear-gradient(90deg,#003b74,#4a7ebf);border-radius:99px;transition:width .4s;}
 
-.prestamos-table .icon-btn.warn {
-  border-color: #f0c8c8;
-  background: #fff5f5;
-}
+/* Pagination */
+.pagination{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-top:1px solid #f1f5f9;}
+.page-info{font-size:12px;color:#6b7280;}
+.page-btns{display:flex;gap:6px;}
 
-.prestamos-table .status-chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 54px;
-  padding: 2px 7px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .2px;
-}
+/* Empty state */
+.empty-state{text-align:center;padding:48px 24px;color:#9ca3af;}
+.empty-state svg{width:48px;height:48px;opacity:.3;margin-bottom:12px;}
+.empty-state p{font-size:15px;font-weight:500;color:#6b7280;}
+.empty-state small{font-size:13px;}
 
-.prestamos-table .status-chip.v {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.prestamos-table .status-chip.p {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.prestamos-table .status-chip.a {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.prestamos-table .col-acciones .btn,
-.prestamos-table .col-acciones button.btn {
-  padding: 4px 8px;
-  font-size: 11px;
-}
-
-.prestamos-table .amount {
-  font-size: 12px;
-}
-
-.prestamos-table .badge {
-  font-size: 10px;
-  padding: 2px 7px;
-}
-
-.prestamos-table .badge-amortizado {
-  background: #e0f2fe;
-  color: #075985;
-  border: 1px solid #bae6fd;
-}
-
-@media (max-width: 1200px) {
-  .prestamos-table th,
-  .prestamos-table td {
-    font-size: 11px;
-    padding: 8px 6px;
-  }
-
-  .prestamos-table .col-acciones .btn,
-  .prestamos-table .col-acciones button.btn {
-    padding: 3px 6px;
-    font-size: 10px;
-  }
+@media(max-width:900px){
+  .kpi-grid{grid-template-columns:1fr;}
+  .loans-table th:nth-child(n+6):not(:last-child){display:none;}
+  .loans-table td:nth-child(n+6):not(:last-child){display:none;}
 }
 </style>
 {% endblock %}
+
 {% block content %}
+<!-- Page header -->
 <div class="page-header">
   <div>
     <div class="page-title">Préstamos</div>
     <div class="page-subtitle">{{ subtitulo or 'Gestión de cartera de crédito' }}</div>
   </div>
-  <a href="{{ url_for('prestamos.nuevo_prestamo') }}" class="btn btn-primary">+ Nueva Solicitud</a>
-</div>
-
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:18px;">
-  <a href="{{ url_for('prestamos.prestamos', vista='activos') }}" style="text-decoration:none;color:inherit;">
-    <div class="card" style="border:1px solid {% if vista == 'activos' %}#003b74{% else %}#dbe4ef{% endif %}; box-shadow:{% if vista == 'activos' %}0 10px 24px rgba(0,59,116,.14){% else %}var(--shadow){% endif %}; background:{% if vista == 'activos' %}linear-gradient(135deg,#eef6ff 0%,#ffffff 100%){% else %}#fff{% endif %};">
-      <div class="card-body" style="display:flex;flex-direction:column;gap:6px;min-height:112px;justify-content:center;position:relative;overflow:hidden;">
-        <div style="position:absolute;top:14px;right:16px;font-size:30px;opacity:.18;">💼</div>
-        <div style="font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:#6b7280;">Préstamos</div>
-        <div style="font-size:24px;font-family:'Fraunces',serif;color:#003b74;">Activos</div>
-        <div style="font-size:28px;font-weight:700;color:#1a1a1a;line-height:1;">{{ conteos.activos }}</div>
-        <div style="font-size:13px;color:#6b7280;">Aprobados con saldo pendiente</div>
-      </div>
-    </div>
-  </a>
-
-  <a href="{{ url_for('prestamos.prestamos', vista='pagados') }}" style="text-decoration:none;color:inherit;">
-    <div class="card" style="border:1px solid {% if vista == 'pagados' %}#0f766e{% else %}#dbe4ef{% endif %}; box-shadow:{% if vista == 'pagados' %}0 10px 24px rgba(15,118,110,.14){% else %}var(--shadow){% endif %}; background:{% if vista == 'pagados' %}linear-gradient(135deg,#ecfdf5 0%,#ffffff 100%){% else %}#fff{% endif %};">
-      <div class="card-body" style="display:flex;flex-direction:column;gap:6px;min-height:112px;justify-content:center;position:relative;overflow:hidden;">
-        <div style="position:absolute;top:14px;right:16px;font-size:30px;opacity:.18;">✓</div>
-        <div style="font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:#6b7280;">Préstamos</div>
-        <div style="font-size:24px;font-family:'Fraunces',serif;color:#0f766e;">Pagados</div>
-        <div style="font-size:28px;font-weight:700;color:#1a1a1a;line-height:1;">{{ conteos.pagados }}</div>
-        <div style="font-size:13px;color:#6b7280;">Cancelados o liquidados</div>
-      </div>
-    </div>
-  </a>
-
-  <a href="{{ url_for('prestamos.prestamos', vista='pendientes') }}" style="text-decoration:none;color:inherit;">
-    <div class="card" style="border:1px solid {% if vista == 'pendientes' %}#b45309{% else %}#dbe4ef{% endif %}; box-shadow:{% if vista == 'pendientes' %}0 10px 24px rgba(180,83,9,.14){% else %}var(--shadow){% endif %}; background:{% if vista == 'pendientes' %}linear-gradient(135deg,#fff7ed 0%,#ffffff 100%){% else %}#fff{% endif %};">
-      <div class="card-body" style="display:flex;flex-direction:column;gap:6px;min-height:112px;justify-content:center;position:relative;overflow:hidden;">
-        <div style="position:absolute;top:14px;right:16px;font-size:30px;opacity:.18;">⏳</div>
-        <div style="font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:#6b7280;">Solicitudes</div>
-        <div style="font-size:24px;font-family:'Fraunces',serif;color:#b45309;">Pendientes</div>
-        <div style="font-size:28px;font-weight:700;color:#1a1a1a;line-height:1;">{{ conteos.pendientes }}</div>
-        <div style="font-size:13px;color:#6b7280;">Pendientes de aprobación</div>
-      </div>
-    </div>
+  <a href="{{ url_for('prestamos.nuevo_prestamo') }}" class="btn btn-primary" id="btn-nueva-solicitud">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Nueva Solicitud
   </a>
 </div>
 
-<div class="card" style="margin-bottom:18px;">
-  <div class="card-body" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
-    <div style="font-size:14px;color:#6b7280;">Vista actual: <strong style="color:#1a1a1a;">{{ subtitulo }}</strong></div>
-    <div style="font-size:13px;color:#6b7280;">Mostrando: <strong style="color:#1a1a1a;">{{ prestamos|length }}</strong> de {{ total or prestamos|length }} registro(s)</div>
-  </div>
+<!-- KPI Cards -->
+<div class="kpi-grid">
+  <a href="{{ url_for('prestamos.prestamos', vista='activos') }}" class="kpi-card {% if vista=='activos' %}active-activos{% endif %}">
+    <div class="kpi-accent blue"></div>
+    <div class="kpi-label">Cartera</div>
+    <div class="kpi-title blue">Activos</div>
+    <div class="kpi-count">{{ conteos.activos }}</div>
+    <div class="kpi-desc">Aprobados con saldo pendiente</div>
+  </a>
+  <a href="{{ url_for('prestamos.prestamos', vista='pagados') }}" class="kpi-card {% if vista=='pagados' %}active-pagados{% endif %}">
+    <div class="kpi-accent green"></div>
+    <div class="kpi-label">Historial</div>
+    <div class="kpi-title green">Pagados</div>
+    <div class="kpi-count">{{ conteos.pagados }}</div>
+    <div class="kpi-desc">Cancelados o liquidados</div>
+  </a>
+  <a href="{{ url_for('prestamos.prestamos', vista='pendientes') }}" class="kpi-card {% if vista=='pendientes' %}active-pendientes{% endif %}">
+    <div class="kpi-accent amber"></div>
+    <div class="kpi-label">Solicitudes</div>
+    <div class="kpi-title amber">Pendientes</div>
+    <div class="kpi-count">{{ conteos.pendientes }}</div>
+    <div class="kpi-desc">En espera de aprobación</div>
+  </a>
 </div>
 
-<div class="card" style="margin-bottom:18px;">
-  <div class="card-body">
-    <form method="GET" action="{{ url_for('prestamos.prestamos') }}" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-      <input type="hidden" name="vista" value="{{ vista }}">
-      <input type="hidden" name="page" value="1">
-      <input
-        type="text"
-        name="q"
-        value="{{ q or '' }}"
-        placeholder="Buscar por numero, socio, codigo, categoria o referencia"
-        style="flex:1;min-width:260px;padding:10px 12px;border:1px solid #dbe4ef;border-radius:10px;font-size:14px;"
-      >
-      <select name="estado" style="padding:10px 12px;border:1px solid #dbe4ef;border-radius:10px;font-size:14px;min-width:170px;background:#fff;">
+<!-- Filters -->
+<div class="filter-card">
+  <form method="GET" action="{{ url_for('prestamos.prestamos') }}" id="form-filtros">
+    <input type="hidden" name="vista" value="{{ vista }}">
+    <input type="hidden" name="page" value="1">
+    <div class="filter-row">
+      <input id="input-busqueda" class="filter-input search" type="text" name="q" value="{{ q or '' }}" placeholder="Buscar por número, socio, categoría o referencia…">
+      <select id="select-estado" name="estado" class="filter-input">
         <option value="" {% if not estado_filtro %}selected{% endif %}>Todos los estados</option>
-        <option value="pendiente" {% if estado_filtro == 'pendiente' %}selected{% endif %}>Pendiente</option>
-        <option value="aprobado" {% if estado_filtro == 'aprobado' %}selected{% endif %}>Aprobado</option>
-        <option value="pagado" {% if estado_filtro == 'pagado' %}selected{% endif %}>Pagado</option>
-        <option value="no_procede" {% if estado_filtro == 'no_procede' %}selected{% endif %}>No procede</option>
+        <option value="pendiente" {% if estado_filtro=='pendiente' %}selected{% endif %}>Pendiente</option>
+        <option value="aprobado" {% if estado_filtro=='aprobado' %}selected{% endif %}>Aprobado</option>
+        <option value="pagado" {% if estado_filtro=='pagado' %}selected{% endif %}>Pagado</option>
+        <option value="no_procede" {% if estado_filtro=='no_procede' %}selected{% endif %}>No procede</option>
       </select>
-      <select name="ordenar_por" style="padding:10px 12px;border:1px solid #dbe4ef;border-radius:10px;font-size:14px;min-width:170px;background:#fff;">
-        <option value="fecha_solicitud" {% if ordenar_por == 'fecha_solicitud' %}selected{% endif %}>Ordenar: Fecha</option>
-        <option value="saldo_pendiente" {% if ordenar_por == 'saldo_pendiente' %}selected{% endif %}>Ordenar: Saldo</option>
-        <option value="cuota_mensual" {% if ordenar_por == 'cuota_mensual' %}selected{% endif %}>Ordenar: Cuota</option>
-        <option value="monto_solicitado" {% if ordenar_por == 'monto_solicitado' %}selected{% endif %}>Ordenar: Monto</option>
-        <option value="nombre_socio" {% if ordenar_por == 'nombre_socio' %}selected{% endif %}>Ordenar: Socio</option>
+      <select id="select-ordenar" name="ordenar_por" class="filter-input">
+        <option value="fecha_solicitud" {% if ordenar_por=='fecha_solicitud' %}selected{% endif %}>Ordenar: Fecha</option>
+        <option value="saldo_pendiente" {% if ordenar_por=='saldo_pendiente' %}selected{% endif %}>Ordenar: Saldo</option>
+        <option value="cuota_mensual" {% if ordenar_por=='cuota_mensual' %}selected{% endif %}>Ordenar: Cuota</option>
+        <option value="monto_solicitado" {% if ordenar_por=='monto_solicitado' %}selected{% endif %}>Ordenar: Monto</option>
+        <option value="nombre_socio" {% if ordenar_por=='nombre_socio' %}selected{% endif %}>Ordenar: Socio</option>
       </select>
-      <select name="direccion" style="padding:10px 12px;border:1px solid #dbe4ef;border-radius:10px;font-size:14px;min-width:130px;background:#fff;">
-        <option value="desc" {% if direccion == 'desc' %}selected{% endif %}>Descendente</option>
-        <option value="asc" {% if direccion == 'asc' %}selected{% endif %}>Ascendente</option>
+      <select id="select-dir" name="direccion" class="filter-input">
+        <option value="desc" {% if direccion=='desc' %}selected{% endif %}>↓ Desc</option>
+        <option value="asc" {% if direccion=='asc' %}selected{% endif %}>↑ Asc</option>
       </select>
-      <input type="date" name="fecha_desde" value="{{ fecha_desde or '' }}" title="Fecha desde" style="padding:10px 12px;border:1px solid #dbe4ef;border-radius:10px;font-size:14px;background:#fff;">
-      <input type="date" name="fecha_hasta" value="{{ fecha_hasta or '' }}" title="Fecha hasta" style="padding:10px 12px;border:1px solid #dbe4ef;border-radius:10px;font-size:14px;background:#fff;">
-      <select name="per_page" style="padding:10px 12px;border:1px solid #dbe4ef;border-radius:10px;font-size:14px;min-width:100px;background:#fff;">
-        <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
-        <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
-        <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
-        <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+      <input id="input-desde" type="date" name="fecha_desde" value="{{ fecha_desde or '' }}" class="filter-input" title="Desde">
+      <input id="input-hasta" type="date" name="fecha_hasta" value="{{ fecha_hasta or '' }}" class="filter-input" title="Hasta">
+      <select id="select-perpage" name="per_page" class="filter-input">
+        <option value="10" {% if per_page==10 %}selected{% endif %}>10</option>
+        <option value="25" {% if per_page==25 %}selected{% endif %}>25</option>
+        <option value="50" {% if per_page==50 %}selected{% endif %}>50</option>
+        <option value="100" {% if per_page==100 %}selected{% endif %}>100</option>
       </select>
-      <button type="submit" class="btn btn-primary">Buscar prestamo</button>
-      {% if q or estado_filtro or fecha_desde or fecha_hasta or ordenar_por != 'fecha_solicitud' or direccion != 'desc' %}
-      <a href="{{ url_for('prestamos.prestamos', vista=vista) }}" class="btn btn-outline">Limpiar</a>
+      <button id="btn-buscar" type="submit" class="filter-btn primary">Buscar</button>
+      {% if q or estado_filtro or fecha_desde or fecha_hasta %}
+      <a href="{{ url_for('prestamos.prestamos', vista=vista) }}" class="filter-btn outline" id="btn-limpiar">Limpiar</a>
       {% endif %}
-    </form>
-  </div>
+      <a href="{{ url_for('prestamos.prestamos', vista=vista, q=q, estado=estado_filtro, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ordenar_por=ordenar_por, direccion=direccion, export='csv') }}" class="filter-btn outline" id="btn-exportar-csv" title="Exportar CSV" style="border-color:#059669;color:#047857;">
+        ↓ CSV
+      </a>
+      <a href="{{ url_for('prestamos.prestamos', vista=vista, q=q, estado=estado_filtro, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ordenar_por=ordenar_por, direccion=direccion, export='excel') }}" class="filter-btn outline" id="btn-exportar-excel" title="Exportar Excel" style="border-color:#1d4ed8;color:#1e40af;">
+        ↓ Excel
+      </a>
+    </div>
+  </form>
 </div>
 
+<!-- Info bar -->
+<div class="info-bar">
+  <span>Vista: <strong>{{ subtitulo }}</strong></span>
+  <span>Mostrando <strong>{{ prestamos|length }}</strong> de <strong>{{ total or prestamos|length }}</strong> registro(s)</span>
+</div>
+
+<!-- Table card -->
 <div class="card">
   <div class="table-wrap">
-    <table class="prestamos-table">
+    <table class="loans-table">
       <thead>
         <tr>
-          <th class="col-numero">Número</th>
-          <th class="col-socio">
-            <a href="{{ url_for('prestamos.prestamos', vista=vista, q=q, estado=estado_filtro, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ordenar_por='nombre_socio', direccion=('asc' if ordenar_por == 'nombre_socio' and direccion == 'desc' else 'desc')) }}" style="text-decoration:none;color:inherit;">
-              Socio{% if ordenar_por == 'nombre_socio' %} {{ '↓' if direccion == 'desc' else '↑' }}{% endif %}
-            </a>
-          </th>
-          <th class="col-categoria">Categoría</th>
-          <th class="col-desembolso">Desembolso</th>
-          <th class="col-monto">
-            <a href="{{ url_for('prestamos.prestamos', vista=vista, q=q, estado=estado_filtro, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ordenar_por='monto_solicitado', direccion=('asc' if ordenar_por == 'monto_solicitado' and direccion == 'desc' else 'desc')) }}" style="text-decoration:none;color:inherit;">
-              Monto{% if ordenar_por == 'monto_solicitado' %} {{ '↓' if direccion == 'desc' else '↑' }}{% endif %}
-            </a>
-          </th>
-          <th class="col-tasa">Tasa</th>
-          <th class="col-plazo">Plazo</th>
-          <th class="col-cuota">
-            <a href="{{ url_for('prestamos.prestamos', vista=vista, q=q, estado=estado_filtro, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ordenar_por='cuota_mensual', direccion=('asc' if ordenar_por == 'cuota_mensual' and direccion == 'desc' else 'desc')) }}" style="text-decoration:none;color:inherit;">
-              Cuota{% if ordenar_por == 'cuota_mensual' %} {{ '↓' if direccion == 'desc' else '↑' }}{% endif %}
-            </a>
-          </th>
-          <th class="col-saldo">
-            <a href="{{ url_for('prestamos.prestamos', vista=vista, q=q, estado=estado_filtro, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ordenar_por='saldo_pendiente', direccion=('asc' if ordenar_por == 'saldo_pendiente' and direccion == 'desc' else 'desc')) }}" style="text-decoration:none;color:inherit;">
-              Saldo{% if ordenar_por == 'saldo_pendiente' %} {{ '↓' if direccion == 'desc' else '↑' }}{% endif %}
-            </a>
-          </th>
-          <th class="col-cuotas">Cuotas pagadas</th>
-          <th class="col-semaforo">Semáforo</th>
-          <th class="col-estado">Estado</th>
-          <th class="col-acciones"></th>
+          <th>Número</th>
+          <th><a class="sort-link" href="{{ url_for('prestamos.prestamos', vista=vista, q=q, estado=estado_filtro, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ordenar_por='nombre_socio', direccion=('asc' if ordenar_por=='nombre_socio' and direccion=='desc' else 'desc')) }}">Socio {% if ordenar_por=='nombre_socio' %}{{ '↓' if direccion=='desc' else '↑' }}{% endif %}</a></th>
+          <th>Categoría</th>
+          <th><a class="sort-link" href="{{ url_for('prestamos.prestamos', vista=vista, q=q, estado=estado_filtro, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ordenar_por='monto_solicitado', direccion=('asc' if ordenar_por=='monto_solicitado' and direccion=='desc' else 'desc')) }}">Monto {% if ordenar_por=='monto_solicitado' %}{{ '↓' if direccion=='desc' else '↑' }}{% endif %}</a></th>
+          <th>Tasa / Plazo</th>
+          <th><a class="sort-link" href="{{ url_for('prestamos.prestamos', vista=vista, q=q, estado=estado_filtro, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ordenar_por='cuota_mensual', direccion=('asc' if ordenar_por=='cuota_mensual' and direccion=='desc' else 'desc')) }}">Cuota {% if ordenar_por=='cuota_mensual' %}{{ '↓' if direccion=='desc' else '↑' }}{% endif %}</a></th>
+          <th><a class="sort-link" href="{{ url_for('prestamos.prestamos', vista=vista, q=q, estado=estado_filtro, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ordenar_por='saldo_pendiente', direccion=('asc' if ordenar_por=='saldo_pendiente' and direccion=='desc' else 'desc')) }}">Saldo {% if ordenar_por=='saldo_pendiente' %}{{ '↓' if direccion=='desc' else '↑' }}{% endif %}</a></th>
+          <th>Cuotas</th>
+          <th>Semáforo</th>
+          <th>Estado</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
         {% for p in prestamos %}
+        {% set pct = ((p.cuotas_pagadas / p.total_cuotas * 100) | int) if p.total_cuotas and p.total_cuotas > 0 else 0 %}
         <tr>
-          <td class="col-numero" style="font-family:'Fraunces',serif;color:#2d6a4f;font-weight:500;">{{ p.numero }}</td>
-          <td class="col-socio" style="font-size:12px;">
-            <span class="cell-main">{{ p.nombre_socio or p.socio }}</span>
-            <span class="cell-sub">{{ p.socio_codigo or '' }}</span>
+          <td><span class="loan-num">{{ p.numero }}</span></td>
+          <td>
+            <div class="loan-socio-name">{{ p.nombre_socio or p.socio }}</div>
+            <div class="loan-socio-code">{{ p.socio_codigo or '' }}</div>
           </td>
-          <td class="col-categoria" style="font-size:12px;color:#6b7280;">{{ p.categoria_nombre or '—' }}</td>
-          <td class="col-desembolso" style="font-size:12px;color:#6b7280;" title="{{ (p.desembolso_tipo or '—')|capitalize }}{% if p.desembolso_referencia %} · {{ p.desembolso_referencia }}{% endif %}">
-            <span class="cell-main">{{ (p.desembolso_tipo or '—')|capitalize }}</span>
-            <span class="cell-sub">{{ p.desembolso_referencia or 'Sin ref.' }}</span>
+          <td style="color:#6b7280;font-size:12px;">{{ p.categoria_nombre or '—' }}</td>
+          <td>
+            <span class="amt">Q{{ "{:,.2f}".format(p.monto_solicitado) }}</span>
+            {% if p.desembolso_tipo %}
+            <div style="font-size:10px;color:#9ca3af;margin-top:2px;">{{ (p.desembolso_tipo or '')|capitalize }}</div>
+            {% endif %}
           </td>
-          <td class="col-monto amount">Q{{ "{:,.2f}".format(p.monto_solicitado) }}</td>
-          <td class="col-tasa" style="font-size:13px;color:#6b7280;">{{ p.tasa_interes }}%</td>
-          <td class="col-plazo" style="font-size:13px;">{{ p.plazo_meses }} m</td>
-          <td class="col-cuota amount" style="font-size:13px;">{% if p.cuota_mensual %}Q{{ "{:,.2f}".format(p.cuota_mensual) }}{% else %}—{% endif %}</td>
-          <td class="col-saldo amount" style="color:{% if p.saldo_pendiente and p.saldo_pendiente > 0 %}#dc2626{% else %}#2d6a4f{% endif %}; font-size:13px;">
-            {% if p.saldo_pendiente is not none %}Q{{ "{:,.2f}".format(p.saldo_pendiente) }}{% else %}—{% endif %}
+          <td style="font-size:12px;color:#6b7280;">
+            {{ p.tasa_interes }}%
+            <span style="color:#d1d5db;margin:0 3px;">·</span>
+            {{ p.plazo_meses }}m
           </td>
-          <td class="col-cuotas" style="font-size:13px;">{{ p.cuotas_pagadas }} / {{ p.total_cuotas }}</td>
-          <td class="col-semaforo" title="{{ p.estado_alerta }}{% if p.dias_atraso > 0 %} ({{ p.dias_atraso }} dias){% endif %}">
+          <td>
+            {% if p.cuota_mensual %}
+            <span class="amt">Q{{ "{:,.2f}".format(p.cuota_mensual) }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if p.saldo_pendiente is not none %}
+            <span class="amt {% if p.saldo_pendiente > 0 %}amt-danger{% else %}amt-ok{% endif %}">Q{{ "{:,.2f}".format(p.saldo_pendiente) }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            <div style="font-size:12px;font-weight:600;">{{ p.cuotas_pagadas }} / {{ p.total_cuotas }}</div>
+            <div class="cuotas-bar"><div class="cuotas-fill" style="width:{{ pct }}%;"></div></div>
+          </td>
+          <td>
             {% if p.semaforo == 'vencido' %}
-            <span class="status-chip v">Vencido{% if p.dias_atraso > 0 %} {{ p.dias_atraso }}d{% endif %}</span>
+            <span class="chip vencido"><span class="chip-dot"></span>Vencido{% if p.dias_atraso > 0 %} {{ p.dias_atraso }}d{% endif %}</span>
             {% elif p.semaforo == 'por_vencer' %}
-            <span class="status-chip p">Por vencer</span>
+            <span class="chip por_vencer"><span class="chip-dot"></span>Por vencer</span>
             {% else %}
-            <span class="status-chip a">Al dia</span>
+            <span class="chip al_dia"><span class="chip-dot"></span>Al día</span>
             {% endif %}
           </td>
-          <td class="col-estado">
-            <span class="badge {% if p.estado=='pagado' and p.fue_amortizado %}badge-amortizado{% elif p.estado=='aprobado' %}badge-green{% elif p.estado=='pendiente' %}badge-gold{% elif p.estado=='pagado' %}badge-gray{% elif p.estado=='no_procede' %}badge-red{% else %}badge-red{% endif %}" title="{% if p.estado == 'pagado' and p.fue_amortizado %}Pagado (Amortización){% elif p.estado == 'no_procede' %}No procede{% else %}{{ p.estado.capitalize() }}{% endif %}">
-              {% if p.estado == 'aprobado' %}Apr{% elif p.estado == 'pendiente' %}Pen{% elif p.estado == 'pagado' and p.fue_amortizado %}🔁 Pag-Am{% elif p.estado == 'pagado' %}Pag{% elif p.estado == 'no_procede' %}No{% else %}{{ p.estado[:3].capitalize() }}{% endif %}
-            </span>
-          </td>
-          <td class="col-acciones">
-            {% if p.estado == 'pendiente' %}
-            <div class="action-group">
-              <a href="{{ url_for('prestamos.detalle_prestamo', pid=p.id) }}" class="icon-btn" title="Ver detalle">👁</a>
-              <a href="{{ url_for('prestamos.aprobar_prestamo', pid=p.id) }}" class="icon-btn ok" title="Aprobar">✓</a>
-              <form method="post" action="{{ url_for('prestamos.marcar_prestamo_no_procede', pid=p.id) }}" style="display:inline;">
-                <button type="submit" class="icon-btn warn" title="No procede" onclick="return confirm('Marcar esta solicitud como no procede?')">✕</button>
-              </form>
-            </div>
-            {% elif p.estado == 'aprobado' and p.saldo_pendiente > 0 %}
-            <div class="action-group">
-              <a href="{{ url_for('prestamos.detalle_prestamo', pid=p.id) }}" class="icon-btn" title="Ver detalle">👁</a>
-              <form method="post" action="{{ url_for('prestamos.pagar_prestamo', pid=p.id) }}" style="display:inline;">
-                <button type="submit" class="icon-btn" title="Registrar pago" onclick="return confirm('Registrar cuota de Q{{ '{:,.2f}'.format(p.cuota_mensual) if p.cuota_mensual else 0 }}?')">$</button>
-              </form>
-              <a href="{{ url_for('prestamos.finiquito_prestamo', pid=p.id) }}" class="icon-btn warn" title="Finiquito">📄</a>
-            </div>
+          <td>
+            {% if p.estado == 'aprobado' %}
+            <span class="badge badge-aprobado">Aprobado</span>
+            {% elif p.estado == 'pendiente' %}
+            <span class="badge badge-pendiente">Pendiente</span>
+            {% elif p.estado == 'pagado' and p.fue_amortizado %}
+            <span class="badge badge-amortizado">🔁 Amortizado</span>
             {% elif p.estado == 'pagado' %}
-            <div class="action-group">
-              <a href="{{ url_for('prestamos.detalle_prestamo', pid=p.id) }}" class="icon-btn" title="Ver detalle">👁</a>
-              <a href="{{ url_for('prestamos.finiquito_prestamo', pid=p.id) }}" class="icon-btn warn" title="Finiquito">📄</a>
-            </div>
+            <span class="badge badge-pagado">Pagado</span>
+            {% elif p.estado == 'no_procede' %}
+            <span class="badge badge-noprocede">No procede</span>
             {% else %}
-            <div class="action-group">
-              <a href="{{ url_for('prestamos.detalle_prestamo', pid=p.id) }}" class="icon-btn" title="Ver detalle">👁</a>
-            </div>
+            <span class="badge badge-noprocede">{{ p.estado }}</span>
             {% endif %}
+          </td>
+          <td>
+            <div class="action-wrap">
+              <a href="{{ url_for('prestamos.detalle_prestamo', pid=p.id) }}" class="act-btn" title="Ver detalle" id="btn-ver-{{ p.id }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </a>
+              
+              {% if p.estado == 'pendiente' %}
+              <a href="{{ url_for('prestamos.editar_prestamo', pid=p.id) }}" class="act-btn" title="Editar Solicitud" id="btn-editar-{{ p.id }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </a>
+              <a href="{{ url_for('prestamos.aprobar_prestamo', pid=p.id) }}" class="act-btn approve" title="Aprobar" id="btn-aprobar-{{ p.id }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              </a>
+              <form method="post" action="{{ url_for('prestamos.eliminar_prestamo', pid=p.id) }}" style="display:inline;" onsubmit="return confirm('¿Está seguro de eliminar esta solicitud permanentemente?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="act-btn warn" title="Eliminar solicitud" id="btn-eliminar-{{ p.id }}">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                </button>
+              </form>
+              {% elif p.estado == 'aprobado' and p.saldo_pendiente > 0 %}
+              <a href="{{ url_for('prestamos.pagar_prestamo', pid=p.id) }}" class="act-btn pay" title="Registrar Pago" id="btn-pagar-{{ p.id }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+              </a>
+              <a href="{{ url_for('prestamos.finiquito_prestamo', pid=p.id) }}" class="act-btn" title="Finiquito" id="btn-finiquito-{{ p.id }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              </a>
+              {% elif p.estado == 'pagado' %}
+              <a href="{{ url_for('prestamos.finiquito_prestamo', pid=p.id) }}" class="act-btn" title="Finiquito" id="btn-finiquito-pag-{{ p.id }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              </a>
+              {% endif %}
+            </div>
           </td>
         </tr>
         {% else %}
         <tr>
-          <td colspan="13" style="text-align:center;color:#9ca3af;padding:24px;">
-            {% if vista == 'activos' %}
-            No hay préstamos activos.
-            {% elif vista == 'pagados' %}
-            No hay préstamos pagados.
-            {% else %}
-            No hay préstamos pendientes de aprobar.
-            {% endif %}
+          <td colspan="11">
+            <div class="empty-state">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <p>No hay préstamos en esta vista</p>
+              <small>
+                {% if vista == 'activos' %}Actualmente no hay préstamos aprobados con saldo pendiente.
+                {% elif vista == 'pagados' %}No se han registrado préstamos cancelados o liquidados.
+                {% else %}No hay solicitudes pendientes de aprobación.{% endif %}
+              </small>
+            </div>
           </td>
         </tr>
         {% endfor %}
       </tbody>
+      {% if totales_cartera and prestamos %}
+      <tfoot>
+        <tr style="background:#f8fafb;font-weight:700;border-top:2px solid #e5e7eb;">
+          <td colspan="3" style="padding:10px 12px;font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;">Totales ({{ total }} registros)</td>
+          <td style="padding:10px 12px;font-family:'Fraunces',serif;">Q{{ "{:,.2f}".format(totales_cartera.monto) }}</td>
+          <td></td>
+          <td style="padding:10px 12px;font-family:'Fraunces',serif;">Q{{ "{:,.2f}".format(totales_cartera.cuota) }}</td>
+          <td style="padding:10px 12px;font-family:'Fraunces',serif;color:#dc2626;">Q{{ "{:,.2f}".format(totales_cartera.saldo) }}</td>
+          <td colspan="4"></td>
+        </tr>
+      </tfoot>
+      {% endif %}
     </table>
   </div>
 
   {% if total_pages and total_pages > 1 %}
-  <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-top:1px solid #e5e7eb;">
-    <div style="font-size:13px;color:#6b7280;">Página {{ page }} de {{ total_pages }}</div>
-    <div style="display:flex;gap:8px;">
+  <div class="pagination">
+    <span class="page-info">Página <strong>{{ page }}</strong> de <strong>{{ total_pages }}</strong></span>
+    <div class="page-btns">
       {% if page > 1 %}
-      <a class="btn btn-outline btn-sm" href="{{ url_for('prestamos.prestamos', vista=vista, q=q, estado=estado_filtro, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ordenar_por=ordenar_por, direccion=direccion, per_page=per_page, page=page-1) }}">Anterior</a>
+      <a class="btn btn-outline btn-sm" id="btn-anterior" href="{{ url_for('prestamos.prestamos', vista=vista, q=q, estado=estado_filtro, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ordenar_por=ordenar_por, direccion=direccion, per_page=per_page, page=page-1) }}">← Anterior</a>
       {% endif %}
       {% if page < total_pages %}
-      <a class="btn btn-outline btn-sm" href="{{ url_for('prestamos.prestamos', vista=vista, q=q, estado=estado_filtro, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ordenar_por=ordenar_por, direccion=direccion, per_page=per_page, page=page+1) }}">Siguiente</a>
+      <a class="btn btn-outline btn-sm" id="btn-siguiente" href="{{ url_for('prestamos.prestamos', vista=vista, q=q, estado=estado_filtro, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ordenar_por=ordenar_por, direccion=direccion, per_page=per_page, page=page+1) }}">Siguiente →</a>
       {% endif %}
     </div>
   </div>

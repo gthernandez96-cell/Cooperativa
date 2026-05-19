@@ -1,0 +1,49 @@
+{% for u in usuarios %}
+<tr>
+  <td>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div class="user-avatar" data-name="{{ u.username }}">
+        {{ u.username[0] | upper }}
+      </div>
+      <div style="display:flex; flex-direction:column;">
+        <strong style="font-size:14px; color:var(--c-dark);">{{ u.username }}</strong>
+        <span style="font-size:11px; color:var(--c-gray);">ID: {{ u.id }}</span>
+      </div>
+    </div>
+  </td>
+  <td>
+    <span class="badge {% if u.rol_nombre == 'Administrador' %}badge-blue{% elif u.rol_nombre == 'Operador' %}badge-green{% else %}badge-gray{% endif %}">
+      {{ u.rol_nombre or 'Sin rol' }}
+    </span>
+  </td>
+  <td>
+    <div class="status-toggle" onclick="toggleUserStatus({{ u.id }}, this)" data-activo="{{ u.activo }}">
+      <span class="badge {% if u.activo == 'si' %}badge-green{% else %}badge-red{% endif %}">
+        {{ 'Activo' if u.activo == 'si' else 'Inactivo' }}
+      </span>
+    </div>
+  </td>
+  <td style="color:var(--c-gray); font-size:13px;">
+    {{ u.fecha_creacion }}
+  </td>
+  <td>
+    <div style="display:flex; gap:8px;">
+      <a href="{{ url_for('usuarios.editar_usuario', uid=u.id) }}" class="btn-icon" title="Editar Usuario">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </a>
+      <a href="{{ url_for('usuarios.cambiar_password', uid=u.id) }}" class="btn-icon" title="Cambiar Contraseña" style="color:var(--c-blue-mid);">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </a>
+    </div>
+  </td>
+</tr>
+{% else %}
+<tr>
+  <td colspan="5" style="text-align:center; padding:40px; color:var(--c-gray);">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:12px;">
+      <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="opacity:0.2;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <p>No se encontraron usuarios que coincidan con la búsqueda.</p>
+    </div>
+  </td>
+</tr>
+{% endfor %}

@@ -1,48 +1,231 @@
 {% extends "base.html" %}
-{% block title %}Cuentas — CoopAhorro{% endblock %}
+
+{% block title %}Cuentas de Ahorro — CoopAhorro{% endblock %}
+
+{% block extra_head %}
+<style>
+.search-container {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow);
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.search-input-group {
+    position: relative;
+    flex: 1;
+}
+
+.search-input-group svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--c-gray);
+    pointer-events: none;
+}
+
+.search-input {
+    width: 100%;
+    padding: 12px 12px 12px 40px;
+    border: 1px solid var(--c-border);
+    border-radius: 10px;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--c-blue);
+    box-shadow: 0 0 0 3px rgba(0, 59, 116, 0.1);
+}
+
+.table-premium {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.table-premium th {
+    background: #f8fafc;
+    padding: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--c-gray);
+    border-bottom: 2px solid var(--c-border);
+}
+
+.table-premium td {
+    padding: 16px;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.table-premium tr:hover td {
+    background-color: #fcfdfe;
+}
+
+.account-number {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    color: var(--c-blue);
+    font-size: 15px;
+}
+
+.socio-name {
+    font-weight: 500;
+    color: var(--c-dark);
+}
+
+.amount-cell {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.badge-pill {
+    padding: 4px 12px;
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.empty-state {
+    padding: 60px;
+    text-align: center;
+    display: none;
+}
+
+.empty-state svg {
+    margin-bottom: 16px;
+    color: var(--c-border);
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-  <div>
-    <div class="page-title">Cuentas</div>
-    <div class="page-subtitle">{{ cuentas|length }} cuenta(s) registrada(s)</div>
-  </div>
-  <a href="{{ url_for('ahorro.nueva_cuenta') }}" class="btn btn-primary">+ Nueva Cuenta</a>
+<div class="container">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Cartera de Ahorros</h1>
+            <p class="page-subtitle">Explora y gestiona las cuentas de ahorro de la cooperativa.</p>
+        </div>
+        <a href="{{ url_for('ahorro.nueva_cuenta') }}" class="btn btn-primary">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            Aperturar Cuenta
+        </a>
+    </div>
+
+    <!-- Search Section -->
+    <div class="search-container">
+        <div class="search-input-group">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input type="text" id="accountSearch" class="search-input" placeholder="Buscar por nombre de socio o número de cuenta...">
+        </div>
+        <div class="filter-count">
+            <span id="visibleCount" class="badge-pill badge-gray">{{ cuentas|length }}</span> cuentas visibles
+        </div>
+    </div>
+
+    <!-- Table Section -->
+    <div class="card overflow-hidden">
+        <div class="table-wrap">
+            <table class="table-premium" id="cuentasTable">
+                <thead>
+                    <tr>
+                        <th>Número</th>
+                        <th>Socio</th>
+                        <th>Producto</th>
+                        <th>Saldo Disponible</th>
+                        <th>Tasa</th>
+                        <th>Estado</th>
+                        <th class="text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in cuentas %}
+                    <tr class="account-row">
+                        <td>
+                            <span class="account-number">{{ c.numero }}</span>
+                        </td>
+                        <td>
+                            <div class="socio-name">{{ c.socio }}</div>
+                            <div style="font-size: 12px; color: var(--c-gray);">Apertura: {{ c.fecha_apertura }}</div>
+                        </td>
+                        <td>
+                            <span class="badge-pill badge-gray">
+                                {% if c.producto_ahorro == 'ahorro_aportacion' %}
+                                    Aportación
+                                {% elif c.producto_ahorro == 'ahorro_plazo_fijo' %}
+                                    Plazo Fijo
+                                {% else %}
+                                    Ahorro Corriente
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td class="amount-cell text-blue">
+                            Q{{ "{:,.2f}".format(c.saldo) }}
+                        </td>
+                        <td>
+                            <span style="font-weight: 500;">{{ c.tasa_interes }}%</span>
+                        </td>
+                        <td>
+                            <span class="badge-pill {% if c.estado=='activa' %}badge-green{% else %}badge-red{% endif %}">
+                                {{ c.estado }}
+                            </span>
+                        </td>
+                        <td class="text-right">
+                            <a href="{{ url_for('ahorro.detalle_cuenta', cid=c.id) }}" class="btn btn-outline btn-sm">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                Gestionar
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div id="noResults" class="empty-state">
+                <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg>
+                <h3 style="color: var(--c-gray);">No se encontraron cuentas</h3>
+                <p style="color: var(--c-gray-light); font-size: 14px;">Intenta con otros criterios de búsqueda.</p>
+            </div>
+        </div>
+    </div>
 </div>
 
-<div class="card">
-  <div class="table-wrap">
-    <table>
-      <thead><tr><th>Número</th><th>Socio</th><th>Tipo</th><th>Producto</th><th>Saldo</th><th>Tasa</th><th>Apertura</th><th>Estado</th><th></th></tr></thead>
-      <tbody>
-        {% for c in cuentas %}
-        <tr>
-          <td style="font-family:'Fraunces',serif;color:#2d6a4f;font-weight:500;">{{ c.numero }}</td>
-          <td style="font-size:14px;">{{ c.socio }}</td>
-          <td><span class="badge badge-gray">{{ c.tipo.capitalize() }}</span></td>
-          <td style="font-size:13px;color:#6b7280;">
-            {% if c.tipo == 'ahorro' %}
-              {% if c.producto_ahorro == 'ahorro_aportacion' %}
-                Aportación
-              {% elif c.producto_ahorro == 'ahorro_plazo_fijo' %}
-                Plazo fijo
-              {% else %}
-                Ahorro corriente
-              {% endif %}
-            {% elif c.tipo == 'corriente' %}
-              Corriente
-            {% else %}
-              —
-            {% endif %}
-          </td>
-          <td class="amount" style="font-weight:500;">Q{{ "{:,.2f}".format(c.saldo) }}</td>
-          <td style="font-size:13px;color:#6b7280;">{{ c.tasa_interes }}%</td>
-          <td style="font-size:13px;color:#6b7280;">{{ c.fecha_apertura }}</td>
-          <td><span class="badge {% if c.estado=='activa' %}badge-green{% else %}badge-gray{% endif %}">{{ c.estado }}</span></td>
-          <td><a href="{{ url_for('ahorro.detalle_cuenta', cid=c.id) }}" class="btn btn-outline btn-sm">Gestionar</a></td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('accountSearch');
+    const tableRows = document.querySelectorAll('.account-row');
+    const noResults = document.getElementById('noResults');
+    const visibleCount = document.getElementById('visibleCount');
+
+    searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase();
+        let count = 0;
+
+        tableRows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            if (text.includes(query)) {
+                row.style.display = '';
+                count++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        visibleCount.textContent = count;
+        noResults.style.display = count === 0 ? 'block' : 'none';
+        document.querySelector('thead').style.display = count === 0 ? 'none' : '';
+    });
+});
+</script>
 {% endblock %}

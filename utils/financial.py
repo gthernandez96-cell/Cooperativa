@@ -68,11 +68,10 @@ def obtener_dias_frecuencia(frecuencia):
     return 14 if (frecuencia or '').strip().lower() == 'catorcenal' else 15
 
 
-def calcular_total_cuotas_prestamo(plazo_meses, frecuencia):
-    plazo_meses = int(plazo_meses or 0)
-    if plazo_meses <= 0:
-        return 0
-    return max(1, math.ceil((plazo_meses * 30) / obtener_dias_frecuencia(frecuencia)))
+def calcular_total_cuotas_prestamo(plazo_pagos, frecuencia=None):
+    """Retorna el plazo directamente como número de pagos."""
+    return int(plazo_pagos or 0)
+
 
 
 def calcular_resumen_prestamo(monto, tasa_anual, plazo_meses, frecuencia):
@@ -174,3 +173,44 @@ def generar_calendario_prestamo(fecha_primer_pago, total_cuotas, monto_cuota,
         })
 
     return calendario
+def calcular_alerta_prestamo(prestamo):
+    """Calcula el estado de alerta (semáforo) de un préstamo basado en su saldo y último pago."""
+    estado = (prestamo.get('estado') or '').lower()
+    saldo_pendiente = float(prestamo.get('saldo_pendiente') or 0)
+    
+    if estado != 'aprobado' or saldo_pendiente <= 0:
+        return {
+            'semaforo': 'al_dia',
+            'estado_alerta': 'Al dia',
+            'dias_atraso': 0,
+            'monto_vencido': 0.0,
+            'proximo_pago': None,
+        }
+
+    frecuencia = prestamo.get('frecuencia') or 'Quincenal'
+    total_cuotas = calcular_total_cuotas_prestamo(prestamo.get('plazo_meses'), frecuencia)
+    referencia = prestamo.get('ultimo_pago') or prestamo.get('fecha_aprobacion') or prestamo.get('fecha_solicitud')
+    proximo_pago = normalizar_fecha_referencia(calcular_proximo_pago(referencia, frecuencia))
+    dias_atraso = (date.today() - proximo_pago).days
+
+    if dias_atraso > 0:
+        semaforo = 'vencido'
+        estado_alerta = 'Vencido'
+        monto_vencido = min(float(prestamo.get('cuota_mensual') or 0), saldo_pendiente)
+    elif dias_atraso >= -3:
+        semaforo = 'por_vencer'
+        estado_alerta = 'Por vencer'
+        monto_vencido = 0.0
+    else:
+        semaforo = 'al_dia'
+        estado_alerta = 'Al dia'
+        monto_vencido = 0.0
+
+    return {
+        'semaforo': semaforo,
+        'estado_alerta': estado_alerta,
+        'dias_atraso': max(dias_atraso, 0),
+        'monto_vencido': monto_vencido,
+        'proximo_pago': proximo_pago.isoformat(),
+        'total_cuotas': total_cuotas,
+    }

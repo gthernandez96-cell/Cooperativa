@@ -14,7 +14,7 @@ from config import (
     DB, DB_BACKEND, DATABASE_URL, REQUIRED_CONFIGURACIONES,
     SYSTEM_SETTINGS_DEFAULTS, AHORRO_SETTINGS_DEFAULTS,
     PRESTAMO_SETTINGS_DEFAULTS, DEFAULT_PRESTAMO_CATEGORIAS,
-    ROLE_PERMISSION_DEFAULTS
+    ROLE_PERMISSION_DEFAULTS, DEFAULT_COOPERATIVA_NOMBRE
 )
 
 try:
@@ -246,13 +246,28 @@ def obtener_marca_cooperativa():
     try:
         nombre = get_system_setting(conn, 'cooperativa_nombre', DEFAULT_COOPERATIVA_NOMBRE)
         foto = get_system_setting(conn, 'cooperativa_foto', '')
+        # Nuevos campos de identidad
+        mision = get_system_setting(conn, 'cooperativa_mision', SYSTEM_SETTINGS_DEFAULTS.get('cooperativa_mision', ''))
+        vision = get_system_setting(conn, 'cooperativa_vision', SYSTEM_SETTINGS_DEFAULTS.get('cooperativa_vision', ''))
+        principios = get_system_setting(conn, 'cooperativa_principios', SYSTEM_SETTINGS_DEFAULTS.get('cooperativa_principios', ''))
+        bg_login = get_system_setting(conn, 'login_background_image', '')
     except Exception:
         nombre = DEFAULT_COOPERATIVA_NOMBRE
         foto = ''
+        mision = vision = principios = bg_login = ''
+    finally:
+        if has_app_context() and 'db' in g:
+            pass # g.db se cierra en teardown
+        else:
+            conn.close()
 
     return {
         'cooperativa_nombre': nombre or DEFAULT_COOPERATIVA_NOMBRE,
         'cooperativa_foto': foto or None,
+        'cooperativa_mision': mision,
+        'cooperativa_vision': vision,
+        'cooperativa_principios': principios,
+        'login_background_image': bg_login,
     }
 
 def init_db():
@@ -613,6 +628,12 @@ def init_db():
             c.execute("ALTER TABLE pagos_prestamo ADD COLUMN numero_comprobante TEXT")
         except Exception:
             pass
+    if 'fecha_boleta' not in pagos_cols:
+        try:
+            c.execute("ALTER TABLE pagos_prestamo ADD COLUMN fecha_boleta TEXT")
+        except Exception:
+            pass
+
 
     c.execute("PRAGMA table_info(prestamos)")
     prestamos_cols = [row[1] for row in c.fetchall()]

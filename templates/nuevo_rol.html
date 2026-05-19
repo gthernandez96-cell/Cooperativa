@@ -1,32 +1,86 @@
 {% extends "base.html" %}
-{% block title %}Crear Rol — Cooperativa Quetzal{% endblock %}
-{% block content %}
-<div class="page-header">
-  <div>
-    <div class="page-title">Crear Rol</div>
-    <div class="page-subtitle">Definir nuevo rol para usuarios</div>
-  </div>
-  <a href="{{ url_for('usuarios.roles') }}" class="btn btn-outline">← Volver</a>
-</div>
+{% block title %}Nuevo Rol — {{ cooperativa_nombre }}{% endblock %}
 
-<div class="card" style="max-width:700px;">
-  <div class="card-body">
-    <form method="post">
-      <div class="form-grid">
-        <div class="form-group">
-          <label>Nombre de rol *</label>
-          <input name="nombre" required placeholder="Ej: Contador">
+{% block content %}
+<style>
+  .nr-container {
+    max-width: 540px;
+    margin: 40px auto;
+  }
+  
+  .nr-card {
+    background: #fff;
+    border-radius: 20px;
+    border: 1px solid var(--c-border);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+  }
+  
+  .nr-head {
+    background: linear-gradient(135deg, var(--c-blue-mid) 0%, #0891b2 100%);
+    padding: 32px;
+    color: #fff;
+    text-align: center;
+  }
+  .nr-head h2 { font-family: 'Fraunces', serif; font-size: 24px; margin-bottom: 8px; }
+  .nr-head p { font-size: 14px; opacity: 0.8; }
+  
+  .nr-body { padding: 32px; }
+  
+  .nr-form { display: flex; flex-direction: column; gap: 20px; }
+  
+  .nr-group { display: flex; flex-direction: column; gap: 8px; }
+  .nr-group label { font-size: 13px; font-weight: 600; color: var(--c-dark); }
+  
+  .nr-input {
+    padding: 12px 16px;
+    border: 1px solid var(--c-border);
+    border-radius: 12px;
+    font-size: 15px;
+    background: var(--c-gray-light);
+    transition: all 0.2s;
+  }
+  .nr-input:focus {
+    background: #fff;
+    border-color: var(--c-blue);
+    box-shadow: 0 0 0 4px rgba(0, 59, 116, 0.05);
+    outline: none;
+  }
+  
+  .nr-actions { margin-top: 12px; display: flex; flex-direction: column; gap: 12px; }
+</style>
+
+<div class="nr-container">
+  <div class="nr-card">
+    <div class="nr-head">
+      <h2>Nuevo Rol</h2>
+      <p>Define un nuevo perfil de acceso al sistema</p>
+    </div>
+    
+    <div class="nr-body">
+      <form method="post" class="nr-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
+        <div class="nr-group">
+          <label for="nombre">Nombre del rol</label>
+          <input type="text" id="nombre" name="nombre" class="nr-input" placeholder="Ej: Auditor" required autofocus>
         </div>
-        <div class="form-group" style="grid-column: span 2;">
-          <label>Descripción</label>
-          <input name="descripcion" placeholder="Ej: Gestiona reportes contables">
+        
+        <div class="nr-group">
+          <label for="descripcion">Descripción</label>
+          <textarea id="descripcion" name="descripcion" class="nr-input" rows="3" placeholder="Describe las responsabilidades de este rol..." required></textarea>
         </div>
-      </div>
-      <div class="form-actions">
-        <button type="submit" class="btn btn-primary">Guardar rol</button>
-        <a href="{{ url_for('usuarios.roles') }}" class="btn btn-outline">Cancelar</a>
-      </div>
-    </form>
+        
+        <div class="nr-actions">
+          <button type="submit" class="btn btn-primary" style="width: 100%; min-height: 48px;">
+            Crear Rol
+          </button>
+          <a href="{{ url_for('usuarios.roles') }}" class="btn btn-outline" style="width: 100%; min-height: 48px;">
+            Cancelar
+          </a>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 {% endblock %}

@@ -1,9 +1,11 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session, send_file, current_app
 import json, os, csv, math
 from datetime import date, datetime, timedelta
-from utils.db import get_db, db_fetchone, db_fetchall, db_execute, db_insert_and_get_id, db_executemany, get_system_setting, ensure_required_configurations, ensure_default_prestamo_categories
+from utils.db import get_db, db_fetchone, db_fetchall, db_execute, db_insert_and_get_id, db_executemany, get_system_setting, set_system_setting, ensure_required_configurations, ensure_default_prestamo_categories, ensure_system_settings
+from config import DEFAULT_COOPERATIVA_NOMBRE, SYSTEM_SETTINGS_DEFAULTS, REQUIRED_CONFIGURACIONES
+from utils.images import allowed_image as allowed_system_image, procesar_foto_cooperativa
 from utils.decorators import login_required, permission_required
-from utils.helpers import log_auditoria_evento, periodo_cerrado, generar_numero_comprobante, validar_pago_frecuencia, obtener_tipo_cuenta_desde_planilla, tipo_transaccion_label, es_transaccion_positiva
+from utils.helpers import log_auditoria_evento, periodo_cerrado, generar_numero_comprobante, validar_pago_frecuencia, obtener_tipo_cuenta_desde_planilla, tipo_transaccion_label, es_transaccion_positiva, get_config_label
 from utils.financial import *
 
 bp = Blueprint('configuraciones', __name__)
@@ -53,6 +55,11 @@ def configuraciones():
         'retiro_comprobante_texto',
         SYSTEM_SETTINGS_DEFAULTS['retiro_comprobante_texto']
     )
+    cooperativa_mision = get_system_setting(conn, 'cooperativa_mision', SYSTEM_SETTINGS_DEFAULTS.get('cooperativa_mision', ''))
+    cooperativa_vision = get_system_setting(conn, 'cooperativa_vision', SYSTEM_SETTINGS_DEFAULTS.get('cooperativa_vision', ''))
+    cooperativa_principios = get_system_setting(conn, 'cooperativa_principios', SYSTEM_SETTINGS_DEFAULTS.get('cooperativa_principios', ''))
+    login_background_image = get_system_setting(conn, 'login_background_image', '')
+
     conn.close()
     return render_template(
         'configuraciones.html',
@@ -62,6 +69,10 @@ def configuraciones():
         cooperativa_foto=cooperativa_foto,
         prestamo_finiquito_texto=prestamo_finiquito_texto,
         retiro_comprobante_texto=retiro_comprobante_texto,
+        cooperativa_mision=cooperativa_mision,
+        cooperativa_vision=cooperativa_vision,
+        cooperativa_principios=cooperativa_principios,
+        login_background_image=login_background_image,
     )
 
 @bp.route('/configuraciones/actualizar', methods=['POST'])
@@ -89,6 +100,11 @@ def actualizar_configuraciones():
             session.get('username')
         )
 
+        # Nuevos campos de identidad
+        set_system_setting(conn, 'cooperativa_mision', request.form.get('cooperativa_mision', '').strip(), session.get('username'))
+        set_system_setting(conn, 'cooperativa_vision', request.form.get('cooperativa_vision', '').strip(), session.get('username'))
+        set_system_setting(conn, 'cooperativa_principios', request.form.get('cooperativa_principios', '').strip(), session.get('username'))
+
         foto_cooperativa = request.files.get('cooperativa_foto')
         if foto_cooperativa and foto_cooperativa.filename:
             if not allowed_system_image(foto_cooperativa.filename):
@@ -99,10 +115,28 @@ def actualizar_configuraciones():
             set_system_setting(conn, 'cooperativa_foto', nueva_foto, session.get('username'))
 
             if foto_anterior:
-                ruta_anterior = os.path.join(app.static_folder, foto_anterior)
+                ruta_anterior = os.path.join(current_app.static_folder, foto_anterior)
                 if os.path.exists(ruta_anterior):
                     try:
                         os.remove(ruta_anterior)
+                    except OSError:
+                        pass
+
+        # Fondo de login
+        foto_bg = request.files.get('login_background_image')
+        if foto_bg and foto_bg.filename:
+            if not allowed_system_image(foto_bg.filename):
+                raise ValueError('La imagen de fondo debe ser PNG, JPG, JPEG o WEBP.')
+
+            bg_anterior = get_system_setting(conn, 'login_background_image', '')
+            nueva_bg = procesar_foto_cooperativa(foto_bg) # Reusamos el procesador de fotos
+            set_system_setting(conn, 'login_background_image', nueva_bg, session.get('username'))
+
+            if bg_anterior:
+                ruta_anterior_bg = os.path.join(current_app.static_folder, bg_anterior)
+                if os.path.exists(ruta_anterior_bg):
+                    try:
+                        os.remove(ruta_anterior_bg)
                     except OSError:
                         pass
 

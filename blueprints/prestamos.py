@@ -3,10 +3,9 @@ import math
 import json
 import os
 import csv
-import io
+from io import BytesIO, StringIO
 from datetime import date, datetime, timedelta
 from werkzeug.utils import secure_filename
-from io import BytesIO
 
 try:
     from reportlab.lib.pagesizes import letter
@@ -18,12 +17,13 @@ try:
 except ImportError:
     REPORTLAB_AVAILABLE = False
 
-from utils.db import get_db, db_fetchone, db_fetchall, db_execute, db_insert_and_get_id, db_executemany, ensure_required_configurations, ensure_default_prestamo_categories, ensure_system_settings, ensure_module_settings, set_system_setting, get_system_setting
+from utils.db import get_db, get_db_connection, db_fetchone, db_fetchall, db_execute, db_insert_and_get_id, db_executemany, ensure_required_configurations, ensure_default_prestamo_categories, ensure_system_settings, ensure_module_settings, set_system_setting, get_system_setting, _is_postgres_connection
 from utils.decorators import login_required, permission_required
 from utils.nombres import preparar_datos_socio, construir_nombre_completo, construir_apellido_completo, validar_dpi, resumen_beneficiarios
-from utils.financial import calcular_resumen_prestamo, generar_calendario_prestamo, normalizar_fecha_referencia, calcular_total_cuotas_prestamo, calcular_proximo_pago, obtener_dias_frecuencia, fecha_quincenal_mas_cercana
-from utils.helpers import log_auditoria_evento, periodo_cerrado, generar_numero_comprobante, validar_pago_frecuencia, calcular_bono_14, calcular_aguinaldo
-from config import SYSTEM_SETTINGS_DEFAULTS
+from utils.financial import calcular_resumen_prestamo, generar_calendario_prestamo, normalizar_fecha_referencia, calcular_total_cuotas_prestamo, calcular_proximo_pago, obtener_dias_frecuencia, fecha_quincenal_mas_cercana, calcular_alerta_prestamo
+from utils.prestamos import obtener_cartera_con_alertas, cargar_contexto_nuevo_prestamo
+from utils.helpers import log_auditoria_evento, periodo_cerrado, generar_numero_comprobante, validar_pago_frecuencia, obtener_mensaje_validacion_frecuencia, calcular_bono_14, calcular_aguinaldo
+from config import SYSTEM_SETTINGS_DEFAULTS, PRESTAMO_SETTINGS_DEFAULTS, DEFAULT_COOPERATIVA_NOMBRE
 
 bp = Blueprint('prestamos', __name__)
 
@@ -54,108 +54,11 @@ def renderizar_finiquito_prestamo(prestamo, plantilla):
     except KeyError:
         return SYSTEM_SETTINGS_DEFAULTS['prestamo_finiquito_texto'].format(**contexto)
 
-def _calcular_alerta_prestamo(prestamo):
-    estado = (prestamo['estado'] or '').lower()
-    if estado != 'aprobado' or float(prestamo['saldo_pendiente'] or 0) <= 0:
-        return {
-            'semaforo': 'al_dia',
-            'estado_alerta': 'Al dia',
-            'dias_atraso': 0,
-            'monto_vencido': 0.0,
-            'proximo_pago': None,
-        }
 
-    frecuencia = prestamo['frecuencia'] or 'Quincenal'
-    total_cuotas = calcular_total_cuotas_prestamo(prestamo.get('plazo_meses'), frecuencia)
-    referencia = prestamo['ultimo_pago'] or prestamo['fecha_aprobacion'] or prestamo['fecha_solicitud']
-    proximo_pago = normalizar_fecha_referencia(calcular_proximo_pago(referencia, frecuencia))
-    dias_atraso = (date.today() - proximo_pago).days
-
-    if dias_atraso > 0:
-        semaforo = 'vencido'
-        estado_alerta = 'Vencido'
-        monto_vencido = min(float(prestamo['cuota_mensual'] or 0), float(prestamo['saldo_pendiente'] or 0))
-    elif dias_atraso >= -3:
-        semaforo = 'por_vencer'
-        estado_alerta = 'Por vencer'
-        monto_vencido = 0.0
-    else:
-        semaforo = 'al_dia'
-        estado_alerta = 'Al dia'
-        monto_vencido = 0.0
-
-    return {
-        'semaforo': semaforo,
-        'estado_alerta': estado_alerta,
-        'dias_atraso': max(dias_atraso, 0),
-        'monto_vencido': monto_vencido,
-        'proximo_pago': proximo_pago.isoformat(),
-        'total_cuotas': total_cuotas,
-    }
-
-def _obtener_cartera_con_alertas(fecha_inicio=None, fecha_fin=None):
-    conn = get_db()
-    filtros = ''
-    params = []
-    if fecha_inicio:
-        filtros += ' AND date(p.fecha_solicitud) >= date(?)'
-        params.append(fecha_inicio)
-    if fecha_fin:
-        filtros += ' AND date(p.fecha_solicitud) <= date(?)'
-        params.append(fecha_fin)
-
-    rows = db_fetchall(
-        conn,
-        f'''
-        SELECT p.*, s.id AS socio_id,
-               s.codigo AS socio_codigo,
-               s.nombre || ' ' || s.apellido AS nombre_socio,
-               s.frecuencia,
-               pc.nombre AS categoria_nombre,
-               COALESCE(p.etapa_cobranza, 'activo') AS etapa_cobranza,
-               EXISTS(
-                   SELECT 1
-                   FROM prestamos px
-                   WHERE px.refinanciado_de = p.id
-               ) AS fue_amortizado,
-               (
-                   SELECT MAX(pp.fecha)
-                   FROM pagos_prestamo pp
-                   WHERE pp.prestamo_id = p.id
-               ) AS ultimo_pago,
-               (
-                   SELECT COUNT(*)
-                   FROM pagos_prestamo pp
-                   WHERE pp.prestamo_id = p.id
-               ) AS cuotas_pagadas
-        FROM prestamos p
-        JOIN socios s ON s.id = p.socio_id
-        LEFT JOIN prestamo_categorias pc ON pc.id = p.categoria_id
-        WHERE 1=1 {filtros}
-        ORDER BY p.id DESC
-        ''',
-        params,
-    )
-    conn.close()
-
-    cartera = []
-    for row in rows:
-        item = dict(row)
-        if (item.get('estado') or '').lower() == 'amortizado':
-            item['estado'] = 'pagado'
-        alerta = _calcular_alerta_prestamo(item)
-        item.update(alerta)
-        cuota = float(item.get('cuota_mensual') or 0)
-        saldo = float(item.get('saldo_pendiente') or 0)
-        item['cuotas_pendientes'] = math.ceil(saldo / cuota) if cuota > 0 and saldo > 0 else 0
-        item['total_cuotas'] = item.get('total_cuotas') or calcular_total_cuotas_prestamo(item.get('plazo_meses'), item.get('frecuencia'))
-        cartera.append(item)
-
-    return cartera
 
 @bp.route('/prestamos')
 def prestamos():
-    rows = _obtener_cartera_con_alertas()
+    rows = obtener_cartera_con_alertas()
     q = request.args.get('q', '').strip()
     estado_filtro = request.args.get('estado', '').strip().lower()
     fecha_desde = request.args.get('fecha_desde', '').strip()
@@ -233,9 +136,62 @@ def prestamos():
     per_page = min(100, max(10, int(request.args.get('per_page', 25) or 25)))
     total = len(rows)
     total_pages = max(1, math.ceil(total / per_page))
+
+    # ── Totales de cartera (sobre todos los filtrados, sin paginar) ───────────
+    totales_cartera = {
+        'monto': sum(float(r.get('monto_solicitado') or 0) for r in rows),
+        'saldo': sum(float(r.get('saldo_pendiente') or 0) for r in rows),
+        'cuota': sum(float(r.get('cuota_mensual') or 0) for r in rows),
+    }
+
+    # ── Exportación CSV ───────────────────────────────────────────────────────
+    export = request.args.get('export', '').strip().lower()
+    if export == 'csv':
+        output = StringIO()
+        writer = csv.writer(output)
+        writer.writerow(['Número', 'Socio', 'Código', 'Categoría', 'Desembolso', 'Monto', 'Tasa %', 'Plazo', 'Cuota', 'Saldo', 'Estado', 'Semáforo'])
+        for r in rows:
+            writer.writerow([
+                r.get('numero', ''), r.get('nombre_socio', ''), r.get('socio_codigo', ''),
+                r.get('categoria_nombre', ''), r.get('desembolso_tipo', ''),
+                r.get('monto_solicitado', 0), r.get('tasa_interes', 0), r.get('plazo_meses', 0),
+                r.get('cuota_mensual', 0), r.get('saldo_pendiente', 0),
+                r.get('estado', ''), r.get('semaforo', ''),
+            ])
+        filename = f"cartera_prestamos_{vista}_{date.today().isoformat()}.csv"
+        return Response(output.getvalue(), mimetype='text/csv; charset=utf-8',
+                        headers={'Content-Disposition': f'attachment; filename={filename}'})
+
+    if export == 'excel':
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment
+        wb = Workbook()
+        ws = wb.active
+        ws.title = 'Cartera'
+        headers = ['Número', 'Socio', 'Código', 'Categoría', 'Monto', 'Tasa %', 'Plazo', 'Cuota', 'Saldo', 'Estado', 'Semáforo']
+        ws.append(headers)
+        for cell in ws[1]:
+            cell.font = Font(bold=True, color='FFFFFF')
+            cell.fill = PatternFill('solid', fgColor='003B74')
+            cell.alignment = Alignment(horizontal='center')
+        for r in rows:
+            ws.append([
+                r.get('numero', ''), r.get('nombre_socio', ''), r.get('socio_codigo', ''),
+                r.get('categoria_nombre', ''), float(r.get('monto_solicitado') or 0),
+                float(r.get('tasa_interes') or 0), r.get('plazo_meses', 0),
+                float(r.get('cuota_mensual') or 0), float(r.get('saldo_pendiente') or 0),
+                r.get('estado', ''), r.get('semaforo', ''),
+            ])
+        mem = BytesIO()
+        wb.save(mem)
+        mem.seek(0)
+        filename = f"cartera_prestamos_{vista}_{date.today().isoformat()}.xlsx"
+        return send_file(mem, as_attachment=True, download_name=filename,
+                         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+    # ── Paginación (solo para HTML) ───────────────────────────────────────────
     start_idx = (page - 1) * per_page
-    end_idx = start_idx + per_page
-    rows = rows[start_idx:end_idx]
+    rows = rows[start_idx:start_idx + per_page]
 
     return render_template(
         'prestamos.html',
@@ -243,6 +199,7 @@ def prestamos():
         vista=vista,
         conteos=conteos,
         subtitulo=subtitulo,
+        totales_cartera=totales_cartera,
         q=q,
         estado_filtro=estado_filtro,
         fecha_desde=fecha_desde,
@@ -254,6 +211,7 @@ def prestamos():
         total=total,
         total_pages=total_pages,
     )
+
 
 @bp.route('/prestamos/<int:pid>')
 @login_required()
@@ -398,79 +356,6 @@ def detalle_prestamo(pid):
         calendario=calendario,
     )
 
-def _cargar_contexto_nuevo_prestamo(conn, socio_id_seleccionado=''):
-    ensure_required_configurations(conn)
-    ensure_default_prestamo_categories(conn)
-
-    socios = db_fetchall(
-        conn,
-        "SELECT id, codigo, nombre, apellido, dpi, frecuencia, banco_nombre, banco_tipo_cuenta, banco_numero_cuenta FROM socios WHERE estado='activo' ORDER BY codigo, nombre, apellido"
-    )
-    configs = db_fetchall(conn, "SELECT * FROM configuraciones WHERE tipo='prestamo'")
-    categorias_prestamo = db_fetchall(
-        conn,
-        "SELECT id, nombre, descripcion FROM prestamo_categorias WHERE estado='activo' ORDER BY nombre"
-    )
-    prestamos_rows = db_fetchall(
-        conn,
-        '''
-        SELECT p.id,
-               p.socio_id,
-               p.numero,
-               p.estado,
-               p.categoria_id,
-               COALESCE(p.cuota_mensual, 0) AS cuota_mensual,
-               p.fecha_solicitud,
-               COALESCE(p.saldo_pendiente, p.monto_aprobado, p.monto_solicitado, 0) AS saldo_vigente,
-               p.monto_solicitado,
-               pc.nombre AS categoria_nombre,
-               COALESCE(cal.cuotas_pendientes, 0) AS cuotas_pendientes
-        FROM prestamos p
-        JOIN socios s ON s.id = p.socio_id
-        LEFT JOIN prestamo_categorias pc ON pc.id = p.categoria_id
-        LEFT JOIN (
-            SELECT prestamo_id, COUNT(*) AS cuotas_pendientes
-            FROM prestamo_calendario_pagos
-            WHERE estado = 'pendiente'
-            GROUP BY prestamo_id
-        ) cal ON cal.prestamo_id = p.id
-        WHERE p.estado IN ('pendiente', 'aprobado')
-        ORDER BY p.socio_id, date(p.fecha_solicitud) DESC, p.id DESC
-        '''
-    )
-
-    prestamos_vigentes_por_socio = {}
-    for row in prestamos_rows:
-        socio_key = str(row['socio_id'])
-        saldo = float(row['saldo_vigente'] or 0)
-        cuota = float(row['cuota_mensual'] or 0)
-        cuotas_pendientes = int(row['cuotas_pendientes'] or 0)
-        # Interés total restante = lo que el socio pagaría en intereses si pagara normalmente
-        # = cuota × cuotas_pendientes - saldo_capital
-        if cuota > 0 and cuotas_pendientes > 0:
-            interes_total = round(max(0, cuota * cuotas_pendientes - saldo), 2)
-        else:
-            interes_total = 0.0
-        prestamos_vigentes_por_socio.setdefault(socio_key, []).append({
-            'id': row['id'],
-            'numero': row['numero'],
-            'estado': row['estado'],
-            'categoria_id': row['categoria_id'],
-            'fecha_solicitud': row['fecha_solicitud'],
-            'monto_solicitado': float(row['monto_solicitado'] or 0),
-            'saldo_vigente': saldo,
-            'interes_periodo': interes_total,   # Interés total restante del préstamo
-            'capital_periodo': round(saldo, 2), # Saldo capital completo
-            'categoria_nombre': row['categoria_nombre'] or 'Sin categoria',
-        })
-
-    return {
-        'socios': socios,
-        'configuraciones': configs,
-        'categorias_prestamo': categorias_prestamo,
-        'prestamos_vigentes_por_socio': prestamos_vigentes_por_socio,
-        'socio_id_seleccionado': str(socio_id_seleccionado or ''),
-    }
 
 @bp.route('/prestamos/nuevo', methods=['GET', 'POST'])
 def nuevo_prestamo():
@@ -535,6 +420,17 @@ def nuevo_prestamo():
                 flash('El asociado no tiene la información bancaria completa para desembolso por deposito.', 'danger')
                 return redirect(url_for('prestamos.nuevo_prestamo', socio_id=socio_id))
 
+        # Validar si tiene algún préstamo pendiente de aprobación/desembolso
+        prestamo_pendiente = db_fetchone(
+            conn,
+            "SELECT numero FROM prestamos WHERE socio_id=? AND estado='pendiente'",
+            [socio_id]
+        )
+        if prestamo_pendiente:
+            conn.close()
+            flash(f'El asociado ya tiene una solicitud pendiente ({prestamo_pendiente["numero"]}). Debe ser resuelta antes de crear una nueva.', 'warning')
+            return redirect(url_for('prestamos.nuevo_prestamo', socio_id=socio_id))
+
         # Obtener todos los préstamos vigentes del asociado
         prestamos_vigentes = db_fetchall(
             conn,
@@ -576,40 +472,43 @@ def nuevo_prestamo():
             numero = f'PRE-{count+1:04d}'
 
             if prestamos_a_amortizar_ids:
-                # Obtener el primer préstamo seleccionado como préstamo principal a amortizar
-                # (para mantener compatibilidad con refinanciado_de)
-                prestamo_viejo = db_fetchone(
+                total_capital_amort = 0.0
+                total_interes_amort = 0.0
+                
+                # Préstamo principal (refinanciado_de)
+                p_principal_id = prestamos_a_amortizar_ids[0]
+                p_principal = db_fetchone(
                     conn,
-                    '''
-                    SELECT id, numero, categoria_id,
-                           COALESCE(saldo_pendiente, monto_aprobado, monto_solicitado, 0) AS saldo_vigente
-                    FROM prestamos
-                    WHERE id=? AND socio_id=? AND estado IN ('pendiente', 'aprobado')
-                    ''',
-                    [prestamos_a_amortizar_ids[0], socio_id]
+                    "SELECT id, numero, COALESCE(saldo_pendiente, monto_aprobado, monto_solicitado, 0) AS saldo_vigente FROM prestamos WHERE id=?",
+                    [p_principal_id]
                 )
-                if not prestamo_viejo:
+                
+                # Calcular total amortizado sumando todos los seleccionados
+                for pid in prestamos_a_amortizar_ids:
+                    try:
+                        c_a = float(request.form.get(f'capital_amortizado_{pid}', 0) or 0)
+                        i_a = float(request.form.get(f'interes_amortizado_{pid}', 0) or 0)
+                    except (TypeError, ValueError):
+                        c_a = 0.0
+                        i_a = 0.0
+                    
+                    if c_a + i_a == 0:
+                        # Si no se ingresaron valores, usar el saldo vigente del préstamo
+                        p_v = db_fetchone(conn, "SELECT COALESCE(saldo_pendiente, monto_aprobado, monto_solicitado, 0) AS saldo_vigente FROM prestamos WHERE id=?", [pid])
+                        c_a = float(p_v['saldo_vigente'] or 0)
+                        i_a = 0.0
+                    
+                    total_capital_amort += c_a
+                    total_interes_amort += i_a
+
+                total_amortizado = total_capital_amort + total_interes_amort
+                
+                if total_amortizado > monto:
                     conn.close()
-                    flash('El préstamo seleccionado para amortizar ya no está vigente.', 'danger')
+                    flash(f'El saldo total a amortizar (Q{total_amortizado:,.2f}) no puede ser mayor al monto solicitado (Q{monto:,.2f}).', 'danger')
                     return redirect(url_for('prestamos.nuevo_prestamo', socio_id=socio_id))
 
-                # Leer capital e interés ingresados manualmente para el préstamo principal
-                pid_str = str(prestamos_a_amortizar_ids[0])
-                try:
-                    capital_amort = float(request.form.get(f'capital_amortizado_{pid_str}', 0) or 0)
-                    interes_amort = float(request.form.get(f'interes_amortizado_{pid_str}', 0) or 0)
-                except (TypeError, ValueError):
-                    capital_amort = 0.0
-                    interes_amort = 0.0
-
-                monto_amortizado = capital_amort + interes_amort
-                if monto_amortizado <= 0:
-                    # Fallback: usar saldo vigente completo
-                    monto_amortizado = float(prestamo_viejo['saldo_vigente'] or 0)
-                    capital_amort = monto_amortizado
-                    interes_amort = 0.0
-
-                monto_desembolso = max(0, monto - monto_amortizado)
+                monto_desembolso = max(0, monto - total_amortizado)
 
                 db_execute(
                     conn,
@@ -625,20 +524,20 @@ def nuevo_prestamo():
                         numero, socio_id, categoria['id'], monto, tasa, plazo,
                         resumen['cuota'], date.today().isoformat(),
                         forma_desembolso, banco_tipo, banco_numero,
-                        prestamo_viejo['id'], monto_amortizado, monto_desembolso,
-                        capital_amort, interes_amort,
+                        p_principal['id'], total_amortizado, monto_desembolso,
+                        total_capital_amort, total_interes_amort,
                     )
                 )
-                numeros_amortizados = [prestamo_viejo['numero']]
-
-                # Si hay más de un préstamo seleccionado, registrarlos en auditoría
-                for extra_id in prestamos_a_amortizar_ids[1:]:
+                numeros_amortizados = []
+                # Si hay préstamos seleccionados, registrarlos y agregarlos a la lista
+                for extra_id in prestamos_a_amortizar_ids:
                     try:
                         capital_e = float(request.form.get(f'capital_amortizado_{extra_id}', 0) or 0)
                         interes_e = float(request.form.get(f'interes_amortizado_{extra_id}', 0) or 0)
                     except (TypeError, ValueError):
                         capital_e = 0.0
                         interes_e = 0.0
+                    
                     prestamo_extra = db_fetchone(
                         conn,
                         "SELECT numero FROM prestamos WHERE id=? AND socio_id=?",
@@ -646,21 +545,23 @@ def nuevo_prestamo():
                     )
                     if prestamo_extra:
                         numeros_amortizados.append(prestamo_extra['numero'])
-                        db_execute(
-                            conn,
-                            '''
-                            INSERT INTO auditoria_eventos
-                                (modulo, entidad, entidad_id, accion, descripcion, usuario, fecha)
-                            VALUES (?, ?, ?, ?, ?, ?, ?)
-                            ''',
-                            (
-                                'prestamos', 'prestamo', extra_id, 'amortizacion_adicional',
-                                f'Capital: Q{capital_e:,.2f} | Interés: Q{interes_e:,.2f} '
-                                f'| Préstamo nuevo: {numero}',
-                                session.get('username', 'sistema'),
-                                date.today().isoformat(),
+                        # Solo auditar si NO es el principal (el principal ya se guarda en la tabla prestamos)
+                        if str(extra_id) != str(p_principal['id']):
+                            db_execute(
+                                conn,
+                                '''
+                                INSERT INTO auditoria_eventos
+                                    (modulo, entidad, entidad_id, accion, descripcion, usuario, fecha)
+                                VALUES (?, ?, ?, ?, ?, ?, ?)
+                                ''',
+                                (
+                                    'prestamos', 'prestamo', extra_id, 'amortizacion_adicional',
+                                    f'Capital: Q{capital_e:,.2f} | Interés: Q{interes_e:,.2f} '
+                                    f'| Préstamo nuevo: {numero}',
+                                    session.get('username', 'sistema'),
+                                    date.today().isoformat(),
+                                )
                             )
-                        )
 
                 mensaje = (
                     f'Solicitud enviada. Si se aprueba, amortizará: '
@@ -696,7 +597,7 @@ def nuevo_prestamo():
             conn.close()
 
     socio_id_seleccionado = request.args.get('socio_id', '').strip()
-    contexto = _cargar_contexto_nuevo_prestamo(conn, socio_id_seleccionado=socio_id_seleccionado)
+    contexto = cargar_contexto_nuevo_prestamo(socio_id_seleccionado=socio_id_seleccionado)
     conn.close()
     return render_template('nuevo_prestamo.html', **contexto)
 
@@ -711,10 +612,17 @@ def api_calcular_prestamo_detalles():
     try:
         bono_14 = calcular_bono_14(socio_id, conn)
         aguinaldo = calcular_aguinaldo(socio_id, conn)
+        
+        # Obtener saldo total de ahorros
+        ahorro_row = db_fetchone(conn, "SELECT SUM(saldo) FROM cuentas WHERE socio_id=? AND estado='activa'", [socio_id])
+        saldo_ahorro = ahorro_row[0] if ahorro_row and ahorro_row[0] else 0.0
+
         return jsonify({
             'bono_14': float(bono_14) if bono_14 else 0.0,
-            'aguinaldo': float(aguinaldo) if aguinaldo else 0.0
+            'aguinaldo': float(aguinaldo) if aguinaldo else 0.0,
+            'saldo_ahorro': float(saldo_ahorro)
         })
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
@@ -725,9 +633,9 @@ def obtener_detalle_prestamo_aprobacion(conn, pid):
     prestamo = db_fetchone(
         conn,
         '''
-        SELECT p.*, s.codigo AS socio_codigo, s.nombre || ' ' || s.apellido AS nombre_socio,
-               s.frecuencia, s.banco_nombre, s.banco_tipo_cuenta, s.banco_numero_cuenta,
-               pc.nombre AS categoria_nombre
+        SELECT p.*, s.nombre || ' ' || s.apellido AS nombre_socio, s.codigo AS socio_codigo,
+               s.frecuencia, pc.nombre AS categoria_nombre,
+               s.banco_nombre, s.banco_tipo_cuenta, s.banco_numero_cuenta
         FROM prestamos p
         JOIN socios s ON s.id = p.socio_id
         LEFT JOIN prestamo_categorias pc ON pc.id = p.categoria_id
@@ -841,6 +749,22 @@ def aprobar_prestamo(pid):
                 )
                 db_execute(
                     conn,
+                    "UPDATE prestamo_calendario_pagos SET estado='pagado' WHERE prestamo_id=? AND estado='pendiente'",
+                    [prestamo_anterior['id']]
+                )
+                
+                # BUSCAR AMORTIZACIONES ADICIONALES (Múltiples préstamos)
+                amortizaciones_extras = db_fetchall(
+                    conn,
+                    "SELECT entidad_id FROM auditoria_eventos WHERE modulo='prestamos' AND accion='amortizacion_adicional' AND descripcion LIKE ?",
+                    [f"%Préstamo nuevo: {prestamo['numero']}%"]
+                )
+                for extra in amortizaciones_extras:
+                    db_execute(conn, "UPDATE prestamos SET saldo_pendiente=0, estado='pagado' WHERE id=?", [extra['entidad_id']])
+                    db_execute(conn, "UPDATE prestamo_calendario_pagos SET estado='pagado' WHERE prestamo_id=? AND estado='pendiente'", [extra['entidad_id']])
+                
+                db_execute(
+                    conn,
                     "UPDATE prestamos SET monto_amortizado=?, monto_desembolso=? WHERE id=?",
                     [monto_amortizado, monto_desembolso, pid]
                 )
@@ -857,7 +781,7 @@ def aprobar_prestamo(pid):
                         date.today().isoformat(),
                     )
                 )
-                mensaje_aprobacion = f'Préstamo aprobado, calendario generado y amortización aplicada a {prestamo_anterior["numero"]}.'
+                mensaje_aprobacion = f'Préstamo aprobado, calendario generado y amortizaciones aplicadas.'
         db_execute(conn, 'DELETE FROM prestamo_calendario_pagos WHERE prestamo_id=?', [pid])
         db_executemany(
             conn,
@@ -870,10 +794,33 @@ def aprobar_prestamo(pid):
         conn.commit()
         conn.close()
         flash(mensaje_aprobacion, 'success')
-        return redirect(url_for('prestamos.prestamos', vista='activos'))
+        return redirect(url_for('prestamos.aprobacion_exitosa', pid=pid))
+
 
     conn.close()
     return _render()
+
+@bp.route('/prestamos/<int:pid>/aprobacion-exitosa')
+@login_required()
+def aprobacion_exitosa(pid):
+    conn = get_db()
+    prestamo = db_fetchone(
+        conn,
+        '''
+        SELECT p.*, s.nombre || ' ' || s.apellido AS nombre_socio, s.codigo AS socio_codigo
+        FROM prestamos p
+        JOIN socios s ON s.id = p.socio_id
+        WHERE p.id=?
+        ''',
+        [pid]
+    )
+    conn.close()
+    if not prestamo:
+        flash('Préstamo no encontrado.', 'danger')
+        return redirect(url_for('prestamos.prestamos'))
+    
+    return render_template('aprobacion_exitosa.html', prestamo=prestamo)
+
 
 @bp.route('/prestamos/<int:pid>/no-procede', methods=['POST'])
 @login_required()
@@ -909,6 +856,86 @@ def marcar_prestamo_no_procede(pid):
 
     flash('La solicitud se marco como no procede.', 'success')
     return redirect(url_for('prestamos.prestamos', vista='pendientes'))
+
+@bp.route('/prestamos/editar/<int:pid>', methods=['GET', 'POST'])
+@login_required(role='Administrador')
+@permission_required('prestamos')
+def editar_prestamo(pid):
+    conn = get_db()
+    prestamo = db_fetchone(conn, "SELECT * FROM prestamos WHERE id=?", [pid])
+    
+    if not prestamo:
+        conn.close()
+        flash('Préstamo no encontrado.', 'danger')
+        return redirect(url_for('prestamos.prestamos'))
+    
+    if (prestamo['estado'] or '').lower() != 'pendiente':
+        conn.close()
+        flash('Solo se pueden editar préstamos en estado pendiente.', 'warning')
+        return redirect(url_for('prestamos.detalle_prestamo', pid=pid))
+
+    if request.method == 'POST':
+        try:
+            monto = float(request.form.get('monto', 0))
+            tasa = float(request.form.get('tasa', 0))
+            plazo = int(request.form.get('plazo', 0))
+            categoria_id = request.form.get('categoria_id')
+            
+            db_execute(
+                conn,
+                "UPDATE prestamos SET monto_solicitado=?, tasa_interes=?, plazo_meses=?, categoria_id=? WHERE id=?",
+                [monto, tasa, plazo, categoria_id, pid]
+            )
+            conn.commit()
+            flash('Solicitud de préstamo actualizada.', 'success')
+            return redirect(url_for('prestamos.detalle_prestamo', pid=pid))
+        except Exception as e:
+            flash(f'Error al actualizar: {e}', 'danger')
+        finally:
+            conn.close()
+    else:
+        categorias = db_fetchall(conn, "SELECT id, nombre FROM prestamo_categorias WHERE estado='activo'")
+        configuraciones = db_fetchall(conn, "SELECT * FROM configuraciones WHERE tipo='prestamo'")
+        conn.close()
+        return render_template('editar_prestamo.html', prestamo=prestamo, categorias=categorias, configuraciones=configuraciones)
+
+@bp.route('/prestamos/eliminar/<int:pid>', methods=['POST'])
+@login_required(role='Administrador')
+@permission_required('prestamos')
+def eliminar_prestamo(pid):
+    conn = get_db()
+    prestamo = db_fetchone(conn, "SELECT numero, estado FROM prestamos WHERE id=?", [pid])
+    
+    if not prestamo:
+        conn.close()
+        flash('Préstamo no encontrado.', 'danger')
+        return redirect(url_for('prestamos.prestamos'))
+        
+    if (prestamo['estado'] or '').lower() != 'pendiente':
+        conn.close()
+        flash('No se puede eliminar un préstamo que ya ha sido procesado.', 'warning')
+        return redirect(url_for('prestamos.detalle_prestamo', pid=pid))
+
+    try:
+        db_execute(conn, "DELETE FROM prestamo_calendario_pagos WHERE prestamo_id=?", [pid])
+        db_execute(conn, "DELETE FROM prestamos WHERE id=?", [pid])
+        conn.commit()
+        
+        log_auditoria_evento(
+            modulo='prestamos',
+            entidad='prestamo',
+            entidad_id=pid,
+            accion='eliminar',
+            descripcion=f'Eliminación de solicitud de préstamo {prestamo["numero"]}'
+        )
+        flash('La solicitud de préstamo ha sido eliminada permanentemente.', 'success')
+    except Exception as e:
+        flash(f'Error al eliminar: {e}', 'danger')
+    finally:
+        conn.close()
+        
+    return redirect(url_for('prestamos.prestamos'))
+
 
 @bp.route('/prestamos/<int:pid>/calendario/pdf')
 def calendario_prestamo_pdf(pid):
@@ -1035,78 +1062,94 @@ def finiquito_prestamo(pid):
 
     return render_template('finiquito_prestamo.html', prestamo=prestamo, contenido_finiquito=contenido)
 
-@bp.route('/prestamos/<int:pid>/pago', methods=['POST'])
+@bp.route('/prestamos/<int:pid>/pago', methods=['GET', 'POST'])
 @login_required(role=('Administrador', 'Operador'))
 @permission_required('prestamos.pagar')
 def pagar_prestamo(pid):
     conn = get_db()
     prestamo = db_fetchone(
         conn,
-        "SELECT p.*, s.frecuencia FROM prestamos p JOIN socios s ON s.id = p.socio_id WHERE p.id=?",
+        '''
+        SELECT p.*, s.codigo as socio_codigo, s.nombre || ' ' || s.apellido as nombre_socio, s.frecuencia 
+        FROM prestamos p 
+        JOIN socios s ON s.id = p.socio_id 
+        WHERE p.id=?
+        ''',
         [pid],
     )
-
-    if periodo_cerrado('prestamos', date.today().isoformat()):
-        conn.close()
-        flash('El periodo de préstamos está cerrado para la fecha seleccionada.', 'warning')
-        return redirect(url_for('prestamos.prestamos'))
     
-    # Validar frecuencia para pagos de préstamo
-    if not validar_pago_frecuencia(prestamo['socio_id'], 'prestamo'):
-        mensaje = obtener_mensaje_validacion_frecuencia(prestamo['socio_id'], 'prestamo')
-        flash(f'No se puede realizar el pago. {mensaje}', 'warning')
+    if not prestamo:
         conn.close()
+        flash('Préstamo no encontrado.', 'danger')
         return redirect(url_for('prestamos.prestamos'))
+
+    if request.method == 'POST':
+        fecha_pago = request.form.get('fecha_pago') or date.today().isoformat()
+        # Validar periodo cerrado solamente
+        if periodo_cerrado('prestamos', fecha_pago):
+            conn.close()
+            flash('El periodo de préstamos está cerrado para la fecha seleccionada.', 'warning')
+            return redirect(url_for('prestamos.prestamos'))
+
+        
+        monto_pago = float(request.form.get('monto', prestamo['cuota_mensual']))
+        boleta = request.form.get('boleta_deposito', '').strip()
+        fecha_boleta = request.form.get('fecha_boleta') or fecha_pago
+        
+        tasa_periodica = (prestamo['tasa_interes'] / 100) * (obtener_dias_frecuencia(prestamo['frecuencia']) / 365)
+        interes = round(prestamo['saldo_pendiente'] * tasa_periodica, 2)
+        capital = round(monto_pago - interes, 2)
+        
+        if capital <= 0:
+            capital = 0
+            interes = monto_pago
+            
+        nuevo_saldo = round(max(0, prestamo['saldo_pendiente'] - capital), 2)
+        numero_comprobante = generar_numero_comprobante(conn)
+        
+        try:
+            pago_id = db_insert_and_get_id(
+                conn,
+                """
+                INSERT INTO pagos_prestamo
+                (prestamo_id,monto,capital,interes,saldo_restante,fecha,numero_comprobante,boleta_deposito,fecha_boleta,descripcion)
+                VALUES (?,?,?,?,?,?,?,?,?,?)
+                """,
+                [pid, monto_pago, capital, interes, nuevo_saldo, fecha_pago, numero_comprobante, boleta, fecha_boleta, "Cobro de cuota"]
+            )
+
+            
+            estado = 'pagado' if nuevo_saldo == 0 else 'aprobado'
+            db_execute(conn, "UPDATE prestamos SET saldo_pendiente=?, estado=? WHERE id=?", [nuevo_saldo, estado, pid])
+            
+            cuota_programada = db_fetchone(
+                conn,
+                '''
+                SELECT id FROM prestamo_calendario_pagos
+                WHERE prestamo_id=? AND estado='pendiente'
+                ORDER BY numero_cuota
+                LIMIT 1
+                ''',
+                [pid]
+            )
+            if cuota_programada:
+                db_execute(
+                    conn,
+                    "UPDATE prestamo_calendario_pagos SET estado='pagado' WHERE id=?",
+                    [cuota_programada['id']]
+                )
+            
+            conn.commit()
+            flash(f'Pago registrado exitosamente. Comprobante: {numero_comprobante}', 'success')
+            return redirect(url_for('prestamos.detalle_prestamo', pid=pid))
+        except Exception as e:
+            flash(f'Error al registrar el pago: {e}', 'danger')
+        finally:
+            if conn: conn.close()
     
-    tasa_periodica = (prestamo['tasa_interes'] / 100) * (obtener_dias_frecuencia(prestamo['frecuencia']) / 365)
-    interes = round(prestamo['saldo_pendiente'] * tasa_periodica, 2)
-    capital = round(prestamo['cuota_mensual'] - interes, 2)
-    if capital <= 0:
-        capital = round(prestamo['cuota_mensual'], 2)
-        interes = 0
-    nuevo_saldo = round(max(0, prestamo['saldo_pendiente'] - capital), 2)
-    numero_comprobante = generar_numero_comprobante(conn)
-    pago_id = db_insert_and_get_id(
-        conn,
-        """
-        INSERT INTO pagos_prestamo
-        (prestamo_id,monto,capital,interes,saldo_restante,fecha,numero_comprobante)
-        VALUES (?,?,?,?,?,?,?)
-        """,
-        [pid, prestamo['cuota_mensual'], capital, interes, nuevo_saldo, date.today().isoformat(), numero_comprobante]
-    )
-    estado = 'pagado' if nuevo_saldo == 0 else 'aprobado'
-    db_execute(conn, "UPDATE prestamos SET saldo_pendiente=?, estado=? WHERE id=?", [nuevo_saldo, estado, pid])
-    cuota_programada = db_fetchone(
-        conn,
-        '''
-        SELECT id FROM prestamo_calendario_pagos
-        WHERE prestamo_id=? AND estado='pendiente'
-        ORDER BY numero_cuota
-        LIMIT 1
-        ''',
-        [pid]
-    )
-    if cuota_programada:
-        db_execute(
-            conn,
-            "UPDATE prestamo_calendario_pagos SET estado='pagado' WHERE id=?",
-            [cuota_programada['id']]
-        )
-    conn.commit()
-    conn.close()
+    return render_template('registrar_pago.html', prestamo=prestamo, fecha_hoy=date.today().isoformat())
 
-    log_auditoria_evento(
-        modulo='prestamos',
-        entidad='pago_prestamo',
-        entidad_id=pago_id,
-        accion='crear',
-        descripcion=f'Pago individual aplicado al prestamo {prestamo["numero"]}',
-        datos={'prestamo_id': pid, 'monto': prestamo['cuota_mensual'], 'comprobante': numero_comprobante}
-    )
 
-    flash('Pago registrado exitosamente.', 'success')
-    return redirect(url_for('prestamos.prestamos'))
 
 @bp.route('/api/cuota')
 def calcular_cuota():
@@ -2015,10 +2058,9 @@ def generar_planilla_prestamos():
             )
 
         conn.commit()
-
         conn.close()
         flash('Planilla de prestamos generada y guardada como pendiente.', 'success')
-        return redirect(url_for('detalle_planilla_prestamos', planilla_id=planilla_id))
+        return redirect(url_for('prestamos.detalle_planilla_prestamos', planilla_id=planilla_id))
 
     return render_template('generar_planilla_prestamos.html', form_data=form_data)
 
@@ -2041,10 +2083,6 @@ def procesar_pagos_masivos():
         return jsonify({'error': 'Debe indicar numero de boleta de pago para aplicar la planilla.'}), 400
     
     conn = get_db_connection()
-    if not validate_idempotency(conn, 'procesar_pagos_masivos'):
-        conn.close()
-        return jsonify({'error': 'Solicitud duplicada detectada (idempotencia).'}), 409
-
     planilla = None
     if planilla_id:
         planilla = db_fetchone(conn, '''
@@ -2097,19 +2135,14 @@ def procesar_pagos_masivos():
             if monto > saldo_pendiente:
                 errores.append(f"Monto excede saldo pendiente para préstamo {pago.get('numero', prestamo_id)}")
                 continue
-            
-            # Calcular capital e intereses (simplificado)
-            if monto >= cuota_mensual:
-                # Pago completo de cuota
-                capital = cuota_mensual * 0.8  # 80% capital, 20% intereses (aproximado)
-                interes = cuota_mensual * 0.2
-            else:
-                # Pago parcial
-                capital = monto * 0.8
-                interes = monto * 0.2
 
-            capital = round(capital, 2)
-            interes = round(interes, 2)
+            # Calcular capital e intereses usando la misma fórmula que pagar_prestamo
+            tasa_periodica = (prestamo['tasa_interes'] / 100) * (obtener_dias_frecuencia(prestamo['frecuencia']) / 365)
+            interes = round(saldo_pendiente * tasa_periodica, 2)
+            capital = round(monto - interes, 2)
+            if capital <= 0:
+                capital = round(monto, 2)
+                interes = 0.0
             
             nuevo_saldo = saldo_pendiente - monto
             
@@ -2117,11 +2150,9 @@ def procesar_pagos_masivos():
             db_execute(conn, 'UPDATE prestamos SET saldo_pendiente = ? WHERE id = ?', (nuevo_saldo, prestamo_id))
             
             # Registrar pago
-            descripcion_planilla = f"Planilla: {nombre_planilla}"
-            if boleta_deposito:
-                descripcion_planilla += f" | Boleta: {boleta_deposito}"
+            descripcion_planilla = f"Aplicación Planilla: {nombre_planilla}"
             if frecuencia:
-                descripcion_planilla += f" | Frecuencia: {frecuencia}"
+                descripcion_planilla += f" — {frecuencia}"
 
             db_execute(
                 conn,

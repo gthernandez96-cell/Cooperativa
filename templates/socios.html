@@ -1,78 +1,398 @@
 {% extends "base.html" %}
 {% block title %}Asociados — {{ cooperativa_nombre }}{% endblock %}
+{% block extra_head %}
+<style>
+/* ── Stats bar ──────────────────────────────────────────────── */
+.soc-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:20px;}
+.soc-stat{background:#fff;border-radius:14px;border:1.5px solid #e5e7eb;padding:18px 20px;position:relative;overflow:hidden;transition:transform .18s,box-shadow .18s;}
+.soc-stat:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,42,80,.1);}
+.soc-stat-accent{position:absolute;top:-14px;right:-14px;width:60px;height:60px;border-radius:50%;opacity:.08;}
+.soc-stat-label{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:#6b7280;margin-bottom:4px;}
+.soc-stat-value{font-family:'Fraunces',serif;font-size:28px;font-weight:600;line-height:1;color:#1a1a1a;}
+.soc-stat-sub{font-size:12px;color:#9ca3af;margin-top:4px;}
+
+/* ── Filter card ────────────────────────────────────────────── */
+.soc-filter{background:#fff;border-radius:14px;border:1px solid #e5e7eb;padding:14px 18px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,32,68,.04);}
+.soc-filter-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.soc-input{padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:13px;font-family:inherit;background:#fff;color:#1a1a1a;transition:border-color .15s;}
+.soc-input:focus{outline:none;border-color:#003b74;box-shadow:0 0 0 3px rgba(0,59,116,.08);}
+.soc-input.search{flex:1;min-width:200px;}
+.soc-btn{padding:9px 18px;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;border:none;font-family:inherit;transition:all .15s;min-height:40px;display:inline-flex;align-items:center;gap:6px;}
+.soc-btn.primary{background:#003b74;color:#fff;}
+.soc-btn.primary:hover{background:#0057a3;}
+.soc-btn.outline{background:#fff;border:1.5px solid #e5e7eb;color:#374151;text-decoration:none;}
+.soc-btn.outline:hover{background:#f9fafb;}
+.soc-btn.green{background:#fff;border:1.5px solid #059669;color:#047857;text-decoration:none;}
+.soc-btn.green:hover{background:#f0fdf4;}
+
+/* ── Info bar ───────────────────────────────────────────────── */
+.soc-info{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#f8fafb;border-radius:10px;border:1px solid #e5e7eb;margin-bottom:14px;font-size:13px;color:#6b7280;}
+
+/* ── Table ──────────────────────────────────────────────────── */
+.soc-table{width:100%;border-collapse:separate;border-spacing:0;}
+.soc-table th{background:#f8fafb;padding:10px 14px;text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;color:#6b7280;border-bottom:1.5px solid #e5e7eb;font-weight:600;white-space:nowrap;}
+.soc-table td{padding:13px 14px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
+.soc-table tr:last-child td{border-bottom:none;}
+.soc-table tbody tr{transition:background .12s;}
+.soc-table tbody tr:hover td{background:#f0f7ff;}
+
+/* Avatar */
+.soc-avatar{width:36px;height:36px;border-radius:10px;object-fit:cover;border:1.5px solid #e5e7eb;flex-shrink:0;}
+.soc-avatar-placeholder{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#003b74,#4a7ebf);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;letter-spacing:.5px;}
+.soc-name-wrap{display:flex;align-items:center;gap:10px;}
+.soc-name-main{font-weight:600;font-size:13px;color:#1a1a1a;}
+.soc-name-sub{font-size:11px;color:#9ca3af;margin-top:1px;}
+.soc-code{font-family:'Fraunces',serif;font-size:13px;color:#2d6a4f;font-weight:600;}
+
+/* Badges */
+.soc-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;}
+.soc-badge-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+.soc-badge.activo{background:#d1fae5;color:#065f46;}.soc-badge.activo .soc-badge-dot{background:#10b981;}
+.soc-badge.inactivo{background:#f3f4f6;color:#6b7280;}.soc-badge.inactivo .soc-badge-dot{background:#9ca3af;}
+
+/* Action buttons */
+.soc-actions{display:flex;gap:5px;align-items:center;}
+.soc-act{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;border:1.5px solid #e5e7eb;background:#fff;text-decoration:none;color:#374151;cursor:pointer;transition:all .15s;}
+.soc-act:hover{background:#f0f7ff;border-color:#93c5fd;}
+.soc-act.edit{border-color:#ddd6fe;background:#f5f3ff;color:#6d28d9;}
+.soc-act.edit:hover{background:#ede9fe;}
+.soc-act.danger{border-color:#fecaca;background:#fff5f5;color:#dc2626;}
+.soc-act.danger:hover{background:#fee2e2;}
+.soc-act.ok{border-color:#bbf7d0;background:#f0fdf4;color:#047857;}
+.soc-act.ok:hover{background:#dcfce7;}
+
+/* Frecuencia chip */
+.frec-chip{display:inline-block;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:600;background:#eff6ff;color:#1e40af;}
+
+/* Empty state */
+.soc-empty{text-align:center;padding:48px 24px;color:#9ca3af;}
+.soc-empty svg{width:48px;height:48px;opacity:.25;margin-bottom:12px;}
+.soc-empty p{font-size:15px;font-weight:500;color:#6b7280;}
+
+/* Pagination */
+.soc-pag{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-top:1px solid #f1f5f9;}
+.soc-pag-info{font-size:12px;color:#6b7280;}
+.soc-pag-btns{display:flex;gap:6px;}
+
+/* Active filter pills */
+.filter-pill{display:inline-flex;align-items:center;gap:4px;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:99px;padding:2px 10px;font-size:11px;font-weight:600;}
+
+@media(max-width:860px){
+  .soc-stats{grid-template-columns:repeat(2,1fr);}
+  .soc-table th:nth-child(n+5):not(:last-child){display:none;}
+  .soc-table td:nth-child(n+5):not(:last-child){display:none;}
+}
+@media(max-width:600px){
+  .soc-stats{grid-template-columns:1fr 1fr;}
+}
+</style>
+{% endblock %}
+
 {% block content %}
+<!-- Page header -->
 <div class="page-header">
   <div>
     <div class="page-title">Asociados</div>
-    <div class="page-subtitle">{{ total or socios|length }} asociado(s) encontrado(s)</div>
+    <div class="page-subtitle">Directorio y gestión de socios registrados</div>
   </div>
-  <a href="{{ url_for('socios.nuevo_socio') }}" class="btn btn-primary">+ Nuevo Socio</a>
+  <a href="{{ url_for('socios.nuevo_socio') }}" class="btn btn-primary" id="btn-nuevo-socio">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Nuevo Asociado
+  </a>
 </div>
 
-<div class="card">
-  <div class="card-header">
-    <span class="card-title">Directorio de Asociados</span>
-    <form method="get" style="display:flex; gap:8px;">
-      <input name="q" value="{{ q }}" placeholder="Buscar por nombre, código, DPI…"
-             style="padding:7px 12px; border:1px solid #e5e7eb; border-radius:8px; font-size:14px; width:260px;">
-      <select name="per_page" style="padding:7px 12px; border:1px solid #e5e7eb; border-radius:8px; font-size:14px;">
-        <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
-        <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
-        <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
-        <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
-      </select>
-      <button type="submit" class="btn btn-outline btn-sm">Buscar</button>
-      {% if q %}<a href="{{ url_for('socios.socios') }}" class="btn btn-outline btn-sm">Limpiar</a>{% endif %}
-    </form>
+<!-- Stats cards -->
+<div class="soc-stats">
+  <a href="{{ url_for('socios.socios') }}" style="text-decoration:none;color:inherit;">
+    <div class="soc-stat">
+      <div class="soc-stat-accent" style="background:#003b74;"></div>
+      <div class="soc-stat-label">Total</div>
+      <div class="soc-stat-value">{{ total or socios|length }}</div>
+      <div class="soc-stat-sub">Socios registrados</div>
+    </div>
+  </a>
+  <a href="{{ url_for('socios.socios', estado='activo') }}" style="text-decoration:none;color:inherit;">
+    <div class="soc-stat" style="border-color:{% if estado_filtro=='activo' %}#10b981{% else %}#e5e7eb{% endif %};">
+      <div class="soc-stat-accent" style="background:#10b981;"></div>
+      <div class="soc-stat-label" style="color:#047857;">Activos</div>
+      <div class="soc-stat-value" style="color:#047857;">{{ conteos.activos }}</div>
+      <div class="soc-stat-sub">Con estado activo</div>
+    </div>
+  </a>
+  <a href="{{ url_for('socios.socios', estado='inactivo') }}" style="text-decoration:none;color:inherit;">
+    <div class="soc-stat" style="border-color:{% if estado_filtro=='inactivo' %}#6b7280{% else %}#e5e7eb{% endif %};">
+      <div class="soc-stat-accent" style="background:#6b7280;"></div>
+      <div class="soc-stat-label" style="color:#6b7280;">Inactivos</div>
+      <div class="soc-stat-value" style="color:#6b7280;">{{ conteos.inactivos }}</div>
+      <div class="soc-stat-sub">Con estado inactivo</div>
+    </div>
+  </a>
+  <div class="soc-stat">
+    <div class="soc-stat-accent" style="background:#0057a3;"></div>
+    <div class="soc-stat-label">Quincenal</div>
+    <div class="soc-stat-value">{{ conteos.quincenal }}</div>
+    <div class="soc-stat-sub">Frecuencia de cobro</div>
   </div>
+  <div class="soc-stat">
+    <div class="soc-stat-accent" style="background:#8b5cf6;"></div>
+    <div class="soc-stat-label">Catorcenal</div>
+    <div class="soc-stat-value">{{ conteos.catorcenal }}</div>
+    <div class="soc-stat-sub">Frecuencia de cobro</div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="soc-filter">
+  <form method="get" action="{{ url_for('socios.socios') }}" id="form-filtros-socios">
+    <div class="soc-filter-row">
+      <input id="input-busqueda-socios" class="soc-input search" type="text" name="q" value="{{ q or '' }}" placeholder="Buscar por nombre, código, DPI, teléfono…">
+      <select id="select-estado-socios" name="estado" class="soc-input">
+        <option value="" {% if not estado_filtro %}selected{% endif %}>Todos los estados</option>
+        <option value="activo" {% if estado_filtro=='activo' %}selected{% endif %}>Activo</option>
+        <option value="inactivo" {% if estado_filtro=='inactivo' %}selected{% endif %}>Inactivo</option>
+      </select>
+      <select id="select-frecuencia-socios" name="frecuencia" class="soc-input">
+        <option value="" {% if not frecuencia_filtro %}selected{% endif %}>Todas las frecuencias</option>
+        <option value="Quincenal" {% if frecuencia_filtro=='Quincenal' %}selected{% endif %}>Quincenal</option>
+        <option value="Catorcenal" {% if frecuencia_filtro=='Catorcenal' %}selected{% endif %}>Catorcenal</option>
+      </select>
+      <select id="select-perpage-socios" name="per_page" class="soc-input">
+        <option value="10" {% if per_page==10 %}selected{% endif %}>10</option>
+        <option value="25" {% if per_page==25 %}selected{% endif %}>25</option>
+        <option value="50" {% if per_page==50 %}selected{% endif %}>50</option>
+        <option value="100" {% if per_page==100 %}selected{% endif %}>100</option>
+      </select>
+      <button id="btn-buscar-socios" type="submit" class="soc-btn primary">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Buscar
+      </button>
+      {% if q or estado_filtro or frecuencia_filtro %}
+      <a href="{{ url_for('socios.socios') }}" class="soc-btn outline" id="btn-limpiar-socios">Limpiar</a>
+      {% endif %}
+    </div>
+    {% if q or estado_filtro or frecuencia_filtro %}
+    <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+      <span style="font-size:11px;color:#9ca3af;">Filtros activos:</span>
+      {% if q %}<span class="filter-pill">🔍 "{{ q }}"</span>{% endif %}
+      {% if estado_filtro %}<span class="filter-pill">Estado: {{ estado_filtro }}</span>{% endif %}
+      {% if frecuencia_filtro %}<span class="filter-pill">Frecuencia: {{ frecuencia_filtro }}</span>{% endif %}
+    </div>
+    {% endif %}
+  </form>
+</div>
+
+<!-- Info bar -->
+<div id="soc-info-container">
+  <div class="soc-info">
+    <span>Mostrando <strong>{{ socios|length }}</strong> de <strong>{{ total or socios|length }}</strong> asociado(s)</span>
+    <span style="font-size:12px;">Página {{ page }} de {{ total_pages }}</span>
+  </div>
+</div>
+
+<!-- Table card -->
+<div class="card" id="soc-table-container">
   <div class="table-wrap">
-    <table>
-      <thead><tr><th>Código</th><th>Nombre</th><th>Estado civil</th><th>Beneficiario</th><th>Banco</th><th>DPI</th><th>Teléfono</th><th>Fecha ingreso</th><th>Estado</th><th></th></tr></thead>
+    <table class="soc-table">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Asociado</th>
+          <th>DPI</th>
+          <th>Contacto</th>
+          <th>Frecuencia</th>
+          <th>Banco</th>
+          <th>Ingreso</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
       <tbody>
         {% for s in socios %}
+        {% set iniciales = ((s.nombre or '?')[0] | upper) + ((s.apellido or '?')[0] | upper) %}
         <tr>
-          <td style="font-family:'Fraunces',serif; color:#2d6a4f; font-weight:500;">{{ s.codigo }}</td>
-          <td><strong style="font-weight:500;">{{ s.nombre_completo or (s.nombre ~ ' ' ~ s.apellido) }}</strong></td>
-          <td style="font-size:13px; color:#6b7280;">{{ s.estado_civil or '—' }}{% if s.apellido_casada %}<br><span style="font-size:11px;color:#9ca3af;">{{ s.apellido_casada }}</span>{% endif %}</td>
-          <td style="font-size:13px;">{{ s.beneficiario or '—' }}</td>
-          <td style="font-size:13px; color:#6b7280;">{{ s.banco_nombre or '—' }}</td>
-          <td style="font-size:13px; color:#6b7280;">{{ s.dpi }}</td>
-          <td style="font-size:13px;">{{ s.telefono or '—' }}</td>
-          <td style="font-size:13px; color:#6b7280;">{{ s.fecha_ingreso }}</td>
-          <td><span class="badge {% if s.estado=='activo' %}badge-green{% else %}badge-gray{% endif %}">{{ s.estado.capitalize() }}</span></td>
-          <td style="display:flex; gap:6px;">
-            <a href="{{ url_for('socios.detalle_socio', sid=s.id) }}" class="btn btn-outline btn-sm">Ver</a>
-            <a href="{{ url_for('socios.editar_socio', sid=s.id) }}" class="btn btn-primary btn-sm">Editar</a>
-            {% if s.estado == 'activo' %}
-            <form action="{{ url_for('socios.inactivar_socio', sid=s.id) }}" method="POST" style="margin:0;">
-              <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('Inactivar socio?')">Inactivar</button>
-            </form>
-            {% else %}
-            <form action="{{ url_for('socios.activar_socio', sid=s.id) }}" method="POST" style="margin:0;">
-              <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Activar socio?')">Activar</button>
-            </form>
-            {% endif %}
+          <td><span class="soc-code">{{ s.codigo }}</span></td>
+          <td>
+            <div class="soc-name-wrap">
+              {% if s.foto %}
+              <img src="{{ url_for('static', filename=s.foto) }}" class="soc-avatar" alt="{{ s.nombre }}">
+              {% else %}
+              <span class="soc-avatar-placeholder">{{ iniciales }}</span>
+              {% endif %}
+              <div>
+                <div class="soc-name-main">{{ s.nombre_completo or (s.nombre ~ ' ' ~ s.apellido) }}</div>
+                {% if s.estado_civil %}<div class="soc-name-sub">{{ s.estado_civil }}{% if s.apellido_casada %} · {{ s.apellido_casada }}{% endif %}</div>{% endif %}
+              </div>
+            </div>
+          </td>
+          <td style="font-size:12px;color:#6b7280;font-variant-numeric:tabular-nums;">{{ s.dpi }}</td>
+          <td style="font-size:12px;">
+            {% if s.telefono %}<div style="font-weight:500;">{{ s.telefono }}</div>{% endif %}
+            {% if s.email %}<div style="color:#6b7280;font-size:11px;">{{ s.email }}</div>{% endif %}
+            {% if not s.telefono and not s.email %}<span style="color:#d1d5db;">—</span>{% endif %}
+          </td>
+          <td>
+            {% if s.frecuencia %}
+            <span class="frec-chip">{{ s.frecuencia }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td style="font-size:12px;color:#6b7280;">
+            {% if s.banco_nombre %}
+            <div>{{ s.banco_nombre }}</div>
+            {% if s.banco_tipo_cuenta %}<div style="font-size:10px;color:#9ca3af;">{{ s.banco_tipo_cuenta }}</div>{% endif %}
+            {% else %}—{% endif %}
+          </td>
+          <td style="font-size:12px;color:#6b7280;white-space:nowrap;">{{ s.fecha_ingreso or '—' }}</td>
+          <td>
+            <span class="soc-badge {{ s.estado or 'inactivo' }}">
+              <span class="soc-badge-dot"></span>
+              {{ (s.estado or 'inactivo')|capitalize }}
+            </span>
+          </td>
+          <td>
+            <div class="soc-actions">
+              <a href="{{ url_for('socios.detalle_socio', sid=s.id) }}" class="soc-act" title="Ver detalle" id="btn-ver-socio-{{ s.id }}">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </a>
+              <a href="{{ url_for('socios.editar_socio', sid=s.id) }}" class="soc-act edit" title="Editar" id="btn-editar-socio-{{ s.id }}">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </a>
+              {% if s.estado == 'activo' %}
+              <form method="POST" action="{{ url_for('socios.inactivar_socio', sid=s.id) }}" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="soc-act danger" title="Inactivar" id="btn-inactivar-{{ s.id }}" onclick="return confirm('¿Inactivar a {{ s.nombre }} {{ s.apellido }}?')">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                </button>
+              </form>
+              {% else %}
+              <form method="POST" action="{{ url_for('socios.activar_socio', sid=s.id) }}" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="soc-act ok" title="Activar" id="btn-activar-{{ s.id }}" onclick="return confirm('¿Activar a {{ s.nombre }} {{ s.apellido }}?')">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                </button>
+              </form>
+              {% endif %}
+            </div>
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="10" style="text-align:center; color:#9ca3af; padding:32px;">No se encontraron asociados</td></tr>
+        <tr>
+          <td colspan="9">
+            <div class="soc-empty">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <p>No se encontraron asociados</p>
+              <small>{% if q or estado_filtro or frecuencia_filtro %}Intenta cambiar los filtros de búsqueda.{% else %}Registra el primer asociado con el botón superior.{% endif %}</small>
+            </div>
+          </td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 
   {% if total_pages and total_pages > 1 %}
-  <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-top:1px solid #e5e7eb;">
-    <div style="font-size:13px;color:#6b7280;">Página {{ page }} de {{ total_pages }}</div>
-    <div style="display:flex;gap:8px;">
+  <div class="soc-pag">
+    <span class="soc-pag-info">Página <strong>{{ page }}</strong> de <strong>{{ total_pages }}</strong></span>
+    <div class="soc-pag-btns">
       {% if page > 1 %}
-      <a class="btn btn-outline btn-sm" href="{{ url_for('socios.socios', q=q, per_page=per_page, page=page-1) }}">Anterior</a>
+      <a class="btn btn-outline btn-sm page-link-ajax" id="btn-anterior-socios" href="{{ url_for('socios.socios', q=q, per_page=per_page, estado=estado_filtro, frecuencia=frecuencia_filtro, page=page-1) }}">← Anterior</a>
       {% endif %}
       {% if page < total_pages %}
-      <a class="btn btn-outline btn-sm" href="{{ url_for('socios.socios', q=q, per_page=per_page, page=page+1) }}">Siguiente</a>
+      <a class="btn btn-outline btn-sm page-link-ajax" id="btn-siguiente-socios" href="{{ url_for('socios.socios', q=q, per_page=per_page, estado=estado_filtro, frecuencia=frecuencia_filtro, page=page+1) }}">Siguiente →</a>
       {% endif %}
     </div>
   </div>
   {% endif %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('form-filtros-socios');
+    const searchInput = document.getElementById('input-busqueda-socios');
+    const tableContainer = document.getElementById('soc-table-container');
+    const infoContainer = document.getElementById('soc-info-container');
+    const statsContainer = document.querySelector('.soc-stats');
+    
+    let debounceTimer;
+
+    function updateContent(url, pushState = true) {
+        // Añadir efecto de carga visual
+        tableContainer.style.opacity = '0.5';
+        tableContainer.style.pointerEvents = 'none';
+
+        fetch(url, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            // Actualizar tabla, info y stats
+            tableContainer.innerHTML = doc.getElementById('soc-table-container').innerHTML;
+            infoContainer.innerHTML = doc.getElementById('soc-info-container').innerHTML;
+            
+            if (statsContainer && doc.querySelector('.soc-stats')) {
+                statsContainer.innerHTML = doc.querySelector('.soc-stats').innerHTML;
+            }
+
+            if (pushState) {
+                history.pushState(null, '', url);
+            }
+            
+            // Restaurar opacidad
+            tableContainer.style.opacity = '1';
+            tableContainer.style.pointerEvents = 'auto';
+            
+            // Re-vincular eventos de paginación
+            bindPagination();
+        })
+        .catch(err => console.error('Error en búsqueda automática:', err));
+    }
+
+    function getFormUrl() {
+        const formData = new FormData(form);
+        const params = new URLSearchParams(formData);
+        return `${form.action}?${params.toString()}`;
+    }
+
+    function bindPagination() {
+        document.querySelectorAll('.page-link-ajax').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                updateContent(this.href);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        });
+    }
+
+    // Evento para escritura (Debounce de 300ms)
+    searchInput.addEventListener('input', function() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            updateContent(getFormUrl());
+        }, 300);
+    });
+
+    // Eventos para selectores (Inmediato)
+    ['select-estado-socios', 'select-frecuencia-socios', 'select-perpage-socios'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('change', () => updateContent(getFormUrl()));
+        }
+    });
+
+    // Evitar envío normal del formulario si se presiona Enter
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        updateContent(getFormUrl());
+    });
+
+    // Manejar botón de atrás del navegador
+    window.addEventListener('popstate', () => {
+        updateContent(location.href, false);
+    });
+
+    bindPagination();
+});
+</script>
 {% endblock %}

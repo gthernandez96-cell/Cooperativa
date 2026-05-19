@@ -1,56 +1,301 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Login — {{ cooperativa_nombre }}</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,500;0,700;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-  <style>
-    body { margin: 0; font-family: 'DM Sans', sans-serif; background: linear-gradient(135deg, #e5f1ff 0%, #d9e8fb 45%, #f2f6fb 100%); color: #1f2937; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-    .login-box { width: min(460px, 100%); background: white; border-radius: 14px; box-shadow: 0 12px 30px rgba(32, 62, 99, .25); padding: 22px 24px; }
-    .login-brand { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 18px; }
-    .login-brand-photo { width: 74px; height: 74px; object-fit: cover; border-radius: 18px; margin-bottom: 10px; border: 3px solid rgba(0, 59, 116, .1); box-shadow: 0 8px 20px rgba(32, 62, 99, .16); }
-    h1 { font-family: 'Fraunces', serif; margin:0 0 4px; color:#003b74; font-size: 32px; line-height: 1.08; }
-    p { margin:6px 0 0; color:#555; }
-    .form-group { margin-bottom: 14px; }
-    label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; }
-    input { width: 100%; padding: 11px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; }
-    button { width: 100%; background: #003b74; color: #fff; border: none; border-radius: 8px; padding: 11px 14px; font-weight: 600; cursor: pointer; }
-    button:hover { background: #0057a3; }
-    .alert { margin-bottom: 14px; padding: 10px 12px; border-radius: 8px; font-size: 14px; }
-    .alert-danger { background: #fee2e2; color: #991b1b; }
-    .alert-info { background: #dbecff; color: #1d4ed8; }
-    .deploy-check { margin-top: 12px; text-align: center; font-size: 12px; color: #64748b; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Acceso — {{ cooperativa_nombre }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,500;0,700;1,300&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --c-blue: #003b74;
+            --c-blue-dark: #002a50;
+            --c-gold: #c5a059;
+            --c-text: #1f2937;
+            --c-gray: #6b7280;
+            --shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        * { box-sizing: border-box; }
+        body { 
+            margin: 0; 
+            font-family: 'DM Sans', sans-serif; 
+            color: var(--c-text); 
+            height: 100vh; 
+            overflow: hidden;
+            display: flex;
+        }
+
+        /* Split Layout */
+        .login-wrapper {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Left Side: Info & Brand */
+        .login-info-side {
+            flex: 1;
+            position: relative;
+            background: var(--c-blue-dark);
+            {% if login_background_image %}
+            background-image: url("{{ url_for('static', filename=login_background_image) }}");
+            background-size: cover;
+            background-position: center;
+            {% endif %}
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 60px;
+            color: white;
+        }
+
+        .login-info-side::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to right, rgba(0,42,80,0.9), rgba(0,42,80,0.4));
+            z-index: 1;
+        }
+
+        .info-content {
+            position: relative;
+            z-index: 2;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .info-content h2 {
+            font-family: 'Fraunces', serif;
+            font-size: 52px;
+            margin-bottom: 32px;
+            line-height: 1.1;
+            text-align: left;
+        }
+
+        .info-section {
+            margin-bottom: 20px;
+        }
+
+        .info-section h3 {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--c-gold);
+            margin-bottom: 8px;
+        }
+
+        .info-section p {
+            font-size: 16px;
+            line-height: 1.6;
+            opacity: 0.9;
+            margin: 0;
+            text-align: justify;
+        }
+
+        .info-section ul {
+            margin: 0;
+            padding-left: 20px;
+            list-style-type: none;
+        }
+
+        .info-section li {
+            position: relative;
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 10px;
+            opacity: 0.95;
+            padding-left: 22px;
+            text-align: justify;
+        }
+
+        .info-section li::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: var(--c-gold);
+            font-size: 20px;
+            line-height: 1;
+            top: 2px;
+        }
+
+        /* Right Side: Form */
+        .login-form-side {
+            width: 500px;
+            background: linear-gradient(145deg, #ffffff 0%, #f4f7fa 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 60px;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.05);
+            z-index: 3;
+            position: relative;
+        }
+
+        .login-form-side::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 4px;
+            background: linear-gradient(to right, var(--c-blue), var(--c-gold));
+            opacity: 0.8;
+        }
+
+        .form-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo-img {
+            height: 120px;
+            margin-bottom: 24px;
+            border-radius: 14px;
+        }
+
+        .form-header h1 {
+            font-family: 'Fraunces', serif;
+            font-size: 28px;
+            margin: 0;
+            color: var(--c-blue);
+        }
+
+        .form-header p {
+            color: var(--c-gray);
+            margin-top: 8px;
+            font-size: 15px;
+        }
+
+        /* Form Controls */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--c-text);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 15px;
+            transition: all 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--c-blue);
+            box-shadow: 0 0 0 3px rgba(0, 59, 116, 0.1);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: var(--c-blue);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 10px;
+        }
+
+        .btn-login:hover {
+            background: var(--c-blue-dark);
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .alert-danger { background: #fee2e2; color: #991b1b; }
+        .alert-success { background: #f0fdf4; color: #166534; }
+        .alert-info { background: #eff6ff; color: #1e40af; }
+
+        /* Mobile */
+        @media (max-width: 900px) {
+            .login-info-side { display: none; }
+            .login-form-side { width: 100%; padding: 40px; }
+        }
+    </style>
 </head>
 <body>
-<div class="login-box">
-  <div class="login-brand">
-    {% if cooperativa_foto %}
-    <img src="{{ url_for('static', filename=cooperativa_foto) }}" alt="Foto institucional" class="login-brand-photo">
-    {% endif %}
-    <h1>{{ cooperativa_nombre }}</h1>
-    <p>Inicia sesión para continuar</p>
-  </div>
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% for cat, msg in messages %}
-      <div class="alert alert-{{ cat }}">{{ msg }}</div>
-    {% endfor %}
-  {% endwith %}
-  <form method="post">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div class="form-group">
-      <label>Usuario</label>
-      <input name="username" required autofocus>
+    <div class="login-wrapper">
+        <div class="login-info-side">
+            <div class="info-content">
+                <h2>{{ cooperativa_nombre }}</h2>
+                
+                {% if cooperativa_mision %}
+                <div class="info-section">
+                    <h3>Nuestra Misión</h3>
+                    <p>{{ cooperativa_mision }}</p>
+                </div>
+                {% endif %}
+
+                {% if cooperativa_vision %}
+                <div class="info-section">
+                    <h3>Nuestra Visión</h3>
+                    <p>{{ cooperativa_vision }}</p>
+                </div>
+                {% endif %}
+
+                {% if cooperativa_principios %}
+                <div class="info-section">
+                    <h3>Principios Cooperativos</h3>
+                    <ul>
+                        {% for item in cooperativa_principios.split('\n') %}
+                            {% if item.strip() %}
+                            <li>{{ item.strip() }}</li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="login-form-side">
+            <div class="form-header">
+                {% if cooperativa_foto %}
+                <img src="{{ url_for('static', filename=cooperativa_foto) }}" alt="Logo" class="logo-img">
+                {% endif %}
+                <h1>Bienvenido</h1>
+                <p>Ingresa tus credenciales para acceder</p>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for cat, msg in messages %}
+                <div class="alert alert-{{ cat }}">{{ msg }}</div>
+                {% endfor %}
+            {% endwith %}
+
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="form-group">
+                    <label>Nombre de usuario</label>
+                    <input name="username" type="text" required autofocus placeholder="ej. admin">
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input name="password" type="password" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn-login">Iniciar Sesión</button>
+            </form>
+            
+            <div style="margin-top: 40px; font-size: 12px; color: var(--c-gray); text-align: center;">
+                &copy; {{ now.year }} {{ cooperativa_nombre }}
+            </div>
+        </div>
     </div>
-    <div class="form-group">
-      <label>Contraseña</label>
-      <input name="password" type="password" required>
-    </div>
-    <button type="submit">Entrar</button>
-  </form>
-  <div class="deploy-check">Prueba de despliegue: v1</div>
-</div>
 </body>
 </html>

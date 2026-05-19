@@ -139,6 +139,7 @@
     <div class="ncue-card-head">Datos de la cuenta</div>
     <div class="ncue-card-body">
       <form method="post" autocomplete="off">
+        <input type="hidden" name="socio_id" id="socio_id">
         <div class="ncue-field">
           <label class="ncue-label" for="codigo_asociado">Código del Asociado *</label>
           <input id="codigo_asociado" name="codigo_asociado" type="text" class="ncue-input" placeholder="Ej: SOC-001" value="{{ selected_codigo }}" required>
@@ -207,10 +208,15 @@ if (codigoInput && nombreInput) {
 }
 
 async function buscarAsociado(codigo) {
+  const socioIdInput = document.getElementById('socio_id');
+  const btnSubmit = document.querySelector('button[type="submit"]');
+
   try {
     // Mostrar indicador de búsqueda
     nombreInput.value = 'Buscando...';
     nombreInput.style.color = '#666';
+    socioIdInput.value = '';
+    btnSubmit.disabled = true;
 
     const response = await fetch(`/api/buscar-asociado?codigo=${encodeURIComponent(codigo)}`);
     const data = await response.json();
@@ -218,20 +224,26 @@ async function buscarAsociado(codigo) {
     if (data.success && data.socio) {
       nombreInput.value = `${data.socio.nombre} ${data.socio.apellido}`;
       nombreInput.style.color = '#495057';
+      socioIdInput.value = data.socio.id;
+      btnSubmit.disabled = false;
     } else {
-      nombreInput.value = 'Asociado no encontrado';
+      nombreInput.value = data.error || 'Asociado no encontrado';
       nombreInput.style.color = '#dc3545';
+      socioIdInput.value = '';
+      btnSubmit.disabled = true;
       // Limpiar el mensaje de error después de 2 segundos
       setTimeout(() => {
-        nombreInput.value = '';
-      }, 2000);
+        if (socioIdInput.value === '') nombreInput.value = '';
+      }, 3000);
     }
   } catch (error) {
     console.error('Error al buscar asociado:', error);
     nombreInput.value = 'Error de conexión';
     nombreInput.style.color = '#dc3545';
+    socioIdInput.value = '';
+    btnSubmit.disabled = true;
     setTimeout(() => {
-      nombreInput.value = '';
+      if (socioIdInput.value === '') nombreInput.value = '';
     }, 2000);
   }
 }

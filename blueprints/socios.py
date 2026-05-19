@@ -17,33 +17,49 @@ bp = Blueprint('socios', __name__)
 @login_required()
 def socios():
     q = request.args.get('q', '')
+    estado_filtro = request.args.get('estado', '').strip().lower()
+    frecuencia_filtro = request.args.get('frecuencia', '').strip()
     page = max(1, int(request.args.get('page', 1) or 1))
     per_page = min(100, max(10, int(request.args.get('per_page', 25) or 25)))
     offset = (page - 1) * per_page
     conn = get_db()
+
+    # ── Conteos para las tarjetas de estadísticas ──────────────────────────────
+    conteos = {
+        'activos':    db_fetchone(conn, "SELECT COUNT(*) FROM socios WHERE estado='activo'")[0],
+        'inactivos':  db_fetchone(conn, "SELECT COUNT(*) FROM socios WHERE estado='inactivo'")[0],
+        'quincenal':  db_fetchone(conn, "SELECT COUNT(*) FROM socios WHERE frecuencia='Quincenal'")[0],
+        'catorcenal': db_fetchone(conn, "SELECT COUNT(*) FROM socios WHERE frecuencia='Catorcenal'")[0],
+    }
+
+    # ── Construcción dinámica de la query con filtros ──────────────────────────
+    conditions = []
+    params = []
+
     if q:
         like = f'%{q}%'
-        total = db_fetchone(
-            conn,
-            """SELECT COUNT(*) FROM socios
-               WHERE nombre LIKE ? OR apellido LIKE ? OR codigo LIKE ? OR dpi LIKE ?
-                  OR primer_nombre LIKE ? OR segundo_nombre LIKE ? OR tercer_nombre LIKE ?
-                  OR primer_apellido LIKE ? OR segundo_apellido LIKE ?""",
-            [like] * 9
-        )[0]
-        rows = db_fetchall(
-            conn,
-            """SELECT * FROM socios
-               WHERE nombre LIKE ? OR apellido LIKE ? OR codigo LIKE ? OR dpi LIKE ?
-                  OR primer_nombre LIKE ? OR segundo_nombre LIKE ? OR tercer_nombre LIKE ?
-                  OR primer_apellido LIKE ? OR segundo_apellido LIKE ?
-               ORDER BY id DESC
-               LIMIT ? OFFSET ?""",
-            [like] * 9 + [per_page, offset]
-        )
-    else:
-        total = db_fetchone(conn, "SELECT COUNT(*) FROM socios")[0]
-        rows = db_fetchall(conn, "SELECT * FROM socios ORDER BY id DESC LIMIT ? OFFSET ?", [per_page, offset])
+        conditions.append('''(nombre LIKE ? OR apellido LIKE ? OR codigo LIKE ? OR dpi LIKE ?
+            OR primer_nombre LIKE ? OR segundo_nombre LIKE ? OR primer_apellido LIKE ?
+            OR segundo_apellido LIKE ? OR telefono LIKE ?)''')
+        params.extend([like] * 9)
+
+    if estado_filtro:
+        conditions.append('estado = ?')
+        params.append(estado_filtro)
+
+    if frecuencia_filtro:
+        conditions.append('frecuencia = ?')
+        params.append(frecuencia_filtro)
+
+    where = ('WHERE ' + ' AND '.join(conditions)) if conditions else ''
+
+    total = db_fetchone(conn, f'SELECT COUNT(*) FROM socios {where}', params)[0]
+    rows = db_fetchall(
+        conn,
+        f'SELECT * FROM socios {where} ORDER BY id DESC LIMIT ? OFFSET ?',
+        params + [per_page, offset]
+    )
+
     conn.close()
     socios_lista = [preparar_datos_socio(row) for row in rows]
     total_pages = max(1, math.ceil(total / per_page))
@@ -51,11 +67,15 @@ def socios():
         'socios.html',
         socios=socios_lista,
         q=q,
+        estado_filtro=estado_filtro,
+        frecuencia_filtro=frecuencia_filtro,
         page=page,
         per_page=per_page,
         total=total,
         total_pages=total_pages,
+        conteos=conteos,
     )
+
 
 @bp.route('/socios/nuevo', methods=['GET','POST'])
 def nuevo_socio():
@@ -355,3 +375,25 @@ def inactivar_socio(sid):
     log_auditoria_socio(sid, session.get('user_id'), 'inactivar', None, 'inactivo')
     flash('Socio inactivado.', 'warning')
     return redirect(url_for('socios.detalle_socio', sid=sid))
+@bp.route('/api/buscar-asociado')
+@login_required()
+def api_buscar_asociado():
+    codigo = request.args.get('codigo', '').strip().upper()
+    if not codigo:
+        return jsonify({'success': False, 'error': 'Código requerido'}), 400
+    
+    conn = get_db()
+    socio = db_fetchone(
+        conn,
+        "SELECT id, nombre, apellido, estado FROM socios WHERE codigo=?",
+        [codigo]
+    )
+    conn.close()
+    
+    if not socio:
+        return jsonify({'success': False, 'error': 'Asociado no encontrado'}), 404
+    
+    if socio['estado'] != 'activo':
+        return jsonify({'success': False, 'error': 'El asociado no está activo', 'socio': dict(socio)}), 403
+        
+    return jsonify({'success': True, 'socio': dict(socio)})

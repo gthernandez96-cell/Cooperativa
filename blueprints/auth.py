@@ -24,8 +24,10 @@ def login():
             return render_template('login.html')
         session['user_id'] = row['id']
         session['username'] = row['username']
-        session['user_role'] = row['rol_nombre'] or 'Asociado'
+        session['user_role'] = (row['rol_nombre'] or 'Asociado').strip()
         flash('Bienvenido ' + session['username'], 'success')
+        if session['user_role'].lower() == 'promotora':
+            return redirect(url_for('promotora.dashboard'))
         return redirect(url_for('main.index'))
     return render_template('login.html')
 

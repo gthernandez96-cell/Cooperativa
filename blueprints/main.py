@@ -1,18 +1,64 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, g
+from datetime import date, timedelta
 from utils.db import get_db, db_fetchone, db_fetchall
 from utils.decorators import login_required
+from utils.financial import obtener_dias_frecuencia, calcular_proximo_pago
 
 bp = Blueprint('main', __name__)
+
+def _calcular_alertas_cuotas(conn):
+    """Retorna la lista de préstamos cuya próxima cuota cae en los próximos 7 días."""
+    hoy = date.today()
+    limite = hoy + timedelta(days=7)
+
+    prestamos = db_fetchall(conn, '''
+        SELECT p.id, p.numero, p.cuota_mensual, p.saldo_pendiente,
+               s.nombre || ' ' || s.apellido AS socio_nombre,
+               s.frecuencia,
+               COALESCE(MAX(pp.fecha), p.fecha_aprobacion) AS ultimo_pago
+        FROM prestamos p
+        JOIN socios s ON s.id = p.socio_id
+        LEFT JOIN pagos_prestamo pp ON pp.prestamo_id = p.id
+        WHERE p.estado = 'aprobado' AND p.saldo_pendiente > 0
+        GROUP BY p.id
+    ''')
+
+    alertas = []
+    for p in prestamos:
+        try:
+            proximo = calcular_proximo_pago(p['ultimo_pago'], p['frecuencia'])
+            proximo_date = proximo.date() if hasattr(proximo, 'date') else proximo
+            if hoy <= proximo_date <= limite:
+                alertas.append({
+                    'id': p['id'],
+                    'numero': p['numero'],
+                    'socio': p['socio_nombre'],
+                    'frecuencia': p['frecuencia'],
+                    'cuota': float(p['cuota_mensual'] or 0),
+                    'saldo': float(p['saldo_pendiente'] or 0),
+                    'proximo_pago': proximo_date.isoformat(),
+                    'dias_restantes': (proximo_date - hoy).days,
+                })
+        except Exception:
+            continue
+    alertas.sort(key=lambda x: x['dias_restantes'])
+    return alertas
+
 
 @bp.route('/')
 @login_required()
 def index():
+    from flask import session, redirect, url_for
+    if session.get('user_role', '').lower() == 'promotora':
+        return redirect(url_for('promotora.dashboard'))
     conn = get_db()
     etiquetas_ahorro = {
         'ahorro_aportacion': 'Aportación',
         'ahorro_corriente': 'Ahorro corriente',
         'ahorro_plazo_fijo': 'Plazo fijo',
     }
+    hoy = date.today().isoformat()
+
     stats = {
         'total_socios': db_fetchone(conn, "SELECT COUNT(*) FROM socios WHERE estado='activo'")[0],
         'total_cuentas': db_fetchone(conn, "SELECT COUNT(*) FROM cuentas WHERE estado='activa'")[0],
@@ -20,11 +66,39 @@ def index():
         'prestamos_activos': db_fetchone(conn, "SELECT COUNT(*) FROM prestamos WHERE estado='aprobado'")[0],
         'cartera_prestamos': db_fetchone(conn, "SELECT COALESCE(SUM(saldo_pendiente),0) FROM prestamos WHERE estado='aprobado'")[0],
         'prestamos_pendientes': db_fetchone(conn, "SELECT COUNT(*) FROM prestamos WHERE estado='pendiente'")[0],
+        'socios_catorcenal': db_fetchone(conn, "SELECT COUNT(*) FROM socios WHERE estado='activo' AND frecuencia='Catorcenal'")[0],
+        'socios_quincenal': db_fetchone(conn, "SELECT COUNT(*) FROM socios WHERE estado='activo' AND frecuencia='Quincenal'")[0],
     }
 
-    ahorro_por_categoria = db_fetchall(
-        conn,
-        '''
+    # ── Mora ────────────────────────────────────────────────────────────────────
+    mora_row = db_fetchone(conn, '''
+        SELECT COUNT(*) AS total_mora,
+               COALESCE(SUM(p.saldo_pendiente), 0) AS monto_mora
+        FROM prestamos p
+        WHERE p.estado = 'aprobado'
+          AND p.saldo_pendiente > 0
+          AND p.etapa_cobranza IN ('intensiva', 'legal')
+    ''')
+    stats['prestamos_en_mora'] = mora_row['total_mora'] if mora_row else 0
+    stats['monto_mora'] = float(mora_row['monto_mora'] if mora_row else 0)
+
+    # ── Actividad del día ────────────────────────────────────────────────────────
+    pagos_hoy = db_fetchone(conn, '''
+        SELECT COUNT(*) AS total, COALESCE(SUM(monto), 0) AS monto
+        FROM pagos_prestamo WHERE date(fecha) = date(?)
+    ''', (hoy,))
+    stats['pagos_hoy_count'] = pagos_hoy['total'] if pagos_hoy else 0
+    stats['pagos_hoy_monto'] = float(pagos_hoy['monto'] if pagos_hoy else 0)
+
+    depositos_hoy = db_fetchone(conn, '''
+        SELECT COUNT(*) AS total, COALESCE(SUM(monto), 0) AS monto
+        FROM transacciones WHERE tipo = 'deposito' AND date(fecha) = date(?)
+    ''', (hoy,))
+    stats['depositos_hoy_count'] = depositos_hoy['total'] if depositos_hoy else 0
+    stats['depositos_hoy_monto'] = float(depositos_hoy['monto'] if depositos_hoy else 0)
+
+    # ── Ahorro por categoría ─────────────────────────────────────────────────────
+    ahorro_por_categoria = db_fetchall(conn, '''
         SELECT COALESCE(producto_ahorro, 'ahorro_corriente') AS categoria,
                COALESCE(SUM(saldo), 0) AS total
         FROM cuentas
@@ -34,21 +108,16 @@ def index():
             WHEN 'ahorro_aportacion' THEN 1
             WHEN 'ahorro_corriente' THEN 2
             WHEN 'ahorro_plazo_fijo' THEN 3
-            ELSE 99
-        END
-        '''
-    )
+            ELSE 99 END
+    ''')
     stats['ahorro_por_categoria'] = [
-        {
-            'nombre': etiquetas_ahorro.get(row['categoria'], (row['categoria'] or 'Otro').replace('_', ' ').title()),
-            'total': float(row['total'] or 0),
-        }
+        {'nombre': etiquetas_ahorro.get(row['categoria'], (row['categoria'] or 'Otro').replace('_', ' ').title()),
+         'total': float(row['total'] or 0)}
         for row in ahorro_por_categoria
     ]
 
-    prestamos_por_categoria = db_fetchall(
-        conn,
-        '''
+    # ── Préstamos por categoría ──────────────────────────────────────────────────
+    prestamos_por_categoria = db_fetchall(conn, '''
         SELECT COALESCE(pc.nombre, 'General') AS categoria,
                COALESCE(SUM(p.saldo_pendiente), 0) AS total
         FROM prestamos p
@@ -56,24 +125,17 @@ def index():
         WHERE p.estado='aprobado'
         GROUP BY COALESCE(pc.nombre, 'General')
         ORDER BY categoria
-        '''
-    )
+    ''')
     stats['prestamos_por_categoria'] = [
-        {
-            'nombre': row['categoria'] or 'General',
-            'total': float(row['total'] or 0),
-        }
+        {'nombre': row['categoria'] or 'General', 'total': float(row['total'] or 0)}
         for row in prestamos_por_categoria
     ]
-    
-# Estadísticas simples de préstamos
-    stats['pagos_prestamos_hoy'] = 0  # Por ahora 0, se puede calcular más tarde si es necesario
-    stats['monto_pagos_prestamos_hoy'] = 0.0
-    
-    # Socios por frecuencia
-    stats['socios_catorcenal'] = db_fetchone(conn, "SELECT COUNT(*) FROM socios WHERE estado='activo' AND frecuencia='Catorcenal'")[0]
-    stats['socios_quincenal'] = db_fetchone(conn, "SELECT COUNT(*) FROM socios WHERE estado='activo' AND frecuencia='Quincenal'")[0]
-    
+
+    # ── Alertas de cuotas próximas ───────────────────────────────────────────────
+    alertas_cuotas = _calcular_alertas_cuotas(conn)
+    stats['alertas_cuotas_count'] = len(alertas_cuotas)
+
+    # ── Últimas transacciones ────────────────────────────────────────────────────
     ultimas_txn = db_fetchall(conn, '''
         SELECT t.*, c.numero as cuenta_num, s.nombre||' '||s.apellido as socio
         FROM transacciones t
@@ -82,4 +144,11 @@ def index():
         ORDER BY t.id DESC LIMIT 5
     ''')
     conn.close()
-    return render_template('index.html', stats=stats, transacciones=ultimas_txn)
+
+    return render_template(
+        'index.html',
+        stats=stats,
+        transacciones=ultimas_txn,
+        alertas_cuotas=alertas_cuotas,
+    )
+

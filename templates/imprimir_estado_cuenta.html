@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estado de Cuenta Minimalista - {{ cuenta.numero }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Fraunces:opsz,wght@9..144,300;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --c-main: #111827;
+            --c-sub: #6b7280;
+            --c-accent: #064e3b; /* Deep Forest Green */
+            --c-line: #f1f5f9;
+            --c-border: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            color: var(--c-main);
+            background: #fff;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .page {
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 20px 30px;
+            position: relative;
+        }
+
+        /* Compact Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 25px;
+            border-bottom: 1px solid var(--c-main);
+            padding-bottom: 10px;
+        }
+
+        .brand h1 {
+            font-family: 'Fraunces', serif;
+            font-size: 24px;
+            font-weight: 300;
+            margin: 0;
+            letter-spacing: -0.5px;
+            color: var(--c-main);
+        }
+
+        .brand p {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 2px 0 0;
+            color: var(--c-sub);
+        }
+
+        .doc-info {
+            text-align: right;
+        }
+
+        .doc-info h2 {
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin: 0;
+        }
+
+        .doc-info p {
+            font-size: 11px;
+            color: var(--c-sub);
+            margin: 2px 0 0;
+        }
+
+        /* Tighter Identity Section */
+        .identity-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 15px;
+        }
+
+        .id-block h3 {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--c-sub);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .id-content {
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .id-item {
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--c-line);
+            padding-bottom: 2px;
+        }
+
+        .id-label {
+            color: var(--c-sub);
+            font-size: 11px;
+        }
+
+        .id-value {
+            font-weight: 500;
+        }
+
+        /* Compact Hero Balance */
+        .hero-balance {
+            margin-bottom: 20px;
+            padding: 15px 0;
+            border-top: 1px solid var(--c-line);
+            border-bottom: 1px solid var(--c-line);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .balance-item .label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--c-sub);
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .balance-item .value {
+            font-family: 'Fraunces', serif;
+            font-size: 36px;
+            font-weight: 300;
+            color: var(--c-main);
+        }
+
+        .summary-mini {
+            display: flex;
+            gap: 30px;
+        }
+
+        .mini-stat {
+            text-align: right;
+        }
+
+        .mini-stat .label {
+            font-size: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--c-sub);
+            margin-bottom: 3px;
+        }
+
+        .mini-stat .value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Elegant Table (Compact) */
+        .txn-section h3 {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 15px;
+            color: var(--c-main);
+            text-align: center;
+        }
+
+        .txn-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .txn-table th {
+            text-align: left;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--c-sub);
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--c-main);
+        }
+
+        .txn-table td {
+            padding: 5px 10px;
+            font-size: 10.5px;
+            border-bottom: 1px solid var(--c-line);
+            vertical-align: middle;
+        }
+
+        .txn-date {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--c-sub);
+        }
+
+        .txn-desc {
+            font-weight: 500;
+        }
+
+        .txn-meta {
+            font-size: 10px;
+            color: var(--c-sub);
+        }
+
+        .txn-amount {
+            font-family: 'JetBrains Mono', monospace;
+            text-align: right;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .txn-balance {
+            font-family: 'JetBrains Mono', monospace;
+            text-align: right;
+            font-size: 12px;
+            color: var(--c-main);
+            font-weight: 600;
+        }
+
+        .in { color: var(--c-accent); }
+        .out { color: #991b1b; }
+
+        .text-right { text-align: right; }
+
+        /* Compact Footer */
+        footer {
+            margin-top: 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            font-size: 9px;
+            color: var(--c-sub);
+        }
+
+        .disclaimer {
+            max-width: 350px;
+            line-height: 1.4;
+        }
+
+        .auth-block {
+            text-align: right;
+        }
+
+        .auth-line {
+            width: 150px;
+            height: 1px;
+            background: var(--c-main);
+            margin-bottom: 8px;
+            margin-left: auto;
+        }
+
+        /* Controls */
+        .no-print {
+            position: fixed;
+            top: 40px;
+            right: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .btn {
+            background: var(--c-main);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: #333;
+            padding-right: 30px;
+        }
+
+        @media print {
+            .no-print { display: none; }
+            .page { padding: 0; max-width: 100%; }
+            header { margin-bottom: 40px; }
+            .hero-balance { margin-bottom: 40px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print">
+        <button class="btn" onclick="window.print()">Imprimir / PDF</button>
+        <button class="btn" style="background: #f1f5f9; color: #111;" onclick="window.close()">Cerrar</button>
+    </div>
+
+    <div class="page">
+        <header>
+            <div class="brand">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    {% if cooperativa_foto %}
+                    <img src="{{ url_for('static', filename=cooperativa_foto) }}" alt="Logo" style="height: 50px; width: auto; object-fit: contain;">
+                    {% else %}
+                    <div style="width: 50px; height: 50px; background: var(--c-main); color: white; display: flex; align-items: center; justify-content: center; font-family: 'Fraunces', serif; font-size: 24px; font-weight: 600;">
+                        {{ cooperativa_nombre[0]|upper }}
+                    </div>
+                    {% endif %}
+                    <h1>{{ cooperativa_nombre }}</h1>
+                </div>
+            </div>
+            <div class="doc-info">
+                <h2>Estado de Cuenta</h2>
+                <p>{{ hoy.strftime('%d . %m . %Y') }}</p>
+            </div>
+        </header>
+
+        <div class="identity-grid">
+            <div class="id-block">
+                <h3>Titular</h3>
+                <div class="id-content">
+                    <div style="font-size: 16px; font-weight: 500; margin-bottom: 5px;">{{ cuenta.nombre }} {{ cuenta.apellido }}</div>
+                    <div class="id-item"><span class="id-label">Identificación</span> <span class="id-value">{{ cuenta.dpi }}</span></div>
+                    <div class="id-item"><span class="id-label">Socio ID</span> <span class="id-value">{{ cuenta.socio_codigo }}</span></div>
+                </div>
+            </div>
+            <div class="id-block">
+                <h3>Producto</h3>
+                <div class="id-content">
+                    <div style="font-size: 16px; font-weight: 500; margin-bottom: 5px;">{{ cuenta.tipo|title }}</div>
+                    <div class="id-item"><span class="id-label">Número</span> <span class="id-value">{{ cuenta.numero }}</span></div>
+                    <div class="id-item"><span class="id-label">Tasa Anual</span> <span class="id-value">{{ cuenta.tasa_interes }} %</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="hero-balance">
+            <div class="balance-item">
+                <span class="label">Saldo Neto Disponible</span>
+                <span class="value">Q {{ "{:,.2f}".format(cuenta.saldo) }}</span>
+            </div>
+            <div class="summary-mini">
+                <div class="mini-stat">
+                    <span class="label">Créditos</span>
+                    <span class="value in">+ {{ "{:,.2f}".format(resumen.depositos) }}</span>
+                </div>
+                <div class="mini-stat">
+                    <span class="label">Débitos</span>
+                    <span class="value out">- {{ "{:,.2f}".format(resumen.retiros) }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="txn-section">
+            <h3>Detalle de Movimientos</h3>
+            <table class="txn-table">
+                <thead>
+                    <tr>
+                        <th width="12%">Fecha</th>
+                        <th width="43%">Descripción</th>
+                        <th width="15%" class="text-right">Débito (-)</th>
+                        <th width="15%" class="text-right">Crédito (+)</th>
+                        <th width="15%" class="text-right">Saldo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in transacciones %}
+                    <tr>
+                        <td class="txn-date">{{ t.fecha[:10] }}</td>
+                        <td>
+                            <span class="txn-desc">{{ t.tipo|tipo_transaccion }}</span>
+                            {% set desc = t.descripcion|limpiar_descripcion %}
+                            {% if desc %}
+                            <span class="txn-meta">— {{ desc }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="txn-amount out">
+                            {% if not t.tipo|es_transaccion_positiva %}
+                            {{ "{:,.2f}".format(t.monto) }}
+                            {% else %}
+                            —
+                            {% endif %}
+                        </td>
+                        <td class="txn-amount in">
+                            {% if t.tipo|es_transaccion_positiva %}
+                            {{ "{:,.2f}".format(t.monto) }}
+                            {% else %}
+                            —
+                            {% endif %}
+                        </td>
+                        <td class="txn-balance">
+                            {{ "{:,.2f}".format(t.saldo_despues) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <footer>
+            <div class="disclaimer">
+                Este documento es una comunicación privada emitida por {{ cooperativa_nombre }}. 
+                La información contenida es estrictamente confidencial. 
+                En caso de discrepancias, favor reportar a su asesor financiero asignado.
+            </div>
+            <div class="auth-block">
+                <div class="auth-line"></div>
+                Certificación Digital
+            </div>
+        </footer>
+    </div>
+</body>
+</html>

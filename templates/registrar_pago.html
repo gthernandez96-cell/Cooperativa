@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% block title %}Registrar Pago — {{ cooperativa_nombre }}{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Fraunces:opsz,wght@9..144,300;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  .rp-shell {
+    max-width: 900px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 24px;
+    font-family: 'Outfit', sans-serif;
+  }
+
+  .rp-card {
+    background: #fff;
+    border: 1px solid var(--c-border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .rp-header {
+    background: #064e3b;
+    color: #fff;
+    padding: 24px;
+    text-align: center;
+  }
+
+  .rp-header h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    margin-bottom: 4px;
+  }
+
+  .rp-body { padding: 24px; }
+
+  .rp-form { display: flex; flex-direction: column; gap: 20px; }
+
+  .rp-group { display: flex; flex-direction: column; gap: 6px; }
+  .rp-group label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--c-gray); }
+  
+  .rp-input {
+    padding: 12px 16px;
+    border: 1px solid var(--c-border);
+    border-radius: 8px;
+    font-size: 16px;
+    background: #fafafa;
+    transition: all 0.2s;
+  }
+
+  .rp-input:focus {
+    outline: none;
+    border-color: #059669;
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.1);
+  }
+
+  /* Impact Panel (Side) */
+  .rp-impact {
+    position: sticky;
+    top: 140px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .impact-card {
+    background: #fff;
+    border: 1.5px solid #000;
+    border-radius: 4px;
+    padding: 20px;
+  }
+
+  .impact-title {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #000;
+    padding-bottom: 8px;
+  }
+
+  .impact-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-size: 14px;
+  }
+
+  .impact-row .val { font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+  
+  .impact-total {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 2px solid #000;
+  }
+
+  .impact-total .label { font-size: 12px; text-transform: uppercase; color: var(--c-gray); }
+  .impact-total .amount { font-family: 'Fraunces', serif; font-size: 28px; font-weight: 700; color: #059669; }
+
+  @media (max-width: 850px) {
+    .rp-shell { grid-template-columns: 1fr; }
+    .rp-impact { position: static; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rp-shell">
+  <div class="rp-card">
+    <div class="rp-header">
+      <h2>Registrar Pago</h2>
+      <p style="opacity: 0.8; font-size: 14px;">Préstamo {{ prestamo.numero }} · {{ prestamo.nombre_socio }}</p>
+    </div>
+    
+    <div class="rp-body">
+      <form method="post" class="rp-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          <div class="rp-group">
+            <label>Fecha de Registro</label>
+            <input type="date" name="fecha_pago" class="rp-input" value="{{ fecha_hoy }}" required>
+          </div>
+          <div class="rp-group">
+            <label>Fecha de Boleta</label>
+            <input type="date" name="fecha_boleta" class="rp-input" value="{{ fecha_hoy }}" required>
+          </div>
+        </div>
+
+        <div class="rp-group">
+          <label>Monto Recibido (Q)</label>
+          <input type="number" id="inp-monto" name="monto" class="rp-input" 
+                 value="{{ '%.2f'|format(prestamo.cuota_mensual) }}" 
+                 step="0.01" min="0.01" required 
+                 style="font-size: 24px; font-family: 'JetBrains Mono'; font-weight: 700;">
+        </div>
+
+        <div class="rp-group">
+          <label>Referencia / No. Boleta</label>
+          <input type="text" name="boleta_deposito" class="rp-input" placeholder="Ej: DEP-123456" required>
+        </div>
+        
+        <div style="margin-top: 10px; display: flex; gap: 12px;">
+          <button type="submit" class="btn btn-primary" style="flex: 2; height: 50px; background: #059669;">
+            Confirmar Pago
+          </button>
+          <a href="{{ url_for('prestamos.detalle_prestamo', pid=prestamo.id) }}" class="btn btn-outline" style="flex: 1; height: 50px;">
+            Cancelar
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <aside class="rp-impact">
+    <div class="impact-card">
+      <div class="impact-title">Proyección de Impacto</div>
+      
+      <div class="impact-row">
+        <span>Saldo Actual</span>
+        <span class="val">Q{{ "{:,.2f}".format(prestamo.saldo_pendiente) }}</span>
+      </div>
+      <div class="impact-row">
+        <span>Interés del Período</span>
+        <span class="val" id="out-interes" style="color: #c2410c;">Q0.00</span>
+      </div>
+      <div class="impact-row">
+        <span>Abono a Capital</span>
+        <span class="val" id="out-capital" style="color: #0b4d83;">Q0.00</span>
+      </div>
+
+      <div class="impact-total">
+        <div class="label">Nuevo Saldo Proyectado</div>
+        <div class="amount" id="out-nuevo-saldo">Q0.00</div>
+      </div>
+    </div>
+
+    <div style="padding: 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 13px; color: #64748b;">
+      <p><strong>Nota:</strong> Los intereses se calculan sobre el saldo pendiente usando la tasa del {{ prestamo.tasa_interes }}% anual aplicada al periodo de cobro.</p>
+    </div>
+  </aside>
+</div>
+
+<script>
+  const SALDO_ACTUAL = {{ prestamo.saldo_pendiente }};
+  const TASA_ANUAL = {{ prestamo.tasa_interes }};
+  const FRECUENCIA = "{{ prestamo.frecuencia }}";
+  
+  function getDiasFrecuencia(f) {
+    return f === 'Catorcenal' ? 14 : 15;
+  }
+
+  function fmt(n) {
+    return 'Q' + n.toLocaleString('es-GT', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  }
+
+  function calcularImpacto() {
+    const monto = parseFloat(document.getElementById('inp-monto').value) || 0;
+    const dias = getDiasFrecuencia(FRECUENCIA);
+    const tasaPeriodica = (TASA_ANUAL / 100) * (dias / 365);
+    
+    let interes = Math.round(SALDO_ACTUAL * tasaPeriodica * 100) / 100;
+    let capital = Math.round((monto - interes) * 100) / 100;
+    
+    if (capital < 0) {
+      capital = monto;
+      interes = 0;
+    }
+    
+    const nuevoSaldo = Math.max(0, Math.round((SALDO_ACTUAL - capital) * 100) / 100);
+    
+    document.getElementById('out-interes').textContent = fmt(interes);
+    document.getElementById('out-capital').textContent = fmt(capital);
+    document.getElementById('out-nuevo-saldo').textContent = fmt(nuevoSaldo);
+  }
+
+  document.getElementById('inp-monto').addEventListener('input', calcularImpacto);
+  window.addEventListener('DOMContentLoaded', calcularImpacto);
+</script>
+{% endblock %}
+

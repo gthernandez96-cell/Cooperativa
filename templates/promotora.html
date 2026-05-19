@@ -1,0 +1,471 @@
+{% extends 'base.html' %}
+{% block title %}Consulta Promotora – {{ cooperativa_nombre }}{% endblock %}
+
+{% block extra_head %}
+<style>
+/* Ocultar navegación para Promotora */
+.header-nav,
+.mobile-menu-toggle { display: none !important; }
+
+/* ── Layout ────────────────────────────────────────────────── */
+.promo-wrap {
+    max-width: 1280px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* ── Barra de búsqueda ─────────────────────────────────────── */
+.search-card {
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--c-border);
+    padding: 24px 28px;
+}
+.search-card-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+.search-card-icon {
+    width: 46px;
+    height: 46px;
+    background: linear-gradient(135deg, var(--c-blue), var(--c-blue-mid));
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    flex-shrink: 0;
+}
+.search-card-icon svg { width: 22px; height: 22px; }
+.search-card-title { font-family: 'Fraunces', serif; font-size: 20px; color: #002a50; font-weight: 700; }
+.search-card-sub { font-size: 13px; color: var(--c-gray); }
+.search-form {
+    display: flex;
+    gap: 10px;
+    max-width: 520px;
+}
+.search-form input {
+    flex: 1;
+    font-size: 15px;
+    padding: 11px 14px;
+    border: 1px solid var(--c-border);
+    border-radius: 10px;
+    font-family: inherit;
+    background: #fff;
+    transition: border-color .15s;
+}
+.search-form input:focus {
+    outline: none;
+    border-color: var(--c-blue-light);
+    box-shadow: 0 0 0 3px rgba(0, 87, 163, .1);
+}
+
+/* ── Socio banner ──────────────────────────────────────────── */
+.socio-banner {
+    background: linear-gradient(90deg, var(--c-blue) 0%, var(--c-blue-mid) 100%);
+    color: white;
+    border-radius: var(--radius);
+    padding: 14px 22px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    box-shadow: var(--shadow);
+}
+.socio-banner strong { font-size: 17px; font-family: 'Fraunces', serif; }
+.socio-banner .badge-estado {
+    background: rgba(255,255,255,.18);
+    border: 1px solid rgba(255,255,255,.3);
+    color: white;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+}
+
+/* ── Grid de paneles ───────────────────────────────────────── */
+.panels-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: start;
+}
+@media (max-width: 860px) {
+    .panels-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Panel ─────────────────────────────────────────────────── */
+.panel {
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--c-border);
+    overflow: hidden;
+}
+.panel-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--c-border);
+    background: var(--c-cream);
+}
+.panel-head-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.panel-head-icon.green { background: var(--c-green-pale); color: var(--c-green-mid); }
+.panel-head-icon.blue  { background: rgba(0, 87, 163, .1); color: var(--c-blue); }
+.panel-head-icon svg   { width: 17px; height: 17px; }
+.panel-head h3 { font-weight: 600; font-size: 14px; color: var(--c-dark); }
+.panel-head small { font-size: 12px; color: var(--c-gray); display: block; }
+.panel-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
+
+/* ── Tarjeta de cuenta / préstamo ──────────────────────────── */
+.item-card {
+    border: 1px solid var(--c-border);
+    border-radius: 10px;
+    overflow: hidden;
+}
+.item-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--c-cream);
+    border-bottom: 1px solid var(--c-border);
+    gap: 10px;
+    flex-wrap: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition: background .15s;
+}
+.item-card-header:hover { background: #eaf0f8; }
+.item-card-label {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--c-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.item-card-num { font-size: 12px; color: var(--c-gray); white-space: nowrap; }
+.item-balance {
+    font-family: 'Fraunces', serif;
+    font-size: 19px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+.item-balance.green { color: var(--c-green-mid); }
+.item-balance.red   { color: var(--c-danger); }
+
+/* Chevron del toggle */
+.toggle-chevron {
+    width: 18px;
+    height: 18px;
+    color: var(--c-gray);
+    transition: transform .2s ease;
+    flex-shrink: 0;
+}
+.item-card-header.is-open .toggle-chevron {
+    transform: rotate(180deg);
+}
+
+/* Cuerpo colapsable */
+.item-card-body {
+    display: none;
+    border-top: 1px solid var(--c-border);
+}
+.item-card-body.is-open { display: block; }
+
+/* ── Mini tabla de movimientos ─────────────────────────────── */
+.mini-table-wrap { overflow-x: auto; }
+.mini-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+.mini-table th {
+    padding: 6px 10px;
+    text-align: left;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .7px;
+    color: var(--c-gray);
+    border-bottom: 1px solid var(--c-border);
+    background: transparent;
+    font-weight: 600;
+}
+.mini-table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--c-border);
+    color: var(--c-dark);
+    vertical-align: middle;
+}
+/* Fecha en una sola línea */
+.mini-table td.fecha-col { white-space: nowrap; }
+.mini-table tr:last-child td { border-bottom: 0; }
+.tipo-dep  { color: var(--c-green-mid); font-weight: 500; }
+.tipo-ret  { color: var(--c-danger); font-weight: 500; }
+
+/* ── Separador de categoría de préstamo ────────────────────── */
+.cat-sep {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: var(--c-blue);
+    padding: 6px 0 4px;
+    border-bottom: 2px solid var(--c-gold);
+    margin-bottom: 6px;
+}
+
+.empty-state {
+    padding: 28px 18px;
+    text-align: center;
+    color: var(--c-gray);
+    font-size: 14px;
+}
+.empty-state svg { width: 36px; height: 36px; opacity: .3; margin-bottom: 8px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="promo-wrap">
+
+  {# ── Buscador ─────────────────────────────────────────────── #}
+  <div class="search-card">
+    <div class="search-card-header">
+      <div class="search-card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+      </div>
+      <div>
+        <div class="search-card-title">Consulta de Asociado</div>
+        <div class="search-card-sub">Ingrese el código del asociado para ver sus saldos y préstamos</div>
+      </div>
+    </div>
+    <form method="POST" class="search-form" id="form-busqueda">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="text" id="codigo-input" name="codigo" placeholder="Código del asociado (ej: S0001)"
+             value="{{ codigo }}" required autofocus
+             style="text-transform: uppercase;">
+      <button type="submit" class="btn btn-primary" id="btn-buscar">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        Consultar
+      </button>
+      {% if codigo %}
+      <a href="{{ url_for('promotora.dashboard') }}" class="btn btn-outline">Limpiar</a>
+      {% endif %}
+    </form>
+  </div>
+
+  {# ── Resultado ────────────────────────────────────────────── #}
+  {% if socio %}
+
+  {# Banner del socio #}
+  <div class="socio-banner">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+    </svg>
+    <div>
+      <strong>{{ socio.nombre }} {{ socio.apellido }}</strong>
+      &nbsp;·&nbsp; Código: <strong>{{ socio.codigo }}</strong>
+    </div>
+    <span class="badge-estado">{{ socio.estado | title }}</span>
+  </div>
+
+  <div class="panels-grid">
+
+    {# ═══════════════════════════════════════════
+       COLUMNA IZQUIERDA: AHORROS
+    ═══════════════════════════════════════════ #}
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-head-icon green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+        </div>
+        <div>
+          <h3>Saldos de Ahorro</h3>
+          <small>{{ cuentas | length }} cuenta(s) registrada(s)</small>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        {% if cuentas %}
+          {% for cuenta in cuentas %}
+          <div class="item-card">
+            <div class="item-card-header" onclick="toggleCard(this)">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <svg class="toggle-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+                <div>
+                  <div class="item-card-label">
+                    {{ (cuenta.producto_ahorro or cuenta.tipo) | replace('_', ' ') | title }}
+                  </div>
+                  <span class="item-card-num">{{ cuenta.numero }}</span>
+                </div>
+              </div>
+              <div class="item-balance green">Q {{ "{:,.2f}".format(cuenta.saldo) }}</div>
+            </div>
+
+            <div class="item-card-body">
+              {% if cuenta.transacciones %}
+              <div class="mini-table-wrap">
+                <table class="mini-table">
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Concepto</th>
+                      <th style="text-align:right">Monto</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for txn in cuenta.transacciones %}
+                    <tr>
+                      <td class="fecha-col">{{ txn.fecha[:10] }}</td>
+                      <td>
+                        {% if txn.tipo == 'deposito' %}
+                          <span class="tipo-dep">Depósito</span>
+                          {% if txn.descripcion %} – <span style="color:var(--c-gray)">{{ txn.descripcion }}</span>{% endif %}
+                        {% elif txn.tipo == 'retiro' %}
+                          <span class="tipo-ret">Retiro</span>
+                          {% if txn.descripcion %} – <span style="color:var(--c-gray)">{{ txn.descripcion }}</span>{% endif %}
+                        {% else %}
+                          {{ txn.tipo | title }}
+                        {% endif %}
+                      </td>
+                      <td style="text-align:right; font-family:'Fraunces',serif; white-space:nowrap;">Q {{ "{:,.2f}".format(txn.monto) }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              {% else %}
+              <div style="padding:10px 14px; font-size:12px; color:var(--c-gray);">Sin movimientos recientes.</div>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+            <div>El asociado no tiene cuentas de ahorro.</div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ═══════════════════════════════════════════
+       COLUMNA DERECHA: PRÉSTAMOS POR CATEGORÍA
+    ═══════════════════════════════════════════ #}
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-head-icon blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>
+          </svg>
+        </div>
+        <div>
+          <h3>Préstamos Vigentes</h3>
+          <small>Agrupados por categoría</small>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        {% if categorias_prestamos %}
+          {% for categoria, prestamos in categorias_prestamos.items() %}
+
+          <div class="cat-sep">{{ categoria }}</div>
+
+          {% for prestamo in prestamos %}
+          <div class="item-card">
+            <div class="item-card-header" onclick="toggleCard(this)">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <svg class="toggle-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+                <div>
+                  <div class="item-card-label">{{ prestamo.numero }}</div>
+                  <span class="item-card-num">
+                    Tasa {{ prestamo.tasa_interes }}% · {{ prestamo.plazo_meses }} meses
+                  </span>
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:11px;color:var(--c-gray);margin-bottom:2px;">Saldo pendiente</div>
+                <div class="item-balance red">Q {{ "{:,.2f}".format(prestamo.saldo_pendiente) }}</div>
+              </div>
+            </div>
+
+            <div class="item-card-body">
+              {% if prestamo.pagos %}
+              <div class="mini-table-wrap">
+                <table class="mini-table">
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th style="text-align:right">Capital</th>
+                      <th style="text-align:right">Interés</th>
+                      <th style="text-align:right">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for pago in prestamo.pagos %}
+                    <tr>
+                      <td class="fecha-col">{{ pago.fecha[:10] }}</td>
+                      <td style="text-align:right">Q {{ "{:,.2f}".format(pago.capital) }}</td>
+                      <td style="text-align:right">Q {{ "{:,.2f}".format(pago.interes) }}</td>
+                      <td style="text-align:right; font-weight:600; font-family:'Fraunces',serif;">Q {{ "{:,.2f}".format(pago.monto) }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              {% else %}
+              <div style="padding:10px 14px; font-size:12px; color:var(--c-gray);">Sin abonos registrados.</div>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+
+          {% endfor %}
+        {% else %}
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+            <div>El asociado no tiene préstamos vigentes.</div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+  {% endif %}
+
+</div>
+
+{% block scripts %}
+<script>
+function toggleCard(header) {
+    header.classList.toggle('is-open');
+    const body = header.nextElementSibling;
+    body.classList.toggle('is-open');
+}
+</script>
+{% endblock %}
+{% endblock %}
