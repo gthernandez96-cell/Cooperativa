@@ -98,10 +98,11 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(mess
 # Instancia global para servidores WSGI
 app = create_app()
 
+# Inicializar la base de datos (crea tablas y aplica migraciones)
+# Se ejecuta tanto en WSGI como al correr directamente.
+with app.app_context():
+    from utils.db import init_db
+    init_db()
+
 if __name__ == '__main__':
-    # Inicialización de la base de datos si es necesario
-    with app.app_context():
-        from utils.db import init_db
-        init_db()
-    
     app.run(host='0.0.0.0', port=8001, debug=True)
