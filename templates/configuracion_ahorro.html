@@ -377,7 +377,7 @@
             </div>
             <div class="cfg-card-body">
                 <p class="cfg-help">
-                    Esta acción calcula el interés mensual acumulado de todas las cuentas de ahorro y lo aplica al saldo, realizando el crédito de <b>INTERÉS</b> y el débito automático del <b>10% de ISR</b>.
+                    Esta acción calcula el interés mensual acumulado de todas las cuentas de ahorro y lo aplica al saldo, realizando el crédito de <b>INTERÉS</b> y el débito automático del <b>10% de IPF</b>.
                 </p>
                 <form action="{{ url_for('ahorro.aplicar_intereses') }}" method="POST" onsubmit="return confirm('Esta seguro de aplicar los intereses del mes? Esta accion no se puede deshacer.')">
                     <button type="submit" class="btn btn-primary">Ejecutar capitalizacion mensual</button>

@@ -17,7 +17,7 @@ try:
 except ImportError:
     REPORTLAB_AVAILABLE = False
 
-from utils.db import get_db, get_db_connection, db_fetchone, db_fetchall, db_execute, db_insert_and_get_id, db_executemany, ensure_required_configurations, ensure_default_prestamo_categories, ensure_system_settings, ensure_module_settings, set_system_setting, get_system_setting, _is_postgres_connection
+from utils.db import get_db, db_fetchone, db_fetchall, db_execute, db_insert_and_get_id, db_executemany, ensure_required_configurations, ensure_default_prestamo_categories, ensure_system_settings, ensure_module_settings, set_system_setting, get_system_setting, _is_postgres_connection
 from utils.decorators import login_required, permission_required
 from utils.nombres import preparar_datos_socio, construir_nombre_completo, construir_apellido_completo, validar_dpi, resumen_beneficiarios
 from utils.financial import calcular_resumen_prestamo, generar_calendario_prestamo, normalizar_fecha_referencia, calcular_total_cuotas_prestamo, calcular_proximo_pago, obtener_dias_frecuencia, fecha_quincenal_mas_cercana, calcular_alerta_prestamo
@@ -1472,7 +1472,7 @@ def exportar_reporte_prestamos():
 @bp.route('/obtener_estadisticas_cobranza')
 @login_required()
 def obtener_estadisticas_cobranza():
-    cartera = _obtener_cartera_con_alertas()
+    cartera = obtener_cartera_con_alertas()
     morosos = [p for p in cartera if p['dias_atraso'] > 0 and p['estado'] == 'aprobado']
     conn = get_db()
     if _is_postgres_connection(conn):
@@ -1528,7 +1528,7 @@ def obtener_lista_cobranza():
     filtro_socio = (data.get('filtro_socio') or '').strip().lower()
     filtro_responsable = (data.get('filtro_responsable') or '').strip().lower()
 
-    cartera = [p for p in _obtener_cartera_con_alertas() if p['estado'] == 'aprobado' and p['dias_atraso'] > 0]
+    cartera = [p for p in obtener_cartera_con_alertas() if p['estado'] == 'aprobado' and p['dias_atraso'] > 0]
 
     if filtro == '1-30':
         cartera = [p for p in cartera if 1 <= p['dias_atraso'] <= 30]
@@ -1872,36 +1872,36 @@ def planilla_prestamos():
 @bp.route('/planillas_prestamos_pendientes')
 @login_required()
 def planillas_prestamos_pendientes():
-    conn = get_db_connection()
+    import math as _math
+    conn = get_db()
     nombre = request.args.get('nombre', '').strip()
     frecuencia = request.args.get('frecuencia', '').strip()
     estado = request.args.get('estado', '').strip().lower()
     fecha_desde = request.args.get('fecha_desde', '').strip()
     fecha_hasta = request.args.get('fecha_hasta', '').strip()
+    page = max(1, int(request.args.get('page', 1) or 1))
+    per_page = min(100, max(10, int(request.args.get('per_page', 50) or 50)))
 
-    query = '''
-        SELECT * FROM planillas_masivas
-        WHERE tipo = 'prestamo_cuotas'
-    '''
+    base_query = "FROM planillas_masivas WHERE tipo = 'prestamo_cuotas'"
     params = []
 
     if nombre:
-        query += ' AND nombre LIKE ?'
+        base_query += ' AND nombre LIKE ?'
         params.append(f'%{nombre}%')
     if frecuencia:
-        query += ' AND frecuencia = ?'
+        base_query += ' AND frecuencia = ?'
         params.append(frecuencia)
     if estado:
-        query += ' AND estado = ?'
+        base_query += ' AND estado = ?'
         params.append(estado)
     if fecha_desde:
-        query += ' AND date(fecha_pago) >= date(?)'
+        base_query += ' AND date(fecha_pago) >= date(?)'
         params.append(fecha_desde)
     if fecha_hasta:
-        query += ' AND date(fecha_pago) <= date(?)'
+        base_query += ' AND date(fecha_pago) <= date(?)'
         params.append(fecha_hasta)
 
-    query += '''
+    order_sql = '''
         ORDER BY CASE estado
             WHEN 'pendiente' THEN 1
             WHEN 'parcial' THEN 2
@@ -1910,8 +1910,19 @@ def planillas_prestamos_pendientes():
         END, fecha_creacion DESC, id DESC
     '''
 
-    planillas = db_fetchall(conn, query, params)
+    total_planillas = db_fetchone(conn, f'SELECT COUNT(*) {base_query}', params)[0]
+    total_pages = max(1, _math.ceil(total_planillas / per_page))
+    offset = (page - 1) * per_page
+
+    planillas = db_fetchall(
+        conn,
+        f'SELECT * {base_query} {order_sql} LIMIT ? OFFSET ?',
+        params + [per_page, offset]
+    )
+    total_monto_row = db_fetchone(conn, f'SELECT COALESCE(SUM(total_monto),0) {base_query}', params)
+    total_monto = float(total_monto_row[0] or 0)
     conn.close()
+
     return render_template(
         'planillas_prestamos_pendientes.html',
         planillas=planillas,
@@ -1922,14 +1933,17 @@ def planillas_prestamos_pendientes():
             'fecha_desde': fecha_desde,
             'fecha_hasta': fecha_hasta
         },
-        total_planillas=len(planillas),
-        total_monto=sum(float(p['total_monto'] or 0) for p in planillas)
+        total_planillas=total_planillas,
+        total_monto=total_monto,
+        page=page,
+        per_page=per_page,
+        total_pages=total_pages,
     )
 
 @bp.route('/planillas_prestamos/<int:planilla_id>')
 @login_required()
 def detalle_planilla_prestamos(planilla_id):
-    conn = get_db_connection()
+    conn = get_db()
     planilla = db_fetchone(conn, '''
         SELECT * FROM planillas_masivas
         WHERE id=? AND tipo='prestamo_cuotas'
@@ -1968,6 +1982,71 @@ def detalle_planilla_prestamos(planilla_id):
         frecuencia=planilla['frecuencia']
     )
 
+@bp.route('/planillas_prestamos/<int:planilla_id>/exportar')
+@login_required()
+def exportar_planilla_prestamos(planilla_id):
+    conn = get_db()
+    planilla = db_fetchone(conn, '''
+        SELECT * FROM planillas_masivas
+        WHERE id=? AND tipo='prestamo_cuotas'
+    ''', (planilla_id,))
+
+    if not planilla:
+        conn.close()
+        flash('Planilla de prestamos no encontrada.', 'danger')
+        return redirect(url_for('prestamos.planillas_prestamos_pendientes'))
+
+    detalles = db_fetchall(conn, '''
+        SELECT d.*, p.monto_aprobado, p.saldo_pendiente, p.cuota_mensual,
+               COALESCE(pp.capital_pagado, 0) AS capital_pagado,
+               COALESCE(pp.interes_pagado, 0) AS interes_pagado
+        FROM planilla_masiva_detalles d
+        LEFT JOIN prestamos p ON d.referencia_id = p.id AND d.referencia_tipo = 'prestamo'
+        LEFT JOIN (
+            SELECT prestamo_id,
+                   SUM(capital) AS capital_pagado,
+                   SUM(interes) AS interes_pagado
+            FROM pagos_prestamo
+            GROUP BY prestamo_id
+        ) pp ON pp.prestamo_id = p.id
+        WHERE d.planilla_id=?
+        ORDER BY socio_nombre, numero_referencia
+    ''', (planilla_id,))
+    conn.close()
+
+    import io
+    import csv
+    from flask import Response
+
+    output = io.StringIO()
+    output.write('\ufeff')  # BOM de UTF-8 para Excel
+    writer = csv.writer(output, delimiter=';')
+
+    headers = [
+        'Código Socio', 'Nombre Socio', 'No. Préstamo', 
+        'Monto Aprobado', 'Saldo Pendiente', 'Cuota Mensual', 
+        'Monto a Cobrar', 'Estado'
+    ]
+    writer.writerow(headers)
+
+    for d in detalles:
+        writer.writerow([
+            d['socio_codigo'],
+            d['socio_nombre'],
+            d['numero_referencia'],
+            f"Q{d['monto_aprobado']:.2f}" if d['monto_aprobado'] is not None else "Q0.00",
+            f"Q{d['saldo_pendiente']:.2f}" if d['saldo_pendiente'] is not None else "Q0.00",
+            f"Q{d['cuota_mensual']:.2f}" if d['cuota_mensual'] is not None else "Q0.00",
+            f"Q{d['monto']:.2f}",
+            d['estado'].upper()
+        ])
+
+    filename = f"Planilla_Prestamos_{planilla['nombre'].replace(' ', '_')}"
+    response = Response(output.getvalue(), mimetype='text/csv')
+    response.headers['Content-Disposition'] = f'attachment; filename={filename}_{datetime.now().strftime("%Y%m%d_%H%M")}.csv'
+    response.headers['Content-type'] = 'text/csv; charset=utf-8'
+    return response
+
 @bp.route('/generar_planilla_prestamos', methods=['GET', 'POST'])
 @login_required()
 def generar_planilla_prestamos():
@@ -1996,9 +2075,9 @@ def generar_planilla_prestamos():
             flash('Frecuencia no valida.', 'danger')
             return render_template('generar_planilla_prestamos.html', form_data=form_data)
 
-        conn = get_db_connection()
+        conn = get_db()
 
-        # Obtener prestamos activos filtrados por frecuencia del socio.
+        # Obtener prestamos activos filtrados por frecuencia del socio y con cuotas pendientes hasta la fecha seleccionada.
         prestamos = db_fetchall(
             conn,
             '''
@@ -2012,10 +2091,15 @@ def generar_planilla_prestamos():
               AND p.saldo_pendiente > 0
               AND s.estado = 'activo'
               AND s.frecuencia = ?
+              AND p.id IN (
+                  SELECT DISTINCT prestamo_id
+                  FROM prestamo_calendario_pagos
+                  WHERE estado = 'pendiente' AND fecha_programada <= ?
+              )
             GROUP BY p.id
             ORDER BY s.apellido, s.nombre
             ''',
-            (frecuencia,)
+            (frecuencia, fecha_pago)
         )
 
         if not prestamos:
@@ -2082,7 +2166,7 @@ def procesar_pagos_masivos():
     if not boleta_deposito:
         return jsonify({'error': 'Debe indicar numero de boleta de pago para aplicar la planilla.'}), 400
     
-    conn = get_db_connection()
+    conn = get_db()
     planilla = None
     if planilla_id:
         planilla = db_fetchone(conn, '''
@@ -2115,7 +2199,7 @@ def procesar_pagos_masivos():
             
             # Obtener información del préstamo
             prestamo = db_fetchone(conn, '''
-                SELECT p.saldo_pendiente, p.cuota_mensual, p.socio_id, s.frecuencia
+                SELECT p.saldo_pendiente, p.cuota_mensual, p.socio_id, s.frecuencia, p.tasa_interes
                 FROM prestamos p
                 JOIN socios s ON p.socio_id = s.id
                 WHERE p.id = ? AND p.estado = "aprobado"
@@ -2144,10 +2228,40 @@ def procesar_pagos_masivos():
                 capital = round(monto, 2)
                 interes = 0.0
             
-            nuevo_saldo = saldo_pendiente - monto
+            nuevo_saldo = round(max(0, saldo_pendiente - monto), 2)
             
-            # Actualizar saldo del préstamo
-            db_execute(conn, 'UPDATE prestamos SET saldo_pendiente = ? WHERE id = ?', (nuevo_saldo, prestamo_id))
+            # Actualizar saldo del préstamo y su estado si se ha cancelado
+            estado_prestamo = 'pagado' if nuevo_saldo <= 0 else 'aprobado'
+            db_execute(
+                conn,
+                'UPDATE prestamos SET saldo_pendiente = ?, estado = ? WHERE id = ?',
+                (nuevo_saldo, estado_prestamo, prestamo_id)
+            )
+
+            # Actualizar calendario de pagos (marcar cuota(s) como pagada(s))
+            if nuevo_saldo <= 0:
+                db_execute(
+                    conn,
+                    "UPDATE prestamo_calendario_pagos SET estado='pagado' WHERE prestamo_id=? AND estado='pendiente'",
+                    [prestamo_id]
+                )
+            else:
+                cuota_programada = db_fetchone(
+                    conn,
+                    '''
+                    SELECT id FROM prestamo_calendario_pagos
+                    WHERE prestamo_id=? AND estado='pendiente'
+                    ORDER BY numero_cuota
+                    LIMIT 1
+                    ''',
+                    [prestamo_id]
+                )
+                if cuota_programada:
+                    db_execute(
+                        conn,
+                        "UPDATE prestamo_calendario_pagos SET estado='pagado' WHERE id=?",
+                        [cuota_programada['id']]
+                    )
             
             # Registrar pago
             descripcion_planilla = f"Aplicación Planilla: {nombre_planilla}"

@@ -6,17 +6,11 @@ from config import DEFAULT_COOPERATIVA_NOMBRE, SYSTEM_SETTINGS_DEFAULTS, REQUIRE
 from utils.images import allowed_image as allowed_system_image, procesar_foto_cooperativa
 from utils.decorators import login_required, permission_required
 from utils.helpers import log_auditoria_evento, periodo_cerrado, generar_numero_comprobante, validar_pago_frecuencia, obtener_tipo_cuenta_desde_planilla, tipo_transaccion_label, es_transaccion_positiva, get_config_label
-from utils.financial import *
+
 
 bp = Blueprint('configuraciones', __name__)
 
-@bp.route('/login_test', methods=['GET','POST'])
-def login_test():
-    if request.method == 'POST':
-        user = request.form['username'].strip()
-        pwd = request.form['password'].strip()
-        return f"POST received: user={user}, pwd={pwd[:10]}..."
-    return render_template('login.html')
+# Ruta login_test eliminada: era un endpoint de debug que exponía datos de autenticación.
 
 @bp.route('/configuraciones')
 @login_required(role=('Administrador',))
@@ -291,6 +285,108 @@ def cierres_periodo():
     )
     conn.close()
     return render_template('cierres_periodo.html', cierres=cierres)
+
+def _obtener_historial_planillas(tipo='todos', nombre='', boleta='', frecuencia='', fecha_desde='', fecha_hasta=''):
+    """Retorna (planillas, total_general, total_registros) con filtros opcionales."""
+    conn = get_db()
+    query = '''
+        SELECT pm.*, u.username AS usuario_nombre
+        FROM planillas_masivas pm
+        LEFT JOIN usuarios u ON u.username = pm.usuario_creacion
+        WHERE 1=1
+    '''
+    params = []
+
+    if tipo and tipo != 'todos':
+        query += ' AND pm.tipo = ?'
+        params.append(tipo)
+    if nombre:
+        query += ' AND lower(pm.nombre) LIKE ?'
+        params.append(f'%{nombre}%')
+    if boleta:
+        query += ' AND lower(COALESCE(pm.boleta_deposito, "")) LIKE ?'
+        params.append(f'%{boleta}%')
+    if frecuencia:
+        query += ' AND pm.frecuencia = ?'
+        params.append(frecuencia)
+    if fecha_desde:
+        query += ' AND date(pm.fecha_pago) >= date(?)'
+        params.append(fecha_desde)
+    if fecha_hasta:
+        query += ' AND date(pm.fecha_pago) <= date(?)'
+        params.append(fecha_hasta)
+
+    query += ' ORDER BY pm.fecha_pago DESC, pm.id DESC LIMIT 500'
+
+    planillas = db_fetchall(conn, query, params)
+    conn.close()
+
+    total_general = sum(float(p['total_monto'] or 0) for p in planillas if p['estado'] == 'aplicada')
+    total_registros = sum(int(p['total_registros'] or 0) for p in planillas)
+    return [dict(p) for p in planillas], total_general, total_registros
+
+
+def _exportar_historial_csv(planillas):
+    """Genera una respuesta HTTP CSV para el historial de planillas."""
+    import io as _io
+    import csv as _csv
+    output = _io.StringIO()
+    output.write('\ufeff')  # BOM UTF-8 para Excel
+    writer = _csv.writer(output, delimiter=';')
+    writer.writerow([
+        'ID', 'Tipo', 'Nombre', 'Frecuencia', 'Fecha Pago',
+        'Estado', 'Boleta', 'Monto Total', 'Total Registros',
+        'Fecha Creación', 'Creado Por', 'Aplicado Por'
+    ])
+    for p in planillas:
+        writer.writerow([
+            p['id'], p['tipo'], p['nombre'], p['frecuencia'] or '',
+            p['fecha_pago'], p['estado'],
+            p['boleta_deposito'] or '', p['total_monto'] or 0,
+            p['total_registros'] or 0, p['fecha_creacion'],
+            p['usuario_creacion'] or '', p['usuario_aplicacion'] or ''
+        ])
+    filename = f'historial_planillas_{datetime.now().strftime("%Y%m%d_%H%M")}.csv'
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv; charset=utf-8',
+        headers={'Content-Disposition': f'attachment; filename={filename}'}
+    )
+
+
+def _exportar_historial_excel(planillas):
+    """Genera una respuesta HTTP Excel (.xlsx) para el historial de planillas."""
+    from io import BytesIO
+    from openpyxl import Workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Historial Planillas'
+    encabezados = [
+        'ID', 'Tipo', 'Nombre', 'Frecuencia', 'Fecha Pago',
+        'Estado', 'Boleta', 'Monto Total', 'Total Registros',
+        'Fecha Creación', 'Creado Por', 'Aplicado Por'
+    ]
+    ws.append(encabezados)
+    for p in planillas:
+        ws.append([
+            p['id'], p['tipo'], p['nombre'], p['frecuencia'] or '',
+            p['fecha_pago'], p['estado'],
+            p['boleta_deposito'] or '', float(p['total_monto'] or 0),
+            int(p['total_registros'] or 0), p['fecha_creacion'],
+            p['usuario_creacion'] or '', p['usuario_aplicacion'] or ''
+        ])
+    mem = BytesIO()
+    wb.save(mem)
+    mem.seek(0)
+    filename = f'historial_planillas_{datetime.now().strftime("%Y%m%d_%H%M")}.xlsx'
+    from flask import send_file
+    return send_file(
+        mem,
+        as_attachment=True,
+        download_name=filename,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+
 
 @bp.route('/historial_planillas')
 @login_required()

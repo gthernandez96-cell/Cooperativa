@@ -33,15 +33,18 @@ def siguiente_fecha_quincenal(d):
     Dado un date quincenal (día 15 o último del mes), retorna el siguiente:
       - Si es día 15  → último día del mismo mes
       - Si es último  → día 15 del siguiente mes
+      - Si es una fecha no estándar (por ejemplo, primer día del mes),
+        retorna 15 días después para normalizar el ciclo.
     """
     if d.day == 15:
         ultimo = _ultimo_dia_mes(d.year, d.month)
         return date(d.year, d.month, ultimo)
-    else:
-        # último día del mes → ir al 15 del mes siguiente
+    elif _es_ultimo_dia_mes(d):
         if d.month == 12:
             return date(d.year + 1, 1, 15)
         return date(d.year, d.month + 1, 15)
+    else:
+        return d + timedelta(days=15)
 
 
 def fecha_quincenal_mas_cercana(desde=None):
@@ -69,8 +72,12 @@ def obtener_dias_frecuencia(frecuencia):
 
 
 def calcular_total_cuotas_prestamo(plazo_pagos, frecuencia=None):
-    """Retorna el plazo directamente como número de pagos."""
-    return int(plazo_pagos or 0)
+    """Calcula el número total de cuotas del préstamo basado en el plazo en meses y la frecuencia."""
+    plazo_pagos = int(plazo_pagos or 0)
+    if plazo_pagos <= 0:
+        return 0
+    dias_frecuencia = obtener_dias_frecuencia(frecuencia)
+    return math.ceil((plazo_pagos * 30) / dias_frecuencia)
 
 
 

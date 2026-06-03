@@ -1,118 +1,822 @@
 {% extends "base.html" %}
 {% block title %}Planilla: {{ nombre_planilla }}{% endblock %}
 {% block content %}
+<style>
+  /* Variables e impecable diseño premium soberbio y corporativo */
+  :root {
+    --neutral-dark: #1e293b;
+    --neutral-muted: #475569;
+    --neutral-light: #f8fafc;
+    --border-color: #cbd5e1;
+    --border-light: #e2e8f0;
+    --accent-slate: #334155;
+    --accent-teal: #0d9488;
+    --accent-teal-pale: #f0fdfa;
+    --accent-teal-border: #99f6e4;
+    --accent-amber: #b45309;
+    --accent-amber-pale: #fffbeb;
+    --accent-amber-border: #fde68a;
+    --card-shadow-corporate: 0 1px 3px rgba(0, 0, 0, 0.05), 0 10px 20px -5px rgba(0, 0, 0, 0.03);
+    --transition-smooth: all 0.2s ease-in-out;
+  }
+
+  .premium-header {
+    background: #ffffff;
+    padding: 22px 28px;
+    border-radius: 14px;
+    color: var(--neutral-dark);
+    border: 1px solid var(--border-light);
+    border-bottom: 2px solid var(--border-color);
+    box-shadow: var(--card-shadow-corporate);
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .premium-title {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--neutral-dark);
+    margin: 0;
+  }
+
+  .premium-subtitle {
+    font-size: 13.5px;
+    color: var(--neutral-muted);
+    margin-top: 4px;
+  }
+
+  .premium-card {
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1px solid var(--border-light);
+    box-shadow: var(--card-shadow-corporate);
+    margin-bottom: 24px;
+    overflow: hidden;
+    transition: var(--transition-smooth);
+  }
+
+  .premium-card-header {
+    padding: 16px 24px;
+    background: #fdfdfd;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .premium-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--neutral-dark);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .premium-card-body {
+    padding: 24px;
+  }
+
+  /* Stats grid */
+  .premium-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .premium-stat-card {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 20px 24px;
+    border: 1px solid var(--border-light);
+    box-shadow: var(--card-shadow-corporate);
+    position: relative;
+    overflow: hidden;
+    transition: var(--transition-smooth);
+  }
+
+  .premium-stat-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .premium-stat-card.blue {
+    border-top: 4px solid var(--neutral-dark);
+  }
+
+  .premium-stat-card.gold {
+    border-top: 4px solid var(--neutral-muted);
+  }
+
+  .premium-stat-label {
+    font-size: 10.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--neutral-muted);
+    margin-bottom: 8px;
+  }
+
+  .premium-stat-value {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--neutral-dark);
+    line-height: 1.1;
+  }
+
+  .premium-stat-icon {
+    position: absolute;
+    right: 20px;
+    bottom: 14px;
+    font-size: 40px;
+    color: #e2e8f0;
+    pointer-events: none;
+  }
+
+  /* Grid de Datos de Planilla */
+  .metadata-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
+
+  .metadata-item {
+    background: var(--neutral-light);
+    border: 1px solid var(--border-light);
+    padding: 12px 16px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: var(--transition-smooth);
+  }
+
+  .metadata-item:hover {
+    background: #ffffff;
+    border-color: var(--border-color);
+  }
+
+  .metadata-label {
+    font-size: 9.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--neutral-muted);
+  }
+
+  .metadata-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--neutral-dark);
+  }
+
+  /* Toolbar de Búsqueda */
+  .toolbar-container {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .search-wrapper {
+    position: relative;
+    flex: 1;
+    min-width: 280px;
+  }
+
+  .search-wrapper svg {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--neutral-muted);
+    pointer-events: none;
+  }
+
+  .search-input-premium {
+    width: 100%;
+    padding: 8px 16px 8px 40px;
+    min-height: 38px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    background: #ffffff;
+    transition: var(--transition-smooth);
+  }
+
+  .search-input-premium:focus {
+    outline: none;
+    border-color: var(--neutral-muted);
+    box-shadow: 0 0 0 3px rgba(71, 85, 105, 0.08);
+  }
+
+  /* Table styling */
+  .premium-table-wrap {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid var(--border-light);
+    background: #ffffff;
+  }
+
+  .premium-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .premium-table th {
+    background: var(--neutral-light);
+    padding: 14px 18px;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--neutral-muted);
+    border-bottom: 2px solid var(--border-light);
+  }
+
+  .premium-table td {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border-light);
+    color: var(--neutral-dark);
+    font-size: 13.5px;
+    transition: var(--transition-smooth);
+    vertical-align: middle;
+  }
+
+  .premium-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .premium-table tr:hover td {
+    background: rgba(0, 0, 0, 0.01);
+  }
+
+  /* In table inputs styling */
+  .table-input-group {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--neutral-light);
+    transition: var(--transition-smooth);
+  }
+
+  .table-input-group:focus-within {
+    border-color: var(--neutral-dark);
+    box-shadow: 0 0 0 3px rgba(30, 41, 59, 0.08);
+    background: #ffffff;
+  }
+
+  .table-input-addon {
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--neutral-muted);
+    background: #f1f5f9;
+    border-right: 1px solid var(--border-light);
+  }
+
+  .table-input-field {
+    border: none;
+    background: transparent;
+    padding: 6px 10px;
+    width: 110px;
+    text-align: right;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--neutral-dark);
+  }
+
+  .table-input-field:focus {
+    outline: none;
+  }
+
+  .table-input-field[readonly] {
+    background: #f1f5f9;
+    color: #94a3b8;
+    cursor: not-allowed;
+  }
+
+  /* Badges */
+  .badge-capsule {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .badge-capsule.pendiente {
+    background-color: var(--neutral-light);
+    color: var(--neutral-muted);
+    border: 1px solid var(--border-color);
+  }
+
+  .badge-capsule.aplicado {
+    background-color: var(--accent-teal-pale);
+    color: var(--accent-teal);
+    border: 1px solid var(--accent-teal-border);
+  }
+
+  /* Badge de estado local */
+  .badge-state {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 1px solid transparent;
+  }
+  .badge-state.pendiente { background: var(--accent-amber-pale); color: var(--accent-amber); border: 1px solid var(--accent-amber-border); }
+  .badge-state.parcial { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+  .badge-state.aplicada { background: var(--accent-teal-pale); color: var(--accent-teal); border: 1px solid var(--accent-teal-border); }
+
+  /* Botones Premium */
+  .btn-action-premium {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: var(--transition-smooth);
+    cursor: pointer;
+    border: 1px solid transparent;
+  }
+
+  .btn-action-premium.primary {
+    background: var(--neutral-dark);
+    color: #ffffff;
+  }
+
+  .btn-action-premium.primary:hover {
+    background: #0f172a;
+    transform: translateY(-1px);
+  }
+
+  .btn-action-premium.secondary {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    color: var(--neutral-muted);
+  }
+
+  .btn-action-premium.secondary:hover {
+    background: var(--neutral-light);
+    color: var(--neutral-dark);
+    border-color: var(--neutral-muted);
+  }
+
+  .btn-back-premium {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--neutral-muted);
+    background: #ffffff;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    border: 1px solid var(--border-color);
+    transition: var(--transition-smooth);
+  }
+
+  .btn-back-premium:hover {
+    background: var(--neutral-light);
+    color: var(--neutral-dark);
+    border-color: var(--neutral-muted);
+    transform: translateX(-2px);
+  }
+
+  /* Panel de Resumen Flotante Sobrio y Claro (Impecable) */
+  .summary-card-floating {
+    position: sticky;
+    bottom: 16px;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(8px);
+    border: 1.5px solid var(--border-color);
+    color: var(--neutral-dark);
+    border-radius: 14px;
+    padding: 16px 24px;
+    margin-top: 24px;
+    z-index: 999;
+    box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.05), 0 10px 30px rgba(0, 0, 0, 0.08);
+  }
+
+  .summary-grid {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .summary-blocks-group {
+    display: flex;
+    gap: 28px;
+    flex-wrap: wrap;
+  }
+
+  .summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .summary-label {
+    font-size: 9.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--neutral-muted);
+  }
+
+  .summary-value {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--neutral-dark);
+    line-height: 1.1;
+  }
+
+  .summary-value.highlight {
+    color: var(--neutral-dark);
+  }
+
+  .summary-value.success {
+    color: var(--neutral-dark);
+  }
+
+  /* Modal de confirmacion con blur premium */
+  .modal-backdrop-premium {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+
+  .modal-container-premium {
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1px solid var(--border-light);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    width: 100%;
+    max-width: 480px;
+    overflow: hidden;
+  }
+
+  .modal-header-premium {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fdfdfd;
+  }
+
+  .modal-title-premium {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--neutral-dark);
+    margin: 0;
+  }
+
+  .modal-close-premium {
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: var(--neutral-muted);
+    cursor: pointer;
+    transition: var(--transition-smooth);
+  }
+
+  .modal-close-premium:hover {
+    color: var(--neutral-dark);
+  }
+
+  .modal-body-premium {
+    padding: 24px;
+  }
+
+  .modal-input-group {
+    margin-bottom: 20px;
+  }
+
+  .modal-label-premium {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--neutral-muted);
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .modal-input-premium {
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--neutral-dark);
+    transition: var(--transition-smooth);
+    background-color: var(--neutral-light);
+  }
+
+  .modal-input-premium:focus {
+    outline: none;
+    border-color: var(--neutral-dark);
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(30, 41, 59, 0.08);
+  }
+
+  .modal-input-premium.is-invalid {
+    border-color: #ef4444;
+    background-color: #fef2f2;
+  }
+</style>
+
 <div class="container-fluid mt-4">
-    <div class="card shadow mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Revisión de Planilla: <strong>{{ nombre_planilla }}</strong></h5>
-            <div class="d-flex gap-2 align-items-center">
-                <a href="{{ url_for('ahorro.planillas_ahorro_pendientes') }}" class="btn btn-sm btn-outline-secondary">Regresar</a>
-                <span class="badge bg-info text-dark">Tipo: {{ tipo_cuenta_label }}</span>
-                <span class="badge bg-primary">Frecuencia: {{ frecuencia }}</span>
-                <span class="badge {% if planilla and planilla.estado == 'aplicada' %}bg-success{% elif planilla and planilla.estado == 'parcial' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
-                    Estado: {{ (planilla.estado if planilla else 'pendiente').title() }}
-                </span>
-            </div>
-        </div>
-        <div class="card-body">
-            <div class="row mb-4">
-                <div class="col-md-4">
-                    <div class="border rounded p-3 bg-light">
-                        <small class="text-muted d-block">Total de Asociados</small>
-                        <span class="h4">{{ detalles|length }}</span>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="border rounded p-3 bg-light">
-                        <small class="text-muted d-block">Monto Total a Abonar</small>
-                        <span class="h4 text-success">Q{{ "{:,.2f}".format(total_cuotas) }}</span>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="border rounded p-3 bg-light">
-                        <small class="text-muted d-block">Fecha de Registro</small>
-                        <span class="h4">{{ fecha_pago }}</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="table-responsive">
-                <table class="table table-striped table-hover" id="tablaAbonos">
-                    <thead>
-                        <tr>
-                            <th>Socio</th>
-                            <th>Cuenta</th>
-                            <th class="text-end">Saldo Actual</th>
-                            <th class="text-end text-primary">Cuota Programada</th>
-                            <th>Estado</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for c in detalles %}
-                        <tr data-id="{{ c.referencia_id }}" data-monto="{{ c.monto }}" data-num="{{ c.numero_referencia }}" data-detalle-id="{{ c.id }}">
-                            <td><strong>{{ c.socio_codigo }}</strong> - {{ c.socio_nombre }}</td>
-                            <td>{{ c.numero_referencia }}</td>
-                            <td class="text-end text-muted">
-                                {% if c.saldo_actual is not none %}
-                                    Q{{ "{:,.2f}".format(c.saldo_actual) }}
-                                {% else %}
-                                    Pendiente de aplicar
-                                {% endif %}
-                            </td>
-                            <td class="text-end"><strong>Q{{ "{:,.2f}".format(c.monto) }}</strong></td>
-                            <td>
-                                <span class="badge {% if c.estado == 'aplicado' %}bg-success{% else %}bg-secondary{% endif %}">{{ c.estado.title() }}</span>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="text-center mt-4 d-flex justify-content-center gap-2 flex-wrap">
-                <a href="{{ url_for('ahorro.planillas_ahorro_pendientes') }}" class="btn btn-outline-secondary btn-lg px-4">Ver Planillas Guardadas</a>
-                {% if not planilla or planilla.estado != 'aplicada' %}
-                <button type="button" class="btn btn-primary btn-lg px-5" id="btnAplicar" data-planilla-id="{{ planilla.id }}">
-                    <i class="fas fa-check-circle me-2"></i>Aplicar Planilla a las Cuentas
-                </button>
-                {% endif %}
-            </div>
-        </div>
+  <!-- Cabecera Premium -->
+  <div class="premium-header">
+    <div>
+      <h1 class="premium-title">Revisión de Planilla</h1>
+      <p class="premium-subtitle">Procesamiento y conciliación masiva de cuotas de ahorro</p>
     </div>
+    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+      <a href="{{ url_for('ahorro.planillas_ahorro_pendientes') }}" class="btn-back-premium">
+        <i class="fas fa-arrow-left"></i> Regresar a Planillas
+      </a>
+      <a href="{{ url_for('ahorro.exportar_planilla_ahorro', planilla_id=planilla.id) }}" class="btn-back-premium" style="border-color: #10b981; color: #047857;">
+        <i class="fas fa-file-excel"></i> Exportar Excel
+      </a>
+      {% if not planilla or planilla.estado != 'aplicada' %}
+      <button type="button" class="btn-action-premium primary" id="btnAplicarCabecera">
+        <i class="fas fa-check-circle"></i> Aplicar Planilla
+      </button>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Grid de Métricas de Planilla -->
+  <div class="premium-stats-grid">
+    <div class="premium-stat-card blue">
+      <div class="premium-stat-label">Total de Asociados en Planilla</div>
+      <div class="premium-stat-value">{{ detalles|length }}</div>
+      <div class="premium-stat-icon">
+        <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+        </svg>
+      </div>
+    </div>
+    <div class="premium-stat-card gold">
+      <div class="premium-stat-label">Monto Total Programado</div>
+      <div class="premium-stat-value">Q{{ "{:,.2f}".format(total_cuotas) }}</div>
+      <div class="premium-stat-icon">
+        <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+          <line x1="12" y1="4" x2="12" y2="20"></line>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Especificaciones de Nómina -->
+  <div class="premium-card">
+    <div class="premium-card-header">
+      <h3 class="premium-card-title">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+        </svg>
+        Especificaciones de Nómina
+      </h3>
+    </div>
+    <div class="premium-card-body">
+      <div class="metadata-grid">
+        <div class="metadata-item">
+          <span class="metadata-label">Nombre Planilla</span>
+          <span class="metadata-value">{{ nombre_planilla }}</span>
+        </div>
+        <div class="metadata-item">
+          <span class="metadata-label">Fecha de Pago</span>
+          <span class="metadata-value">{{ fecha_pago }}</span>
+        </div>
+        <div class="metadata-item">
+          <span class="metadata-label">Tipo de Cuenta</span>
+          <span class="metadata-value">{{ tipo_cuenta_label }}</span>
+        </div>
+        <div class="metadata-item">
+          <span class="metadata-label">Frecuencia Laboral</span>
+          <span class="metadata-value">{{ frecuencia }}</span>
+        </div>
+        <div class="metadata-item">
+          <span class="metadata-label">Boleta de Depósito</span>
+          <span class="metadata-value" style="font-family: monospace; font-size: 12.5px;">{{ (planilla.boleta_deposito if planilla else '') or 'Pendiente' }}</span>
+        </div>
+        <div class="metadata-item">
+          <span class="metadata-label">Estado de Planilla</span>
+          <span>
+            <span class="badge-state {% if planilla and planilla.estado == 'aplicada' %}aplicada{% elif planilla and planilla.estado == 'parcial' %}parcial{% else %}pendiente{% endif %}">
+              {{ (planilla.estado.title() if planilla else 'Pendiente') }}
+            </span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barra de Búsqueda y Filtro de Operaciones -->
+  <div class="premium-card" style="margin-bottom: 20px;">
+    <div class="premium-card-body">
+      <div class="toolbar-container">
+        <div class="search-wrapper">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input
+            type="text"
+            id="buscarAhorroPlanilla"
+            class="search-input-premium"
+            placeholder="Filtrar por código de socio, nombre completo o número de cuenta..."
+          >
+        </div>
+        <span id="contadorResultadosPlanilla" style="font-size: 12px; font-weight: 700; color: var(--neutral-muted); background: var(--neutral-light); padding: 4px 10px; border-radius: 6px;"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla de Detalle -->
+  <div class="premium-card" style="margin-bottom: 32px;">
+    <div class="premium-card-header">
+      <h3 class="premium-card-title">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+        </svg>
+        Asociados Activos en Planilla
+      </h3>
+    </div>
+    <div class="premium-card-body" style="padding: 0;">
+      <div class="premium-table-wrap" style="border: none; border-radius: 0;">
+        <table class="premium-table" id="tablaAbonos">
+          <thead>
+            <tr>
+              <th>Asociado</th>
+              <th>Número de Cuenta</th>
+              <th style="text-align: right;">Saldo Actual</th>
+              <th style="width: 200px; text-align: right; color: var(--neutral-dark);">Abono Programado</th>
+              <th style="text-align: center;">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in detalles %}
+            <tr data-id="{{ c.referencia_id }}" data-monto="{{ c.monto }}" data-num="{{ c.numero_referencia }}" data-detalle-id="{{ c.id }}">
+              <td>
+                <span style="font-weight: 700; color: var(--neutral-dark);">{{ c.socio_codigo }}</span>
+                <span style="color: var(--neutral-muted); margin-left: 6px;">— {{ c.socio_nombre }}</span>
+              </td>
+              <td style="font-family: monospace; font-size: 14px; font-weight: 500;">{{ c.numero_referencia }}</td>
+              <td style="text-align: right; color: var(--neutral-muted);">
+                {% if c.saldo_actual is not none %}
+                  Q{{ "{:,.2f}".format(c.saldo_actual) }}
+                {% else %}
+                  <span style="color: #94a3b8; font-style: italic; font-size: 12px;">Pendiente</span>
+                {% endif %}
+              </td>
+              <td style="text-align: right;">
+                <div class="table-input-group">
+                  <span class="table-input-addon">Q</span>
+                  <input
+                    type="number"
+                    class="table-input-field abono-input"
+                    value="{{ '%.2f'|format(c.monto or 0) }}"
+                    step="0.01"
+                    min="0"
+                    {% if c.estado == 'aplicado' or (planilla and planilla.estado == 'aplicada') %}readonly{% endif %}
+                    required
+                  >
+                </div>
+              </td>
+              <td style="text-align: center;">
+                <span class="badge-capsule {% if c.estado == 'aplicado' %}aplicado{% else %}pendiente{% endif %}">
+                  {{ c.estado.title() }}
+                </span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resumen Operativo Flotante Sutil -->
+  <div class="summary-card-floating">
+    <div class="summary-grid">
+      <div class="summary-blocks-group">
+        <div class="summary-item">
+          <span class="summary-label">Asociados en Planilla</span>
+          <span class="summary-value highlight">{{ detalles|length }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Monto Total a Abonar</span>
+          <span class="summary-value highlight amount">Q{{ "{:,.2f}".format(total_cuotas) }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Estado de Nómina</span>
+          <span style="margin-top: 2px;">
+            <span class="badge-state {% if planilla and planilla.estado == 'aplicada' %}aplicada{% elif planilla and planilla.estado == 'parcial' %}parcial{% else %}pendiente{% endif %}">
+              {{ (planilla.estado.title() if planilla else 'Pendiente') }}
+            </span>
+          </span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <a href="{{ url_for('ahorro.planillas_ahorro_pendientes') }}" class="btn-action-premium secondary" style="padding: 10px 18px; font-size: 13px;">
+          <i class="fas fa-file-invoice-dollar"></i> Planillas Guardadas
+        </a>
+        {% if not planilla or planilla.estado != 'aplicada' %}
+        <button type="button" class="btn-action-premium primary" id="btnAplicar" data-planilla-id="{{ planilla.id }}" style="padding: 10px 18px; font-size: 13px;">
+          <i class="fas fa-check-circle"></i> Aplicar Planilla
+        </button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
 </div>
 
-<div id="modalBoleta" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:2000;align-items:center;justify-content:center;padding:16px;">
-    <div class="card shadow" style="width:100%;max-width:480px;">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Confirmar Aplicación de Planilla</h5>
-            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCerrarModal">Cerrar</button>
-        </div>
-        <div class="card-body">
-            <p class="text-muted mb-3">Ingrese el número de boleta de pago para aplicar los abonos masivos.</p>
-
-            <div class="mb-3">
-                <label for="inputBoleta" class="form-label">Número de Boleta de Pago</label>
-                <input type="text" id="inputBoleta" class="form-control" placeholder="Ej: BOL-001245" maxlength="50">
-                <div id="errorBoleta" class="text-danger small mt-1" style="display:none;">Debe ingresar el número de boleta de pago.</div>
-            </div>
-
-            <div class="d-flex justify-content-end gap-2">
-                <button type="button" class="btn btn-outline-secondary" id="btnCancelarModal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="btnConfirmarAplicar">Aplicar Planilla</button>
-            </div>
-        </div>
+<!-- Modal De Boleta Premium -->
+<div id="modalBoleta" class="modal-backdrop-premium">
+  <div class="modal-container-premium">
+    <div class="modal-header-premium">
+      <h5 class="modal-title-premium">Confirmar Aplicación de Planilla</h5>
+      <button type="button" class="modal-close-premium" id="btnCerrarModal"><i class="fas fa-times"></i></button>
     </div>
+    <div class="modal-body-premium">
+      <p style="color: var(--neutral-muted); font-size: 13.5px; margin-bottom: 20px; line-height: 1.5;">
+        Ingrese el número de boleta de depósito bancario para procesar la aplicación masiva de abonos.
+      </p>
+
+      <div class="modal-input-group">
+        <label for="inputBoleta" class="modal-label-premium">Número de Boleta de Pago</label>
+        <input type="text" id="inputBoleta" class="modal-input-premium" placeholder="Ej: BOL-001245" maxlength="50">
+        <div id="errorBoleta" class="text-danger small mt-1" style="display:none; font-weight: 600; font-size: 12px; margin-top: 4px;">
+          <i class="fas fa-exclamation-circle me-1"></i> Debe ingresar el número de boleta de pago.
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+        <button type="button" class="btn-action-premium secondary" style="padding: 8px 16px; font-size: 13px;" id="btnCancelarModal">Cancelar</button>
+        <button type="button" class="btn-action-premium primary" style="padding: 8px 16px; font-size: 13px;" id="btnConfirmarAplicar">Aplicar Planilla</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
 const btnAplicar = document.getElementById('btnAplicar');
+const btnAplicarCabecera = document.getElementById('btnAplicarCabecera');
 const modalBoleta = document.getElementById('modalBoleta');
 const inputBoleta = document.getElementById('inputBoleta');
 const errorBoleta = document.getElementById('errorBoleta');
 const btnCerrarModal = document.getElementById('btnCerrarModal');
 const btnCancelarModal = document.getElementById('btnCancelarModal');
 const btnConfirmarAplicar = document.getElementById('btnConfirmarAplicar');
-const planillaId = btnAplicar ? btnAplicar.dataset.planillaId : null;
+const planillaId = btnAplicar ? btnAplicar.dataset.planillaId : (btnAplicarCabecera ? btnAplicarCabecera.dataset.planillaId : null);
 
 function abrirModalBoleta() {
     modalBoleta.style.display = 'flex';
@@ -126,9 +830,12 @@ function cerrarModalBoleta() {
     modalBoleta.style.display = 'none';
 }
 
-btnAplicar.addEventListener('click', function() {
-    abrirModalBoleta();
-});
+if (btnAplicar) {
+    btnAplicar.addEventListener('click', abrirModalBoleta);
+}
+if (btnAplicarCabecera) {
+    btnAplicarCabecera.addEventListener('click', abrirModalBoleta);
+}
 
 btnCerrarModal.addEventListener('click', cerrarModalBoleta);
 btnCancelarModal.addEventListener('click', cerrarModalBoleta);
@@ -152,12 +859,16 @@ btnConfirmarAplicar.addEventListener('click', function() {
     errorBoleta.style.display = 'none';
     inputBoleta.classList.remove('is-invalid');
 
-    const abonos = Array.from(document.querySelectorAll('#tablaAbonos tbody tr')).map(tr => ({
-        cuenta_id: tr.dataset.id,
-        monto: tr.dataset.monto,
-        numero: tr.dataset.num,
-        detalle_id: tr.dataset.detalleId
-    }));
+    const abonos = Array.from(document.querySelectorAll('#tablaAbonos tbody tr')).map(tr => {
+        const inputMonto = tr.querySelector('.abono-input');
+        const finalMonto = inputMonto ? parseFloat(inputMonto.value || 0) : parseFloat(tr.dataset.monto || 0);
+        return {
+            cuenta_id: tr.dataset.id,
+            monto: finalMonto,
+            numero: tr.dataset.num,
+            detalle_id: tr.dataset.detalleId
+        };
+    });
 
     btnConfirmarAplicar.disabled = true;
     btnConfirmarAplicar.textContent = 'Aplicando...';
@@ -166,7 +877,7 @@ btnConfirmarAplicar.addEventListener('click', function() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            planilla_id: planillaId,
+            planilla_id: "{{ planilla.id if planilla else 0 }}",
             abonos,
             nombre_planilla: "{{ nombre_planilla }}",
             fecha: "{{ fecha_pago }}",
@@ -202,6 +913,59 @@ btnConfirmarAplicar.addEventListener('click', function() {
         btnConfirmarAplicar.disabled = false;
         btnConfirmarAplicar.textContent = 'Aplicar Planilla';
     });
+});
+
+// Live filtering javascript
+function filtrarTablaPlanillaAhorro() {
+  const input = document.getElementById('buscarAhorroPlanilla');
+  const filtro = (input?.value || '').trim().toLowerCase();
+  const filas = Array.from(document.querySelectorAll('#tablaAbonos tbody tr'));
+  let visibles = 0;
+
+  filas.forEach((fila) => {
+    const socioInfo = fila.cells[0]?.textContent.toLowerCase() || '';
+    const numCuenta = fila.cells[1]?.textContent.toLowerCase() || '';
+    const coincidencia = !filtro || socioInfo.includes(filtro) || numCuenta.includes(filtro);
+    
+    fila.style.display = coincidencia ? '' : 'none';
+    if (coincidencia) visibles++;
+  });
+
+  const contador = document.getElementById('contadorResultadosPlanilla');
+  if (contador) {
+    contador.textContent = `${visibles} registro(s) visible(s)`;
+  }
+}
+
+const buscarAhorroPlanilla = document.getElementById('buscarAhorroPlanilla');
+if (buscarAhorroPlanilla) {
+  buscarAhorroPlanilla.addEventListener('input', filtrarTablaPlanillaAhorro);
+}
+filtrarTablaPlanillaAhorro();
+
+// Dynamic totals recalculation
+function actualizarTotales() {
+    let total = 0;
+    document.querySelectorAll('.abono-input').forEach(input => {
+        total += parseFloat(input.value || 0);
+    });
+    
+    // Update top stats card value (formatted as Q123,456.78)
+    const statVal = document.querySelector('.premium-stats-grid .premium-stat-card.gold .premium-stat-value');
+    if (statVal) {
+        statVal.textContent = 'Q' + total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    
+    // Update floating summary card value
+    const summaryVal = document.querySelector('.summary-card-floating .summary-value.amount');
+    if (summaryVal) {
+        summaryVal.textContent = 'Q' + total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+}
+
+// Bind event listener to all abono inputs
+document.querySelectorAll('.abono-input').forEach(input => {
+    input.addEventListener('input', actualizarTotales);
 });
 </script>
 {% endblock %}

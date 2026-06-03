@@ -3,22 +3,9 @@ from datetime import datetime
 from functools import wraps
 from flask import session, flash, redirect, url_for, request
 from utils.db import get_db
+from config import ROLE_PERMISSION_DEFAULTS
 
-ROLE_PERMISSION_DEFAULTS = {
-    'Administrador': {'*'},
-    'Operador': {
-        'socios.ver', 'socios.editar', 'socios.estado',
-        'ahorro.ver', 'ahorro.transaccion', 'ahorro.masivo',
-        'prestamos.ver', 'prestamos.pagar',
-        'reportes.ver',
-    },
-    'Asociado': {
-        'socios.ver',
-    },
-    'Promotora': {
-        'promotora.ver',
-    },
-}
+
 
 def usuario_tiene_permiso(conn, user_id, user_role, permiso):
     if not user_id:

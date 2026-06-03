@@ -791,6 +791,227 @@ tr:hover td { background: var(--c-cream); }
   }
 
 }
+
+/* ── Estilos de Reportes Oficiales (Previsualización y Pantalla) ── */
+.document-sheet {
+    background: var(--c-white);
+    border: 1px solid var(--c-border);
+    border-radius: 12px;
+    padding: 40px 50px;
+    margin-bottom: 40px;
+    box-shadow: 0 4px 18px rgba(0, 32, 68, 0.045);
+    font-family: inherit;
+    color: var(--c-dark);
+}
+
+.doc-letterhead {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--c-blue);
+    padding-bottom: 16px;
+    margin-bottom: 24px;
+}
+
+.doc-logo-title-group {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.doc-title-primary {
+    font-family: 'Fraunces', serif;
+    font-size: 21px;
+    font-weight: 700;
+    color: var(--c-blue);
+    letter-spacing: -0.5px;
+}
+
+.doc-title-secondary {
+    font-size: 12px;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--c-gray);
+    letter-spacing: 1px;
+    margin-top: 2px;
+}
+
+.doc-meta-right {
+    text-align: right;
+    font-size: 12px;
+    color: var(--c-gray);
+    line-height: 1.5;
+}
+
+.doc-meta-right strong {
+    color: var(--c-dark);
+}
+
+.doc-header-block {
+    text-align: center;
+    margin-bottom: 28px;
+}
+
+.doc-header-title {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #0f1f32;
+    text-transform: uppercase;
+    letter-spacing: -0.5px;
+}
+
+.doc-header-filters {
+    font-size: 12px;
+    color: var(--c-gray);
+    margin-top: 6px;
+    background: var(--c-cream);
+    border: 1px solid var(--c-border);
+    padding: 6px 12px;
+    border-radius: 8px;
+    display: inline-block;
+}
+
+/* Tablas del documento oficial */
+.doc-table-wrap {
+    margin: 24px 0 40px 0;
+}
+
+.doc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.doc-table th {
+    background: var(--c-cream) !important;
+    border: 1.5px solid var(--c-border) !important;
+    padding: 10px 12px !important;
+    font-weight: 700 !important;
+    font-size: 10.5px !important;
+    color: var(--c-dark) !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.doc-table td {
+    border: 1px solid var(--c-border) !important;
+    padding: 10px 12px !important;
+    vertical-align: middle;
+}
+
+.doc-table tr:hover td {
+    background: transparent !important; /* evitar hover visual en hojas de reporte */
+}
+
+/* Firmas al pie */
+.doc-signatures {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+    margin-top: 60px;
+    border-top: 1px dashed var(--c-border);
+    padding-top: 40px;
+    text-align: center;
+}
+
+.doc-signature-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.doc-signature-line {
+    width: 180px;
+    height: 1px;
+    background: #a0aec0;
+    margin-bottom: 8px;
+}
+
+.doc-signature-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--c-dark);
+}
+
+.doc-signature-sub {
+    font-size: 11px;
+    color: var(--c-gray);
+    margin-top: 2px;
+}
+
+/* ── Estilos específicos de impresión (PDF) ── */
+@media print {
+    body {
+        background: white !important;
+        color: black !important;
+        font-size: 12px !important;
+    }
+    
+    /* Ocultar elementos innecesarios */
+    .top-brand,
+    .header,
+    .mobile-menu-toggle,
+    .footer,
+    .rep-filters-container,
+    .g-header-actions,
+    .btn,
+    .rep-summary-row,
+    .rep-btn-clear,
+    a[href],
+    .card-header,
+    .card-title {
+        display: none !important;
+    }
+    
+    /* Expandir y formatear hoja membretada */
+    .main {
+        margin-top: 0 !important;
+        padding: 0 !important;
+        background: transparent !important;
+    }
+    
+    .container {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 0 !important;
+    }
+    
+    .document-sheet {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        background: white !important;
+    }
+    
+    .doc-table th {
+        background: #f3f4f6 !important;
+        border: 1px solid #9ca3af !important;
+        color: black !important;
+    }
+    
+    .doc-table td {
+        border: 1px solid #d1d5db !important;
+    }
+    
+    /* Forzar saltos de página adecuados en tablas */
+    tr {
+        page-break-inside: avoid !important;
+        page-break-after: auto !important;
+    }
+    
+    thead {
+        display: table-header-group !important;
+    }
+    
+    .doc-signatures {
+        page-break-inside: avoid !important;
+        margin-top: 40px !important;
+        padding-top: 20px !important;
+        border-top: 1px solid #9ca3af !important;
+    }
+}
 </style>
 {% block extra_head %}{% endblock %}
 <!-- Token CSRF para protección de formularios (Flask-WTF) -->
@@ -840,7 +1061,16 @@ tr:hover td { background: var(--c-cream); }
       <a href="{{ url_for('prestamos.transacciones_masivas') }}" class="nav-link {% if 'prestamos.transacciones_masivas' in request.endpoint %}active{% endif %}">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"/></svg>
         Transacciones Masivas
-      </a>      <a href="{{ url_for('usuarios.roles') }}" class="nav-link {% if 'usuarios.roles' in request.endpoint %}active{% endif %}">
+      </a>
+      <a href="{{ url_for('movimientos.diarios') }}" class="nav-link {% if 'movimientos' in request.endpoint %}active{% endif %}">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        Movimientos
+      </a>
+      <a href="{{ url_for('reportes.index') }}" class="nav-link {% if 'reportes' in request.endpoint %}active{% endif %}">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+        Reportes
+      </a>
+      <a href="{{ url_for('usuarios.roles') }}" class="nav-link {% if 'usuarios.roles' in request.endpoint %}active{% endif %}">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2a5 5 0 0 1 5 5v3a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5z"/><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/></svg>
         Roles
       </a>
@@ -889,6 +1119,8 @@ tr:hover td { background: var(--c-cream); }
     {% endif %}
     <a href="{{ url_for('prestamos.prestamos') }}" class="mobile-nav-link {% if request.blueprint == 'prestamos' and not is_gestion_mob and request.endpoint != 'prestamos.transacciones_masivas' %}active{% endif %}">Préstamos</a>
     <a href="{{ url_for('prestamos.transacciones_masivas') }}" class="mobile-nav-link {% if 'prestamos.transacciones_masivas' in request.endpoint %}active{% endif %}">Transacciones Masivas</a>
+    <a href="{{ url_for('movimientos.diarios') }}" class="mobile-nav-link {% if 'movimientos' in request.endpoint %}active{% endif %}">Movimientos del día</a>
+    <a href="{{ url_for('reportes.index') }}" class="mobile-nav-link {% if 'reportes' in request.endpoint %}active{% endif %}">Reportes</a>
     <a href="{{ url_for('usuarios.roles') }}" class="mobile-nav-link {% if 'usuarios.roles' in request.endpoint %}active{% endif %}">Roles</a>
     <a href="{{ url_for('usuarios.usuarios') }}" class="mobile-nav-link {% if 'usuarios.usuarios' in request.endpoint %}active{% endif %}">Usuarios</a>
     <a href="{{ url_for('configuraciones.configuraciones') }}" class="mobile-nav-link {% if 'configuraciones.configuraciones' in request.endpoint %}active{% endif %}">Configuración</a>

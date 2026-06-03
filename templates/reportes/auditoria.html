@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+{% block title %}Reporte de Bitácora de Cumplimiento — {{ cooperativa_nombre }}{% endblock %}
+
+{% block extra_head %}
+<style>
+.report-layout { display: grid; grid-template-columns: 280px 1fr; gap: 28px; align-items: start; margin-bottom: 60px; }
+@media (max-width: 900px) { .report-layout { grid-template-columns: 1fr; } }
+.report-controls { background: var(--c-white); border: 1px solid var(--c-border); border-radius: 16px; padding: 22px; position: sticky; top: 130px; box-shadow: 0 4px 18px rgba(0,32,68,.04); }
+.report-controls-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--c-gray); margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid var(--c-border); }
+.ctrl-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+.ctrl-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; color: var(--c-gray); }
+.ctrl-select, .ctrl-input { padding: 9px 12px; font-size: 13px; border: 1.5px solid var(--c-border); border-radius: 10px; width: 100%; background: #fff; color: var(--c-dark); font-family: inherit; transition: all .2s; cursor: pointer; height: 40px; }
+.ctrl-select:focus, .ctrl-input:focus { outline: none; border-color: #475569; box-shadow: 0 0 0 3px rgba(71,85,105,.08); }
+.ctrl-divider { border: none; border-top: 1px solid var(--c-border); margin: 16px 0; }
+.btn-export-main { width: 100%; padding: 11px; border-radius: 11px; font-size: 14px; font-weight: 700; background: #475569; color: #fff; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all .2s; margin-bottom: 8px; }
+.btn-export-main:hover { background: #334155; transform: translateY(-1px); box-shadow: 0 6px 18px rgba(71,85,105,.25); }
+.btn-ctrl-back { width: 100%; padding: 9px; border-radius: 11px; font-size: 13px; font-weight: 600; background: #fff; color: var(--c-gray); border: 1.5px solid var(--c-border); cursor: pointer; text-align: center; text-decoration: none; display: block; transition: all .2s; }
+.btn-ctrl-back:hover { background: var(--c-cream); color: var(--c-dark); }
+.ctrl-stats { margin-bottom: 16px; }
+.ctrl-stat-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f3f4f6; font-size: 12.5px; }
+.ctrl-stat-item:last-child { border-bottom: none; }
+.ctrl-stat-label { color: var(--c-gray); }
+.ctrl-stat-value { font-weight: 700; color: var(--c-dark); }
+.report-preview-area { background: #e8edf5; border-radius: 16px; padding: 32px; min-height: 600px; }
+.preview-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.preview-toolbar-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #7b8ea6; display: flex; align-items: center; gap: 8px; }
+.preview-count-badge { background: #fff; border: 1px solid #d1d9e6; border-radius: 20px; padding: 3px 12px; font-size: 12px; font-weight: 600; color: #4b5563; }
+.doc-page { background: #ffffff; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,.04), 0 20px 50px rgba(0,0,0,.10); padding: 52px 56px; max-width: 1100px; margin: 0 auto; position: relative; }
+.doc-page-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #475569; padding-bottom: 20px; margin-bottom: 28px; }
+.doc-org-name { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 700; color: #475569; letter-spacing: -.3px; line-height: 1.2; }
+.doc-org-dept { font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--c-gray); letter-spacing: 1.2px; margin-top: 3px; }
+.doc-meta-block { text-align: right; font-size: 11px; color: var(--c-gray); line-height: 1.8; }
+.doc-meta-block strong { color: var(--c-dark); }
+.doc-report-title-block { text-align: center; margin-bottom: 24px; }
+.doc-report-title { font-family: 'Fraunces', serif; font-size: 17px; font-weight: 700; color: #0f1f32; text-transform: uppercase; letter-spacing: .5px; }
+.doc-report-subtitle { font-size: 12px; color: var(--c-gray); margin-top: 4px; }
+.doc-filter-badge { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; margin-top: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 14px; font-size: 11px; color: #4b5563; }
+.doc-filter-badge strong { color: #334155; }
+.doc-data-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 4px; }
+.doc-data-table th { background: #f8fafc; border-bottom: 2px solid #e2e8f0; border-top: 1px solid #e2e8f0; padding: 8px 9px; font-weight: 700; font-size: 9.5px; text-transform: uppercase; letter-spacing: .6px; color: #374151; text-align: left; }
+.doc-data-table td { padding: 8px 9px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; color: #1f2937; }
+.doc-data-table tbody tr:last-child td { border-bottom: 2px solid #e2e8f0; }
+.doc-data-table tfoot td { padding: 10px 9px; font-weight: 700; background: #f8fafc; font-size: 12px; color: var(--c-dark); border-top: 2px solid #e2e8f0; }
+.accion-chip { display: inline-block; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 20px; text-transform: uppercase; letter-spacing: .5px; }
+.accion-crear  { background: #d1fae5; color: #065f46; }
+.accion-editar { background: #fef3c7; color: #92400e; }
+.accion-eliminar { background: #fee2e2; color: #991b1b; }
+.accion-login  { background: #dbeafe; color: #1e3a8a; }
+.accion-otros  { background: #f3f4f6; color: #4b5563; }
+.doc-sign-block { display: grid; grid-template-columns: repeat(3,1fr); gap: 30px; margin-top: 52px; padding-top: 28px; border-top: 1px dashed #c8d3e0; text-align: center; }
+.doc-sign-line { border-top: 1px solid #94a3b8; padding-top: 8px; margin: 0 auto; width: 170px; margin-bottom: 8px; }
+.doc-sign-role { font-size: 11px; font-weight: 700; color: #374151; }
+.doc-sign-caption { font-size: 10px; color: var(--c-gray); margin-top: 2px; }
+.doc-page-footer { text-align: center; margin-top: 28px; padding-top: 16px; border-top: 1px solid #f3f4f6; font-size: 10px; color: #9ca3af; }
+.doc-page-number { position: absolute; bottom: 24px; right: 40px; font-size: 10px; color: #9ca3af; }
+.json-inspector { cursor: pointer; font-size: 10px; color: var(--c-blue-mid); font-weight: 500; }
+.export-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,40,.5); z-index: 2000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+.export-modal-overlay.active { display: flex; }
+.export-modal { background: #fff; border-radius: 20px; padding: 36px; width: 420px; max-width: 95vw; box-shadow: 0 24px 60px rgba(0,20,60,.18); animation: modalIn .25s cubic-bezier(.34,1.56,.64,1); }
+@keyframes modalIn { from { opacity:0; transform:translateY(24px) scale(.96); } to { opacity:1; transform:translateY(0) scale(1); } }
+.export-modal-title { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 700; color: #0f1f32; margin-bottom: 6px; }
+.export-modal-sub { font-size: 13px; color: var(--c-gray); margin-bottom: 28px; }
+.export-options { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px; }
+.export-option { border: 2px solid var(--c-border); border-radius: 14px; padding: 22px 16px; cursor: pointer; text-align: center; transition: all .2s; text-decoration: none; display: flex; flex-direction: column; align-items: center; gap: 10px; background: #fff; }
+.export-option:hover { border-color: #475569; background: #f8fafc; transform: translateY(-2px); }
+.export-option.pdf:hover { border-color: #dc2626; background: #fff5f5; }
+.export-option-icon { font-size: 32px; }
+.export-option-label { font-size: 13px; font-weight: 700; color: var(--c-dark); }
+.export-option-sub { font-size: 11px; color: var(--c-gray); }
+.btn-modal-cancel { width: 100%; padding: 11px; border: 1.5px solid var(--c-border); border-radius: 10px; background: #fff; color: var(--c-gray); font-size: 14px; font-weight: 600; cursor: pointer; transition: all .2s; }
+.btn-modal-cancel:hover { background: var(--c-cream); color: var(--c-dark); }
+@media print {
+  .report-controls, .preview-toolbar, .top-brand, .header, .footer, .export-modal-overlay, .json-inspector { display: none !important; }
+  .report-layout { grid-template-columns: 1fr !important; }
+  .report-preview-area { background: transparent !important; padding: 0 !important; border-radius: 0 !important; }
+  .doc-page { box-shadow: none !important; padding: 0 !important; border-radius: 0 !important; }
+  body { background: white !important; }
+  .main { margin-top: 0 !important; padding: 0 !important; }
+  .container { max-width: 100% !important; padding: 0 !important; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title" style="color:#475569">Bitácora de Cumplimiento</h1>
+      <p class="page-subtitle">Previsualización oficial · Auditoría de eventos y control de cumplimiento</p>
+    </div>
+  </div>
+
+  <div class="report-layout">
+    <aside class="report-controls">
+      <div class="report-controls-title">⚙ Filtros del Reporte</div>
+      <form method="get" action="{{ url_for('reportes.auditoria') }}" id="filterForm">
+        <div class="ctrl-field">
+          <label class="ctrl-label">Módulo del Sistema</label>
+          <select name="modulo" class="ctrl-select" onchange="document.getElementById('filterForm').submit()">
+            <option value="todos">Todos los módulos</option>
+            {% for mod in modulos %}
+            <option value="{{ mod }}" {% if modulo_filtro==mod %}selected{% endif %}>{{ mod|capitalize }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="ctrl-field">
+          <label class="ctrl-label">Tipo de Acción</label>
+          <select name="accion" class="ctrl-select" onchange="document.getElementById('filterForm').submit()">
+            <option value="todos">Todas las acciones</option>
+            {% for acc in acciones %}
+            <option value="{{ acc }}" {% if accion_filtro==acc %}selected{% endif %}>{{ acc|capitalize }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="ctrl-field">
+          <label class="ctrl-label">Fecha del Evento — Desde</label>
+          <input type="date" name="fecha_desde" value="{{ fecha_desde }}" class="ctrl-input" onchange="document.getElementById('filterForm').submit()">
+        </div>
+        <div class="ctrl-field">
+          <label class="ctrl-label">Hasta</label>
+          <input type="date" name="fecha_hasta" value="{{ fecha_hasta }}" class="ctrl-input" onchange="document.getElementById('filterForm').submit()">
+        </div>
+        <a href="{{ url_for('reportes.auditoria') }}" class="btn-ctrl-back" style="margin-bottom:6px">✕ Limpiar filtros</a>
+      </form>
+      <hr class="ctrl-divider">
+      <div class="ctrl-stats">
+        <div class="ctrl-stat-item"><span class="ctrl-stat-label">Eventos encontrados</span><span class="ctrl-stat-value">{{ eventos|length }}</span></div>
+        <div class="ctrl-stat-item"><span class="ctrl-stat-label">Módulo filtrado</span><span class="ctrl-stat-value">{{ modulo_filtro|capitalize }}</span></div>
+        <div class="ctrl-stat-item"><span class="ctrl-stat-label">Acción filtrada</span><span class="ctrl-stat-value">{{ accion_filtro|capitalize }}</span></div>
+        <div class="ctrl-stat-item"><span class="ctrl-stat-label">Límite de registros</span><span class="ctrl-stat-value">500</span></div>
+      </div>
+      <hr class="ctrl-divider">
+      <button type="button" class="btn-export-main" onclick="openExportModal()">
+        <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Exportar Reporte
+      </button>
+      <a href="{{ url_for('reportes.index') }}" class="btn-ctrl-back">← Volver a Reportes</a>
+    </aside>
+
+    <section class="report-preview-area">
+      <div class="preview-toolbar">
+        <div class="preview-toolbar-label">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Vista Previa del Documento
+        </div>
+        <span class="preview-count-badge">{{ eventos|length }} eventos</span>
+      </div>
+
+      <div class="doc-page">
+        <div class="doc-page-header">
+          <div>
+            <div class="doc-org-name">{{ cooperativa_nombre }}</div>
+            <div class="doc-org-dept">Unidad de Auditoría Interna y Cumplimiento</div>
+          </div>
+          <div class="doc-meta-block">
+            <strong>Fecha de emisión:</strong> {{ now.strftime('%d/%m/%Y') }}<br>
+            <strong>Hora:</strong> {{ now.strftime('%H:%M') }}<br>
+            <strong>Generado por:</strong> {{ session.get('username','Sistema') }}
+          </div>
+        </div>
+
+        <div class="doc-report-title-block">
+          <div class="doc-report-title">Bitácora de Control y Cumplimiento de Eventos</div>
+          <div class="doc-report-subtitle">Registro de acciones · Auditoría de seguridad · Trazabilidad del sistema</div>
+          <div class="doc-filter-badge">
+            <strong>Módulo:</strong>
+            {% if modulo_filtro=='todos' %}Todos{% else %}{{ modulo_filtro|upper }}{% endif %}
+            &nbsp;|&nbsp; <strong>Acción:</strong>
+            {% if accion_filtro=='todos' %}Todas{% else %}{{ accion_filtro|upper }}{% endif %}
+            {% if fecha_desde or fecha_hasta %}&nbsp;|&nbsp; <strong>Fecha:</strong> {{ fecha_desde | fecha_dmy }} — {{ fecha_hasta | fecha_dmy }}{% endif %}
+          </div>
+        </div>
+
+        <table class="doc-data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Fecha y Hora</th>
+              <th>Módulo</th>
+              <th>Entidad / ID</th>
+              <th>Acción</th>
+              <th>Descripción del Evento</th>
+              <th>Usuario</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for e in eventos %}
+            <tr>
+              <td><code style="font-size:9.5px">#{{ e.id }}</code></td>
+              <td style="font-size:10px;white-space:nowrap">
+                {% set f_dmy = e.fecha | fecha_dmy %}
+                {% if ' ' in f_dmy %}
+                  {{ f_dmy.split(' ')[0] }}<br>
+                  <span style="color:#9ca3af">{{ f_dmy.split(' ')[1] }}</span>
+                {% else %}
+                  {{ f_dmy }}
+                {% endif %}
+              </td>
+              <td><span style="font-size:9.5px;font-weight:700;text-transform:uppercase">{{ e.modulo }}</span></td>
+              <td style="font-size:10px">
+                <span style="text-transform:uppercase;color:#4b5563">{{ e.entidad }}</span><br>
+                <span style="color:#9ca3af">{{ e.entidad_id or '—' }}</span>
+              </td>
+              <td>
+                {% set accion_lower = e.accion|lower %}
+                {% if 'crear' in accion_lower or 'crear' in accion_lower %}<span class="accion-chip accion-crear">{{ e.accion|upper }}</span>
+                {% elif 'editar' in accion_lower or 'actualiz' in accion_lower %}<span class="accion-chip accion-editar">{{ e.accion|upper }}</span>
+                {% elif 'elimin' in accion_lower %}<span class="accion-chip accion-eliminar">{{ e.accion|upper }}</span>
+                {% elif 'login' in accion_lower or 'sesion' in accion_lower %}<span class="accion-chip accion-login">{{ e.accion|upper }}</span>
+                {% else %}<span class="accion-chip accion-otros">{{ e.accion|upper }}</span>{% endif %}
+              </td>
+              <td style="font-size:11px;max-width:300px;word-break:break-word">
+                {{ e.descripcion }}
+                {% if e.datos and e.datos not in ['{}','None','null'] %}
+                <details style="margin-top:4px">
+                  <summary class="json-inspector">Ver datos técnicos ↓</summary>
+                  <pre style="background:#f8fafc;border:1px solid #e2e8f0;padding:6px 8px;border-radius:6px;margin-top:4px;font-size:9px;overflow-x:auto;white-space:pre-wrap">{{ e.datos }}</pre>
+                </details>
+                {% endif %}
+              </td>
+              <td style="font-weight:700;font-size:11px">{{ e.usuario or 'Sistema' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" style="text-align:center;padding:40px;color:#9ca3af">No se encontraron eventos de auditoría con los filtros aplicados.</td></tr>
+            {% endfor %}
+          </tbody>
+          {% if eventos %}
+          <tfoot>
+            <tr><td colspan="7"><strong>Total de eventos registrados: {{ eventos|length }} (límite: 500)</strong></td></tr>
+          </tfoot>
+          {% endif %}
+        </table>
+
+        <div class="doc-sign-block">
+          <div><div class="doc-sign-line"></div><div class="doc-sign-role">Auditor Responsable</div><div class="doc-sign-caption">Firma y Sello de Auditoría</div></div>
+          <div><div class="doc-sign-line"></div><div class="doc-sign-role">Oficial de Cumplimiento</div><div class="doc-sign-caption">Firma y Sello de Oficialía</div></div>
+          <div><div class="doc-sign-line"></div><div class="doc-sign-role">Recibido por Gerencia</div><div class="doc-sign-caption">Firma y Sello Administrativo</div></div>
+        </div>
+        <div class="doc-page-footer">Documento generado electrónicamente por el Sistema de Gestión de {{ cooperativa_nombre }} · {{ now.strftime('%d/%m/%Y %H:%M') }}<br>Documento de uso interno. Confidencial.</div>
+        <div class="doc-page-number">Página 1</div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="export-modal-overlay" id="exportModal" onclick="closeExportModal(event)">
+  <div class="export-modal">
+    <div class="export-modal-title">Exportar Reporte</div>
+    <div class="export-modal-sub">Selecciona el formato para la Bitácora de Cumplimiento y Auditoría.</div>
+    <div class="export-options">
+      <a href="{{ url_for('reportes.auditoria') }}/exportar?{{ request.query_string.decode('utf-8') }}" class="export-option excel">
+        <span class="export-option-icon">📊</span>
+        <div class="export-option-label">Excel / CSV</div>
+        <div class="export-option-sub">Descarga directa<br>compatible con Excel</div>
+      </a>
+      <a href="javascript:void(0)" onclick="closeExportModal();window.print();" class="export-option pdf">
+        <span class="export-option-icon">📄</span>
+        <div class="export-option-label">PDF / Imprimir</div>
+        <div class="export-option-sub">Vista de impresión<br>o guardar como PDF</div>
+      </a>
+    </div>
+    <button type="button" class="btn-modal-cancel" onclick="closeExportModal()">Cancelar</button>
+  </div>
+</div>
+<script>
+function openExportModal() { document.getElementById('exportModal').classList.add('active'); }
+function closeExportModal(e) { if (!e || e.target===document.getElementById('exportModal')) document.getElementById('exportModal').classList.remove('active'); }
+document.addEventListener('keydown', e => { if (e.key==='Escape') closeExportModal({target:document.getElementById('exportModal')}); });
+</script>
+{% endblock %}

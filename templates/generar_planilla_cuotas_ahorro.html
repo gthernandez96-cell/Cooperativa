@@ -1,55 +1,231 @@
 {% extends "base.html" %}
 {% block title %}Generar Planilla de Ahorro{% endblock %}
 {% block content %}
-<div class="container mt-4">
-    <div class="page-header mb-3">
-        <div>
-            <div class="page-title">Nueva Planilla de Ahorro</div>
-            <div class="page-subtitle">Configure nombre, fecha, frecuencia y tipo de cuenta para generar la planilla.</div>
-        </div>
-        <a href="{{ url_for('ahorro.planillas_ahorro_pendientes') }}" class="btn btn-outline">Volver</a>
-    </div>
+<style>
+  /* Variables e impecable diseño premium soberbio y corporativo */
+  :root {
+    --neutral-dark: #1e293b;
+    --neutral-muted: #475569;
+    --neutral-light: #f8fafc;
+    --border-color: #cbd5e1;
+    --border-light: #e2e8f0;
+    --accent-slate: #334155;
+    --accent-teal: #0d9488;
+    --accent-teal-pale: #f0fdfa;
+    --accent-teal-border: #99f6e4;
+    --card-shadow-corporate: 0 1px 3px rgba(0, 0, 0, 0.05), 0 10px 20px -5px rgba(0, 0, 0, 0.03);
+    --transition-smooth: all 0.2s ease-in-out;
+  }
 
-    <div class="card shadow">
-        <div class="card-header">
-            <h4 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i>Formulario de Planilla</h4>
-        </div>
-        <div class="card-body">
-            <form action="{{ url_for('ahorro.generar_planilla_cuotas_ahorro') }}" method="POST">
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label for="nombre_planilla" class="form-label">Nombre de la Planilla</label>
-                        <input type="text" class="form-control" id="nombre_planilla" name="nombre_planilla" 
-                               placeholder="Ej: Ahorro Quincena 1 - Abril 2024" value="{{ form_data.nombre_planilla }}" required>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label for="fecha_pago" class="form-label">Fecha de Pago</label>
-                        <input type="date" class="form-control" id="fecha_pago" name="fecha_pago" value="{{ form_data.fecha_pago }}" required>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label for="frecuencia" class="form-label">Frecuencia</label>
-                        <select class="form-select" id="frecuencia" name="frecuencia" required>
-                            <option value="Catorcenal" {% if form_data.frecuencia == 'Catorcenal' %}selected{% endif %}>Catorcenal</option>
-                            <option value="Quincenal" {% if form_data.frecuencia == 'Quincenal' %}selected{% endif %}>Quincenal</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2 mb-3">
-                        <label for="tipo_cuenta" class="form-label">Tipo de Cuenta</label>
-                        <select class="form-select" id="tipo_cuenta" name="tipo_cuenta" required>
-                            <option value="ahorro_aportacion" {% if form_data.tipo_cuenta == 'ahorro_aportacion' %}selected{% endif %}>Aportación</option>
-                            <option value="ahorro_corriente" {% if form_data.tipo_cuenta == 'ahorro_corriente' %}selected{% endif %}>Ahorro corriente</option>
-                            <option value="ahorro_plazo_fijo" {% if form_data.tipo_cuenta == 'ahorro_plazo_fijo' %}selected{% endif %}>Plazo fijo</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="alert alert-info py-2 mt-2">
-                    <i class="fas fa-info-circle me-2"></i>Esta planilla incluirá a todos los asociados activos con cuota de ahorro mayor a Q1.00 según el tipo de cuenta seleccionado.
-                </div>
-                <div class="text-end mt-3">
-                    <button type="submit" class="btn btn-success btn-lg">Generar Planilla</button>
-                </div>
-            </form>
-        </div>
+  .premium-header {
+    background: #ffffff;
+    padding: 22px 28px;
+    border-radius: 14px;
+    color: var(--neutral-dark);
+    border: 1px solid var(--border-light);
+    border-bottom: 2px solid var(--border-color);
+    box-shadow: var(--card-shadow-corporate);
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .premium-title {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--neutral-dark);
+    margin: 0;
+  }
+
+  .premium-subtitle {
+    font-size: 13.5px;
+    color: var(--neutral-muted);
+    margin-top: 4px;
+  }
+
+  .premium-card {
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1px solid var(--border-light);
+    box-shadow: var(--card-shadow-corporate);
+    margin-bottom: 24px;
+    overflow: hidden;
+    transition: var(--transition-smooth);
+  }
+
+  .premium-card-header {
+    padding: 16px 24px;
+    background: #fdfdfd;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .premium-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--neutral-dark);
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .premium-card-body {
+    padding: 24px;
+  }
+
+  .btn-back-premium {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--neutral-muted);
+    background: #ffffff;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    border: 1px solid var(--border-color);
+    transition: var(--transition-smooth);
+  }
+
+  .btn-back-premium:hover {
+    background: var(--neutral-light);
+    color: var(--neutral-dark);
+    border-color: var(--neutral-muted);
+    transform: translateX(-2px);
+  }
+
+  /* Form Elements */
+  .premium-label {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--neutral-muted);
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .premium-input {
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 14px;
+    color: var(--neutral-dark);
+    background-color: var(--neutral-light);
+    transition: var(--transition-smooth);
+  }
+
+  .premium-input:focus {
+    outline: none;
+    border-color: var(--neutral-dark);
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(30, 41, 59, 0.08);
+  }
+
+  /* Sutil alert info */
+  .premium-alert-info {
+    background-color: #f0f9ff;
+    border: 1px solid #bae6fd;
+    color: #0369a1;
+    padding: 14px 18px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .btn-action-premium {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: var(--transition-smooth);
+  }
+
+  .btn-action-premium.primary {
+    background: var(--neutral-dark);
+    color: #ffffff;
+  }
+
+  .btn-action-premium.primary:hover {
+    background: #0f172a;
+    transform: translateY(-1px);
+  }
+</style>
+
+<div class="container-fluid mt-4" style="max-width: 960px; margin: 0 auto;">
+  <div class="premium-header">
+    <div>
+      <h1 class="premium-title">Nueva Planilla de Ahorro</h1>
+      <p class="premium-subtitle">Configure nombre, fecha, frecuencia y tipo de cuenta para generar la planilla.</p>
     </div>
+    <a href="{{ url_for('ahorro.planillas_ahorro_pendientes') }}" class="btn-back-premium">
+      <i class="fas fa-arrow-left"></i> Volver
+    </a>
+  </div>
+
+  <div class="premium-card">
+    <div class="premium-card-header">
+      <h3 class="premium-card-title"><i class="fas fa-file-invoice-dollar me-2"></i> Formulario de Planilla</h3>
+    </div>
+    <div class="premium-card-body">
+      <form action="{{ url_for('ahorro.generar_planilla_cuotas_ahorro') }}" method="POST">
+        <div class="row">
+          <div class="col-md-5 mb-4">
+            <label for="nombre_planilla" class="premium-label">Nombre de la Planilla</label>
+            <input type="text" class="premium-input" id="nombre_planilla" name="nombre_planilla" 
+                   placeholder="Ej: Ahorro Quincena 1 - Abril 2024" value="{{ form_data.nombre_planilla }}" required>
+          </div>
+          <div class="col-md-3 mb-4">
+            <label for="fecha_pago" class="premium-label">Fecha de Pago</label>
+            <input type="date" class="premium-input" id="fecha_pago" name="fecha_pago" value="{{ form_data.fecha_pago }}" required>
+          </div>
+          <div class="col-md-2 mb-4">
+            <label for="frecuencia" class="premium-label">Frecuencia</label>
+            <select class="premium-input" id="frecuencia" name="frecuencia" required>
+              <option value="Quincenal" {% if form_data.frecuencia == 'Quincenal' %}selected{% endif %}>Quincenal</option>
+              <option value="Catorcenal" {% if form_data.frecuencia == 'Catorcenal' %}selected{% endif %}>Catorcenal</option>
+            </select>
+          </div>
+          <div class="col-md-2 mb-4">
+            <label for="tipo_cuenta" class="premium-label">Tipo Cuenta</label>
+            <select class="premium-input" id="tipo_cuenta" name="tipo_cuenta" required>
+              <option value="ahorro_aportacion" {% if form_data.tipo_cuenta == 'ahorro_aportacion' %}selected{% endif %}>Aportación</option>
+              <option value="ahorro_corriente" {% if form_data.tipo_cuenta == 'ahorro_corriente' %}selected{% endif %}>Ahorro corriente</option>
+              <option value="ahorro_plazo_fijo" {% if form_data.tipo_cuenta == 'ahorro_plazo_fijo' %}selected{% endif %}>Plazo fijo</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="premium-alert-info">
+          <i class="fas fa-info-circle" style="font-size: 16px;"></i>
+          <span>Esta planilla incluirá a todos los asociados activos con cuota de ahorro configurada mayor a Q1.00 según el tipo de cuenta seleccionado.</span>
+        </div>
+
+        <div class="text-end mt-4">
+          <button type="submit" class="btn-action-premium primary">
+            <i class="fas fa-magic"></i> Generar Planilla
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 {% endblock %}

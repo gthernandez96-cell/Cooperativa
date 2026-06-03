@@ -1,253 +1,429 @@
 {% extends "base.html" %}
-{% block title %}Nuevo Socio — {{ cooperativa_nombre }}{% endblock %}
+{% block title %}Nuevo Asociado — {{ cooperativa_nombre }}{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ── Form styling ────────────────────────────────────────────── */
+.form-container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.form-section {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid rgba(229, 231, 235, 0.9);
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 32, 68, 0.02);
+  margin-bottom: 24px;
+}
+
+.form-section-title {
+  font-family: 'Fraunces', serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #003b74;
+  margin-bottom: 18px;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-section-title svg {
+  color: #4a7ebf;
+}
+
+/* Premium Form Group */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.form-group label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #4b5563;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-group input, .form-group select, .form-group textarea {
+  min-height: 42px;
+  padding: 10px 14px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 13.5px;
+  color: #1a1a1a;
+  background: #ffffff;
+  transition: all 0.2s ease;
+  width: 100%;
+  font-family: inherit;
+}
+
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  outline: none;
+  border-color: #003b74;
+  box-shadow: 0 0 0 3px rgba(0, 59, 116, 0.08);
+}
+
+.form-group input::placeholder {
+  color: #9ca3af;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+/* Beneficiaries row styling */
+.beneficiary-row {
+  display: grid;
+  grid-template-columns: 2fr 1.3fr 1fr 0.8fr auto;
+  gap: 12px;
+  align-items: flex-end;
+  background: #ffffff;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 768px) {
+  .beneficiary-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .beneficiary-row button {
+    width: 100%;
+    margin-top: 4px;
+  }
+}
+
+/* Real-time progress indicators */
+.pct-indicator-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.pct-total-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: #4b5563;
+}
+
+.pct-progress-track {
+  width: 100%;
+  background: #e5e7eb;
+  height: 8px;
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.pct-progress-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 99px;
+  transition: all 0.3s ease;
+  background: #e11d48; /* Default warning color */
+}
+
+.pct-progress-fill.valid {
+  background: linear-gradient(90deg, #10b981, #059669);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+.pct-progress-fill.warning {
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+}
+
+.beneficiaries-wrapper {
+  background: #f8fafb;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  padding: 16px;
+  margin-top: 8px;
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-  <div>
-    <div class="page-title">Nuevo Asociado</div>
-    <div class="page-subtitle">Registrar un nuevo miembro de la cooperativa</div>
+<div class="form-container">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <div class="page-title">Nuevo Asociado</div>
+      <div class="page-subtitle">Registrar un nuevo miembro de la cooperativa</div>
+    </div>
+    <a href="{{ url_for('socios.socios') }}" class="btn btn-outline">← Volver</a>
   </div>
-  <a href="{{ url_for('socios.socios') }}" class="btn btn-outline">← Volver</a>
-</div>
 
-<div class="card" style="max-width:1100px;">
-  <div class="card-header"><span class="card-title">Datos del Asociado</span></div>
-  <div class="card-body">
-    <form method="post">
-      {% set draft_nombres = request.form.getlist('beneficiario_nombre[]') %}
-      {% set draft_parentescos = request.form.getlist('beneficiario_parentesco[]') %}
-      {% set draft_porcentajes = request.form.getlist('beneficiario_porcentaje[]') %}
-      {% set draft_dpis = request.form.getlist('beneficiario_dpi[]') %}
-      <div style="display:flex;flex-direction:column;gap:22px;">
-        <div>
-          <div style="font-weight:600;color:#002a50;margin-bottom:12px;">Información Personal</div>
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Código *</label>
-              <input name="codigo" required value="{{ request.form.get('codigo', codigo_sugerido) }}" placeholder="Ej: SOC-001">
-            </div>
-            <div class="form-group">
-              <label>Primer nombre *</label>
-              <input name="primer_nombre" required value="{{ request.form.get('primer_nombre', '') }}" placeholder="Ej: María">
-            </div>
-            <div class="form-group">
-              <label>Segundo nombre</label>
-              <input name="segundo_nombre" value="{{ request.form.get('segundo_nombre', '') }}" placeholder="Ej: Elena">
-            </div>
-            <div class="form-group">
-              <label>Tercer nombre</label>
-              <input name="tercer_nombre" value="{{ request.form.get('tercer_nombre', '') }}" placeholder="Opcional">
-            </div>
-            <div class="form-group">
-              <label>Primer apellido *</label>
-              <input name="primer_apellido" required value="{{ request.form.get('primer_apellido', '') }}" placeholder="Ej: García">
-            </div>
-            <div class="form-group">
-              <label>Segundo apellido</label>
-              <input name="segundo_apellido" value="{{ request.form.get('segundo_apellido', '') }}" placeholder="Opcional">
-            </div>
-            <div class="form-group">
-              <label>Estado civil</label>
-              <select name="estado_civil" id="estado-civil" onchange="toggleApellidoCasada()">
-                <option value="Soltero" {% if request.form.get('estado_civil', 'Soltero') == 'Soltero' %}selected{% endif %}>Soltero</option>
-                <option value="Casado" {% if request.form.get('estado_civil') == 'Casado' %}selected{% endif %}>Casado</option>
-                <option value="Union de hecho" {% if request.form.get('estado_civil') == 'Union de hecho' %}selected{% endif %}>Union de hecho</option>
-              </select>
-            </div>
-            <div class="form-group" id="apellido-casada-group" style="display:none;">
-              <label>Apellido de casada</label>
-              <input name="apellido_casada" value="{{ request.form.get('apellido_casada', '') }}" placeholder="Solo para estado civil casado">
-            </div>
-            <div class="form-group">
-              <label>DPI *</label>
-              <input name="dpi" required value="{{ request.form.get('dpi', '') }}" placeholder="0000000000000" maxlength="13">
-            </div>
-            <div class="form-group">
-              <label>Teléfono</label>
-              <input name="telefono" value="{{ request.form.get('telefono', '') }}" placeholder="5555-0000">
-            </div>
-            <div class="form-group">
-              <label>Email</label>
-              <input name="email" type="email" value="{{ request.form.get('email', '') }}" placeholder="correo@ejemplo.com">
-            </div>
-            <div class="form-group" style="grid-column: span 2;">
-              <label>Dirección</label>
-              <input name="direccion" value="{{ request.form.get('direccion', '') }}" placeholder="Zona, ciudad">
-            </div>
-            <div class="form-group">
-              <label>Departamento</label>
-              <select name="departamento" id="departamento" onchange="cargarMunicipios()">
-                <option value="">Seleccionar departamento</option>
-                <option value="Alta Verapaz">Alta Verapaz</option>
-                <option value="Baja Verapaz">Baja Verapaz</option>
-                <option value="Chimaltenango">Chimaltenango</option>
-                <option value="Chiquimula">Chiquimula</option>
-                <option value="El Progreso">El Progreso</option>
-                <option value="Escuintla">Escuintla</option>
-                <option value="Guatemala">Guatemala</option>
-                <option value="Huehuetenango">Huehuetenango</option>
-                <option value="Izabal">Izabal</option>
-                <option value="Jalapa">Jalapa</option>
-                <option value="Jutiapa">Jutiapa</option>
-                <option value="Petén">Petén</option>
-                <option value="Quetzaltenango">Quetzaltenango</option>
-                <option value="Quiché">Quiché</option>
-                <option value="Retalhuleu">Retalhuleu</option>
-                <option value="Sacatepéquez">Sacatepéquez</option>
-                <option value="San Marcos">San Marcos</option>
-                <option value="Santa Rosa">Santa Rosa</option>
-                <option value="Sololá">Sololá</option>
-                <option value="Suchitepéquez">Suchitepéquez</option>
-                <option value="Totonicapán">Totonicapán</option>
-                <option value="Zacapa">Zacapa</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Municipio</label>
-              <select name="municipio" id="municipio">
-                <option value="">Seleccionar municipio</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Salario</label>
-              <input name="salario" type="number" step="0.01" value="{{ request.form.get('salario', '') }}" placeholder="0.00">
-            </div>
-            <div class="form-group">
-              <label>Fecha ingreso a laborar</label>
-              <input name="fecha_ingreso_laborar" type="date" value="{{ request.form.get('fecha_ingreso_laborar', '') }}">
-            </div>
-            <div class="form-group">
-              <label>Fecha ingreso a la cooperativa</label>
-              <input name="fecha_ingreso_cooperativa" type="date" value="{{ request.form.get('fecha_ingreso_cooperativa', date.today().isoformat()) }}">
-            </div>
-            <div class="form-group">
-              <label>NIT</label>
-              <input name="nit" value="{{ request.form.get('nit', '') }}" placeholder="Ej: 1234567-8 o CF">
-            </div>
-          </div>
+  <form method="post" id="form-nuevo-socio">
+    {% set draft_nombres = request.form.getlist('beneficiario_nombre[]') %}
+    {% set draft_parentescos = request.form.getlist('beneficiario_parentesco[]') %}
+    {% set draft_porcentajes = request.form.getlist('beneficiario_porcentaje[]') %}
+    {% set draft_dpis = request.form.getlist('beneficiario_dpi[]') %}
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <!-- SECTION 1: Personal Info -->
+    <div class="form-section">
+      <div class="form-section-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Información Personal
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Código *</label>
+          <input name="codigo" required value="{{ request.form.get('codigo', codigo_sugerido) }}" placeholder="Ej: SOC-001">
         </div>
-
-        <div>
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
-            <div style="font-weight:600;color:#002a50;">Beneficiarios</div>
-            <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-              <div id="beneficiarios-total" style="font-size:13px;color:#6b7280;">Total asignado: 0%</div>
-              <button type="button" class="btn btn-outline btn-sm" onclick="agregarBeneficiario()">+ Agregar beneficiario</button>
-            </div>
-          </div>
-          <div style="background:#f8fbff;border:1px solid #dbe4ef;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;">
-            <div id="beneficiarios-lista" style="display:flex;flex-direction:column;gap:12px;">
-              {% if draft_nombres|length > 0 %}
-                {% for idx in range(draft_nombres|length) %}
-                <div class="beneficiario-row" style="display:grid;grid-template-columns:2fr 1.3fr 1fr .8fr auto;gap:12px;align-items:end;">
-                  <div class="form-group" style="margin:0;">
-                    <label>Nombre del beneficiario</label>
-                    <input name="beneficiario_nombre[]" value="{{ draft_nombres[idx] }}" placeholder="Nombre completo">
-                  </div>
-                  <div class="form-group" style="margin:0;">
-                    <label>Parentesco</label>
-                    <input name="beneficiario_parentesco[]" value="{{ draft_parentescos[idx] if idx < draft_parentescos|length else '' }}" placeholder="Ej: Cónyuge, hijo, madre">
-                  </div>
-                  <div class="form-group" style="margin:0;">
-                    <label>DPI</label>
-                    <input name="beneficiario_dpi[]" value="{{ draft_dpis[idx] if idx < draft_dpis|length else '' }}" placeholder="0000000000000" maxlength="13">
-                  </div>
-                  <div class="form-group" style="margin:0;">
-                    <label>%</label>
-                    <input name="beneficiario_porcentaje[]" type="number" step="0.01" min="0" max="100" value="{{ draft_porcentajes[idx] if idx < draft_porcentajes|length else '' }}" placeholder="0" oninput="actualizarTotalBeneficiarios()">
-                  </div>
-                  <button type="button" class="btn btn-outline btn-sm" onclick="eliminarBeneficiario(this)">Quitar</button>
-                </div>
-                {% endfor %}
-              {% else %}
-                <div class="beneficiario-row" style="display:grid;grid-template-columns:2fr 1.3fr 1fr .8fr auto;gap:12px;align-items:end;">
-                  <div class="form-group" style="margin:0;">
-                    <label>Nombre del beneficiario</label>
-                    <input name="beneficiario_nombre[]" placeholder="Nombre completo">
-                  </div>
-                  <div class="form-group" style="margin:0;">
-                    <label>Parentesco</label>
-                    <input name="beneficiario_parentesco[]" placeholder="Ej: Cónyuge, hijo, madre">
-                  </div>
-                  <div class="form-group" style="margin:0;">
-                    <label>DPI</label>
-                    <input name="beneficiario_dpi[]" placeholder="0000000000000" maxlength="13">
-                  </div>
-                  <div class="form-group" style="margin:0;">
-                    <label>%</label>
-                    <input name="beneficiario_porcentaje[]" type="number" step="0.01" min="0" max="100" placeholder="0" oninput="actualizarTotalBeneficiarios()">
-                  </div>
-                  <button type="button" class="btn btn-outline btn-sm" onclick="eliminarBeneficiario(this)">Quitar</button>
-                </div>
-              {% endif %}
-            </div>
-            <small id="beneficiarios-ayuda" style="color:#6b7280;">La distribución puede dividirse entre varios beneficiarios, pero el total debe sumar 100%.</small>
-          </div>
+        <div class="form-group">
+          <label>Primer nombre *</label>
+          <input name="primer_nombre" required value="{{ request.form.get('primer_nombre', '') }}" placeholder="Ej: María">
         </div>
-
-        <div>
-          <div style="font-weight:600;color:#002a50;margin-bottom:12px;">Datos Bancarios</div>
-          <div class="form-group" style="margin-bottom:12px;max-width:260px;">
-            <label>¿Agregar datos bancarios?</label>
-            <select id="toggle-datos-bancarios" onchange="toggleDatosBancarios()">
-              <option value="no" {% if not request.form.get('banco_nombre') and not request.form.get('banco_tipo_cuenta') and not request.form.get('banco_numero_cuenta') %}selected{% endif %}>No</option>
-              <option value="si" {% if request.form.get('banco_nombre') or request.form.get('banco_tipo_cuenta') or request.form.get('banco_numero_cuenta') %}selected{% endif %}>Sí</option>
-            </select>
-          </div>
-          <div class="form-grid" id="datos-bancarios-group" style="display:none;">
-            <div class="form-group">
-              <label>Nombre del banco</label>
-              <input name="banco_nombre" value="{{ request.form.get('banco_nombre', '') }}" placeholder="Ej: Banco Industrial">
-            </div>
-            <div class="form-group">
-              <label>Tipo de cuenta</label>
-              <select name="banco_tipo_cuenta">
-                <option value="" {% if not request.form.get('banco_tipo_cuenta') %}selected{% endif %}>Seleccionar…</option>
-                <option value="Monetaria" {% if request.form.get('banco_tipo_cuenta') == 'Monetaria' %}selected{% endif %}>Monetaria</option>
-                <option value="Ahorro" {% if request.form.get('banco_tipo_cuenta') == 'Ahorro' %}selected{% endif %}>Ahorro</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Número de cuenta</label>
-              <input name="banco_numero_cuenta" value="{{ request.form.get('banco_numero_cuenta', '') }}" placeholder="Número de cuenta bancaria">
-            </div>
-          </div>
+        <div class="form-group">
+          <label>Segundo nombre</label>
+          <input name="segundo_nombre" value="{{ request.form.get('segundo_nombre', '') }}" placeholder="Ej: Elena">
         </div>
-
-        <div>
-          <div style="font-weight:600;color:#002a50;margin-bottom:12px;">Ahorro y Datos Adicionales</div>
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Cuota de ahorro</label>
-              <input name="cuota_ahorro" type="number" step="0.01" min="0" value="{{ request.form.get('cuota_ahorro', '0') }}">
-            </div>
-            <div class="form-group">
-              <label>Tipo de ahorro</label>
-              <select name="tipo_ahorro">
-                <option value="ahorro corriente" {% if request.form.get('tipo_ahorro', 'ahorro corriente') == 'ahorro corriente' %}selected{% endif %}>Ahorro Corriente</option>
-                <option value="Plazo fijo" {% if request.form.get('tipo_ahorro') == 'Plazo fijo' %}selected{% endif %}>Plazo Fijo</option>
-                <option value="Aportación" {% if request.form.get('tipo_ahorro') == 'Aportación' %}selected{% endif %}>Aportación</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Frecuencia</label>
-              <select name="frecuencia">
-                <option value="Quincenal" {% if request.form.get('frecuencia', 'Quincenal') == 'Quincenal' %}selected{% endif %}>Quincenal</option>
-                <option value="Catorcenal" {% if request.form.get('frecuencia') == 'Catorcenal' %}selected{% endif %}>Catorcenal</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Finca</label>
-              <input name="finca" value="{{ request.form.get('finca', '') }}" placeholder="Ej: Finca El Rosario">
-            </div>
-          </div>
+        <div class="form-group">
+          <label>Tercer nombre</label>
+          <input name="tercer_nombre" value="{{ request.form.get('tercer_nombre', '') }}" placeholder="Opcional">
+        </div>
+        <div class="form-group">
+          <label>Primer apellido *</label>
+          <input name="primer_apellido" required value="{{ request.form.get('primer_apellido', '') }}" placeholder="Ej: García">
+        </div>
+        <div class="form-group">
+          <label>Segundo apellido</label>
+          <input name="segundo_apellido" value="{{ request.form.get('segundo_apellido', '') }}" placeholder="Opcional">
+        </div>
+        <div class="form-group">
+          <label>Estado civil</label>
+          <select name="estado_civil" id="estado-civil" onchange="toggleApellidoCasada()">
+            <option value="Soltero" {% if request.form.get('estado_civil', 'Soltero') == 'Soltero' %}selected{% endif %}>Soltero</option>
+            <option value="Casado" {% if request.form.get('estado_civil') == 'Casado' %}selected{% endif %}>Casado</option>
+            <option value="Union de hecho" {% if request.form.get('estado_civil') == 'Union de hecho' %}selected{% endif %}>Union de hecho</option>
+          </select>
+        </div>
+        <div class="form-group" id="apellido-casada-group" style="display:none;">
+          <label>Apellido de casada</label>
+          <input name="apellido_casada" value="{{ request.form.get('apellido_casada', '') }}" placeholder="Solo para estado casado">
+        </div>
+        <div class="form-group">
+          <label>DPI *</label>
+          <input name="dpi" required value="{{ request.form.get('dpi', '') }}" placeholder="0000000000000" maxlength="13">
+        </div>
+        <div class="form-group">
+          <label>Teléfono</label>
+          <input name="telefono" value="{{ request.form.get('telefono', '') }}" placeholder="5555-0000">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input name="email" type="email" value="{{ request.form.get('email', '') }}" placeholder="correo@ejemplo.com">
+        </div>
+        <div class="form-group" style="grid-column: span 2;">
+          <label>Dirección</label>
+          <input name="direccion" value="{{ request.form.get('direccion', '') }}" placeholder="Calle, avenida, zona, municipio">
+        </div>
+        <div class="form-group">
+          <label>Departamento</label>
+          <select name="departamento" id="departamento" onchange="cargarMunicipios()">
+            <option value="">Seleccionar departamento</option>
+            <option value="Alta Verapaz">Alta Verapaz</option>
+            <option value="Baja Verapaz">Baja Verapaz</option>
+            <option value="Chimaltenango">Chimaltenango</option>
+            <option value="Chiquimula">Chiquimula</option>
+            <option value="El Progreso">El Progreso</option>
+            <option value="Escuintla">Escuintla</option>
+            <option value="Guatemala">Guatemala</option>
+            <option value="Huehuetenango">Huehuetenango</option>
+            <option value="Izabal">Izabal</option>
+            <option value="Jalapa">Jalapa</option>
+            <option value="Jutiapa">Jutiapa</option>
+            <option value="Petén">Petén</option>
+            <option value="Quetzaltenango">Quetzaltenango</option>
+            <option value="Quiché">Quiché</option>
+            <option value="Retalhuleu">Retalhuleu</option>
+            <option value="Sacatepéquez">Sacatepéquez</option>
+            <option value="San Marcos">San Marcos</option>
+            <option value="Santa Rosa">Santa Rosa</option>
+            <option value="Sololá">Sololá</option>
+            <option value="Suchitepéquez">Suchitepéquez</option>
+            <option value="Totonicapán">Totonicapán</option>
+            <option value="Zacapa">Zacapa</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Municipio</label>
+          <select name="municipio" id="municipio">
+            <option value="">Seleccionar municipio</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Salario</label>
+          <input name="salario" type="number" step="0.01" value="{{ request.form.get('salario', '') }}" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label>Fecha ingreso a laborar</label>
+          <input name="fecha_ingreso_laborar" type="date" value="{{ request.form.get('fecha_ingreso_laborar', '') }}">
+        </div>
+        <div class="form-group">
+          <label>Fecha ingreso cooperativa</label>
+          <input name="fecha_ingreso_cooperativa" type="date" value="{{ request.form.get('fecha_ingreso_cooperativa', date.today().isoformat()) }}">
+        </div>
+        <div class="form-group">
+          <label>NIT</label>
+          <input name="nit" value="{{ request.form.get('nit', '') }}" placeholder="Ej: 1234567-8 o CF">
         </div>
       </div>
-      <div class="form-actions">
-        <button type="submit" class="btn btn-primary">Registrar Socio</button>
-        <a href="{{ url_for('socios.socios') }}" class="btn btn-outline">Cancelar</a>
+    </div>
+
+    <!-- SECTION 2: Beneficiaries -->
+    <div class="form-section">
+      <div class="form-section-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Beneficiarios
       </div>
-    </form>
-  </div>
+
+      <div class="pct-indicator-container">
+        <span class="pct-total-text" id="beneficiarios-total">Total asignado: 0%</span>
+        <button type="button" class="btn btn-outline btn-sm" onclick="agregarBeneficiario()">+ Agregar beneficiario</button>
+      </div>
+
+      <div class="pct-progress-track">
+        <div class="pct-progress-fill" id="beneficiarios-progress"></div>
+      </div>
+
+      <div class="beneficiaries-wrapper">
+        <div id="beneficiarios-lista">
+          {% if draft_nombres|length > 0 %}
+            {% for idx in range(draft_nombres|length) %}
+            <div class="beneficiario-row">
+              <div class="form-group" style="margin:0;">
+                <label>Nombre completo</label>
+                <input name="beneficiario_nombre[]" value="{{ draft_nombres[idx] }}" placeholder="Nombre del beneficiario" required>
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label>Parentesco</label>
+                <input name="beneficiario_parentesco[]" value="{{ draft_parentescos[idx] if idx < draft_parentescos|length else '' }}" placeholder="Ej: Hijo, madre, cónyuge" required>
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label>DPI</label>
+                <input name="beneficiario_dpi[]" value="{{ draft_dpis[idx] if idx < draft_dpis|length else '' }}" placeholder="13 dígitos (Opcional)" maxlength="13">
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label>Porcentaje (%)</label>
+                <input name="beneficiario_porcentaje[]" type="number" step="0.01" min="0" max="100" value="{{ draft_porcentajes[idx] if idx < draft_porcentajes|length else '' }}" placeholder="0" required oninput="actualizarTotalBeneficiarios()">
+              </div>
+              <button type="button" class="btn btn-danger btn-sm" style="min-height:42px;" onclick="eliminarBeneficiario(this)">Quitar</button>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="beneficiario-row">
+              <div class="form-group" style="margin:0;">
+                <label>Nombre completo</label>
+                <input name="beneficiario_nombre[]" placeholder="Nombre del beneficiario" required>
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label>Parentesco</label>
+                <input name="beneficiario_parentesco[]" placeholder="Ej: Hijo, madre, cónyuge" required>
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label>DPI</label>
+                <input name="beneficiario_dpi[]" placeholder="13 dígitos (Opcional)" maxlength="13">
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label>Porcentaje (%)</label>
+                <input name="beneficiario_porcentaje[]" type="number" step="0.01" min="0" max="100" placeholder="0" required oninput="actualizarTotalBeneficiarios()">
+              </div>
+              <button type="button" class="btn btn-danger btn-sm" style="min-height:42px;" onclick="eliminarBeneficiario(this)">Quitar</button>
+            </div>
+          {% endif %}
+        </div>
+        <small id="beneficiarios-ayuda" style="display:block; margin-top:8px; color:#6b7280;">La distribución puede dividirse entre varios beneficiarios, pero la suma total debe ser exactamente 100%.</small>
+      </div>
+    </div>
+
+    <!-- SECTION 3: Bank Details -->
+    <div class="form-section">
+      <div class="form-section-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        Datos Bancarios
+      </div>
+      <div class="form-group" style="margin-bottom:16px; max-width:260px;">
+        <label>¿Agregar datos bancarios?</label>
+        <select id="toggle-datos-bancarios" onchange="toggleDatosBancarios()">
+          <option value="no" {% if not request.form.get('banco_nombre') and not request.form.get('banco_tipo_cuenta') and not request.form.get('banco_numero_cuenta') %}selected{% endif %}>No</option>
+          <option value="si" {% if request.form.get('banco_nombre') or request.form.get('banco_tipo_cuenta') or request.form.get('banco_numero_cuenta') %}selected{% endif %}>Sí</option>
+        </select>
+      </div>
+      <div class="form-grid" id="datos-bancarios-group" style="display:none;">
+        <div class="form-group">
+          <label>Nombre del banco</label>
+          <input name="banco_nombre" value="{{ request.form.get('banco_nombre', '') }}" placeholder="Ej: Banco Industrial">
+        </div>
+        <div class="form-group">
+          <label>Tipo de cuenta</label>
+          <select name="banco_tipo_cuenta">
+            <option value="" {% if not request.form.get('banco_tipo_cuenta') %}selected{% endif %}>Seleccionar…</option>
+            <option value="Monetaria" {% if request.form.get('banco_tipo_cuenta') == 'Monetaria' %}selected{% endif %}>Monetaria</option>
+            <option value="Ahorro" {% if request.form.get('banco_tipo_cuenta') == 'Ahorro' %}selected{% endif %}>Ahorro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Número de cuenta</label>
+          <input name="banco_numero_cuenta" value="{{ request.form.get('banco_numero_cuenta', '') }}" placeholder="Número de cuenta bancaria">
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 4: Savings & Cooperativa Details -->
+    <div class="form-section">
+      <div class="form-section-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Ahorro y Datos Adicionales
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Cuota de ahorro</label>
+          <input name="cuota_ahorro" type="number" step="0.01" min="0" value="{{ request.form.get('cuota_ahorro', '0') }}">
+        </div>
+        <div class="form-group">
+          <label>Tipo de ahorro</label>
+          <select name="tipo_ahorro">
+            <option value="ahorro corriente" {% if request.form.get('tipo_ahorro', 'ahorro corriente') == 'ahorro corriente' %}selected{% endif %}>Ahorro Corriente</option>
+            <option value="Plazo fijo" {% if request.form.get('tipo_ahorro') == 'Plazo fijo' %}selected{% endif %}>Plazo Fijo</option>
+            <option value="Aportación" {% if request.form.get('tipo_ahorro') == 'Aportación' %}selected{% endif %}>Aportación</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Frecuencia de Ahorro</label>
+          <select name="frecuencia">
+            <option value="Quincenal" {% if request.form.get('frecuencia', 'Quincenal') == 'Quincenal' %}selected{% endif %}>Quincenal</option>
+            <option value="Catorcenal" {% if request.form.get('frecuencia') == 'Catorcenal' %}selected{% endif %}>Catorcenal</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Finca</label>
+          <input name="finca" value="{{ request.form.get('finca', '') }}" placeholder="Ej: Finca El Rosario">
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="form-actions" style="margin-top: 10px; display:flex; gap:12px;">
+      <button type="submit" class="btn btn-primary" id="btn-submit-form">Registrar Asociado</button>
+      <a href="{{ url_for('socios.socios') }}" class="btn btn-outline">Cancelar</a>
+    </div>
+
+  </form>
 </div>
 
 <script>
@@ -290,7 +466,6 @@ function cargarMunicipios() {
   }
 }
 
-// Set initial value if form has departamento
 document.addEventListener('DOMContentLoaded', function() {
   const dep = "{{ request.form.get('departamento', '') }}";
   if (dep) {
@@ -298,28 +473,43 @@ document.addEventListener('DOMContentLoaded', function() {
     cargarMunicipios();
     document.getElementById('municipio').value = "{{ request.form.get('municipio', '') }}";
   }
+  
+  // Intercept form submit to check beneficiaries percentage sum
+  document.getElementById('form-nuevo-socio').addEventListener('submit', function(e) {
+    const percentages = document.querySelectorAll('input[name="beneficiario_porcentaje[]"]');
+    let total = 0;
+    percentages.forEach(input => {
+      const val = parseFloat(input.value);
+      if (!isNaN(val)) total += val;
+    });
+    total = Math.round(total * 100) / 100;
+    if (percentages.length > 0 && total !== 100.0 && total !== 0.0) {
+      e.preventDefault();
+      alert('La suma de los porcentajes de los beneficiarios debe ser exactamente 100% (actual: ' + total + '%).');
+    }
+  });
 });
 
 function beneficiarioTemplate() {
   return `
-    <div class="beneficiario-row" style="display:grid;grid-template-columns:2fr 1.3fr 1fr .8fr auto;gap:12px;align-items:end;">
+    <div class="beneficiario-row">
       <div class="form-group" style="margin:0;">
-        <label>Nombre del beneficiario</label>
-        <input name="beneficiario_nombre[]" placeholder="Nombre completo">
+        <label>Nombre completo</label>
+        <input name="beneficiario_nombre[]" placeholder="Nombre del beneficiario" required>
       </div>
       <div class="form-group" style="margin:0;">
         <label>Parentesco</label>
-        <input name="beneficiario_parentesco[]" placeholder="Ej: Cónyuge, hijo, madre">
+        <input name="beneficiario_parentesco[]" placeholder="Ej: Hijo, madre, cónyuge" required>
       </div>
       <div class="form-group" style="margin:0;">
         <label>DPI</label>
-        <input name="beneficiario_dpi[]" placeholder="0000000000000" maxlength="13">
+        <input name="beneficiario_dpi[]" placeholder="13 dígitos (Opcional)" maxlength="13">
       </div>
       <div class="form-group" style="margin:0;">
-        <label>%</label>
-        <input name="beneficiario_porcentaje[]" type="number" step="0.01" min="0" max="100" placeholder="0" oninput="actualizarTotalBeneficiarios()">
+        <label>Porcentaje (%)</label>
+        <input name="beneficiario_porcentaje[]" type="number" step="0.01" min="0" max="100" placeholder="0" required oninput="actualizarTotalBeneficiarios()">
       </div>
-      <button type="button" class="btn btn-outline btn-sm" onclick="eliminarBeneficiario(this)">Quitar</button>
+      <button type="button" class="btn btn-danger btn-sm" style="min-height:42px;" onclick="eliminarBeneficiario(this)">Quitar</button>
     </div>
   `;
 }
@@ -346,6 +536,7 @@ function eliminarBeneficiario(button) {
 
 function actualizarTotalBeneficiarios() {
   const totalElement = document.getElementById('beneficiarios-total');
+  const progressElement = document.getElementById('beneficiarios-progress');
   const ayuda = document.getElementById('beneficiarios-ayuda');
   const inputs = document.querySelectorAll('input[name="beneficiario_porcentaje[]"]');
   let total = 0;
@@ -358,11 +549,28 @@ function actualizarTotalBeneficiarios() {
   total = Math.round(total * 100) / 100;
   if (totalElement) {
     totalElement.textContent = `Total asignado: ${total}%`;
-    totalElement.style.color = total === 100 || total === 0 ? '#6b7280' : '#b45309';
-    if (total > 100) totalElement.style.color = '#b91c1c';
   }
-  if (ayuda) {
-    ayuda.style.color = total === 100 || total === 0 ? '#6b7280' : (total > 100 ? '#b91c1c' : '#b45309');
+  
+  if (progressElement) {
+    progressElement.style.width = Math.min(total, 100) + '%';
+    
+    // Reset classes
+    progressElement.className = 'pct-progress-fill';
+    
+    if (total === 100) {
+      progressElement.classList.add('valid');
+      totalElement.style.color = '#059669';
+      ayuda.style.color = '#059669';
+    } else if (total > 100) {
+      progressElement.classList.add('warning');
+      progressElement.style.background = '#dc2626'; // Over 100% is dangerous red
+      totalElement.style.color = '#dc2626';
+      ayuda.style.color = '#dc2626';
+    } else {
+      progressElement.classList.add('warning');
+      totalElement.style.color = '#d97706';
+      ayuda.style.color = '#d97706';
+    }
   }
 }
 

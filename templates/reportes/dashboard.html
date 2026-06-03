@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+{% block title %}Centro de Reportes Oficial — {{ cooperativa_nombre }}{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ── Diseño Ejecutivo del Dashboard ── */
+.dashboard-layout {
+    max-width: 1200px;
+    margin: 0 auto 60px auto;
+}
+
+/* ── Panel Superior de KPIs ── */
+.kpi-board {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.kpi-tile {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 24px;
+    border: 1px solid var(--c-border);
+    box-shadow: 0 4px 16px rgba(0, 32, 68, 0.03);
+    position: relative;
+    overflow: hidden;
+}
+
+.kpi-tile::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: var(--kpi-color, var(--c-blue));
+}
+
+.kpi-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.kpi-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--c-gray);
+}
+
+.kpi-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--kpi-bg, #f3f4f6);
+    color: var(--kpi-color, var(--c-gray));
+}
+
+.kpi-value {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: #0f1f32;
+    line-height: 1.1;
+    margin-bottom: 6px;
+}
+
+.kpi-subtext {
+    font-size: 12px;
+    color: #9ca3af;
+}
+
+/* ── Grid de Módulos de Reportes ── */
+.report-modules {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 24px;
+}
+
+.module-card {
+    background: #ffffff;
+    border: 1px solid var(--c-border);
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 4px 14px rgba(0, 32, 68, 0.02);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    position: relative;
+}
+
+.module-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0, 42, 80, 0.08);
+    border-color: var(--mod-color, var(--c-blue));
+}
+
+.module-card:hover .module-btn {
+    background: var(--mod-color, var(--c-blue));
+    color: #ffffff;
+    border-color: var(--mod-color, var(--c-blue));
+}
+
+.module-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.module-icon-wrap {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: var(--mod-bg, #f3f4f6);
+    color: var(--mod-color, var(--c-blue));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.module-icon-wrap svg {
+    width: 24px;
+    height: 24px;
+}
+
+.module-title {
+    font-family: 'Fraunces', serif;
+    font-size: 19px;
+    font-weight: 700;
+    color: #0f1f32;
+    margin: 0;
+}
+
+.module-desc {
+    font-size: 13.5px;
+    color: var(--c-gray);
+    line-height: 1.6;
+    margin-bottom: 24px;
+    flex-grow: 1;
+}
+
+.module-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border: 1.5px solid var(--c-border);
+    border-radius: 10px;
+    background: #ffffff;
+    color: var(--c-dark);
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+    width: 100%;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    
+    <div class="dashboard-layout">
+        <div class="page-header" style="margin-bottom: 40px;">
+            <div>
+                <h1 class="page-title">Reportería y Consultas</h1>
+                <p class="page-subtitle">Acceso a los módulos oficiales de reportería y cumplimiento legal de la institución.</p>
+            </div>
+        </div>
+
+        <!-- Módulos de Reportería -->
+        <div class="report-modules">
+
+            <a href="/reportes/socios" class="module-card" style="--mod-color: #0d9488; --mod-bg: #f0fdfa;">
+                <div class="module-header">
+                    <div class="module-icon-wrap">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                    <h3 class="module-title">Padrón de Asociados</h3>
+                </div>
+                <div class="module-desc">
+                    Directorio y padrón oficial de socios de la institución. Permite filtrar por estado (activo/inactivo), rol, frecuencia de cobro y exportar a formato digital.
+                </div>
+                <div class="module-btn">
+                    Generar Reporte →
+                </div>
+            </a>
+            
+            <a href="/reportes/cartera" class="module-card" style="--mod-color: #0057a3; --mod-bg: #eff6ff;">
+                <div class="module-header">
+                    <div class="module-icon-wrap">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    </div>
+                    <h3 class="module-title">Cartera de Préstamos</h3>
+                </div>
+                <div class="module-desc">
+                    Emisión del documento oficial de colocación. Detalla todos los créditos activos, saldos pendientes de capital, tasas y métricas globales de amortización.
+                </div>
+                <div class="module-btn">
+                    Generar Reporte →
+                </div>
+            </a>
+
+            <a href="/reportes/morosidad" class="module-card" style="--mod-color: #dc2626; --mod-bg: #fef2f2;">
+                <div class="module-header">
+                    <div class="module-icon-wrap">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                    </div>
+                    <h3 class="module-title">Morosidad y Antigüedad</h3>
+                </div>
+                <div class="module-desc">
+                    Control de cartera en riesgo. Clasificación automática de la antigüedad de saldos vencidos, días exactos de atraso y estado del proceso de cobranza.
+                </div>
+                <div class="module-btn">
+                    Generar Reporte →
+                </div>
+            </a>
+
+            <a href="/reportes/captaciones" class="module-card" style="--mod-color: #059669; --mod-bg: #ecfdf5;">
+                <div class="module-header">
+                    <div class="module-icon-wrap">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    </div>
+                    <h3 class="module-title">Ahorros, Intereses e IPF</h3>
+                </div>
+                <div class="module-desc">
+                    Reporte financiero de cuentas pasivas. Incluye el capital ahorrado por cuenta, cálculo de intereses capitalizados y retención fiscal del IPF correspondiente.
+                </div>
+                <div class="module-btn">
+                    Generar Reporte →
+                </div>
+            </a>
+
+            <a href="/reportes/planillas" class="module-card" style="--mod-color: #7c3aed; --mod-bg: #f5f3ff;">
+                <div class="module-header">
+                    <div class="module-icon-wrap">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                    <h3 class="module-title">Conciliación de Planillas</h3>
+                </div>
+                <div class="module-desc">
+                    Revisión de nóminas empresariales procesadas. Detalla la recaudación efectiva, registros pendientes y montos no cobrados de las planillas masivas.
+                </div>
+                <div class="module-btn">
+                    Generar Reporte →
+                </div>
+            </a>
+
+            <a href="/reportes/auditoria" class="module-card" style="--mod-color: #475569; --mod-bg: #f1f5f9;">
+                <div class="module-header">
+                    <div class="module-icon-wrap">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    </div>
+                    <h3 class="module-title">Bitácora de Cumplimiento</h3>
+                </div>
+                <div class="module-desc">
+                    Registro forense del sistema. Documenta las interacciones de los usuarios con módulos críticos, modificaciones a registros y parámetros financieros.
+                </div>
+                <div class="module-btn">
+                    Generar Reporte →
+                </div>
+            </a>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -5,7 +5,7 @@ import pytest
 import app as app_module
 import utils.db as db_module
 from datetime import date
-from app import (
+from utils.financial import (
     calcular_resumen_prestamo,
     calcular_total_cuotas_prestamo,
     obtener_dias_frecuencia,
@@ -311,7 +311,7 @@ def test_solicitud_retiro_amortiza_prestamo_vigente_al_aprobar(client):
             INSERT INTO cuentas (numero, socio_id, tipo, saldo, tasa_interes, fecha_apertura, estado)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             ''',
-            ('CTA-RET-001', socio_id, 'ahorro', 1500, 3.5, '2026-01-01', 'activa')
+            ('CTA-RET-001', socio_id, 'ahorro', 1500, 5.0, '2026-01-01', 'activa')
         )
         cuenta_id = conn.execute("SELECT id FROM cuentas WHERE numero='CTA-RET-001'").fetchone()['id']
 
@@ -406,7 +406,7 @@ def test_gestiones_muestra_indicador_visual_para_retiro_amortizacion(client):
             INSERT INTO cuentas (numero, socio_id, tipo, saldo, tasa_interes, fecha_apertura, estado)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             ''',
-            ('CTA-RET-002', socio_id, 'ahorro', 2000, 3.5, '2026-01-01', 'activa')
+            ('CTA-RET-002', socio_id, 'ahorro', 2000, 5.0, '2026-01-01', 'activa')
         )
         cuenta_id = conn.execute("SELECT id FROM cuentas WHERE numero='CTA-RET-002'").fetchone()['id']
 
@@ -488,7 +488,7 @@ def test_rechaza_amortizacion_si_ahorro_es_menor_que_saldo_prestamo(client):
             INSERT INTO cuentas (numero, socio_id, tipo, saldo, tasa_interes, fecha_apertura, estado)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             ''',
-            ('CTA-RET-003', socio_id, 'ahorro', 600, 3.5, '2026-01-01', 'activa')
+            ('CTA-RET-003', socio_id, 'ahorro', 600, 5.0, '2026-01-01', 'activa')
         )
         cuenta_id = conn.execute("SELECT id FROM cuentas WHERE numero='CTA-RET-003'").fetchone()['id']
 
@@ -531,3 +531,211 @@ def test_rechaza_amortizacion_si_ahorro_es_menor_que_saldo_prestamo(client):
         assert int(total or 0) == 0
     finally:
         conn.close()
+
+
+def test_procesar_pagos_masivos_success(client):
+    conn = app_module.get_db()
+    try:
+        # 1. Insertar socio
+        conn.execute(
+            '''
+            INSERT INTO socios (codigo, nombre, apellido, dpi, fecha_ingreso, estado, frecuencia)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''',
+            ('SOC-MAS-001', 'Juan', 'Gomez', '1000000000303', '2026-01-01', 'activo', 'Quincenal')
+        )
+        socio_id = conn.execute("SELECT id FROM socios WHERE codigo='SOC-MAS-001'").fetchone()['id']
+
+        # 2. Insertar préstamo aprobado
+        conn.execute(
+            '''
+            INSERT INTO prestamos (
+                numero, socio_id, monto_solicitado, monto_aprobado, tasa_interes,
+                plazo_meses, cuota_mensual, saldo_pendiente, fecha_solicitud,
+                fecha_aprobacion, estado
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''',
+            ('PRE-MAS-001', socio_id, 5000, 5000, 12, 12, 450, 4500, '2026-02-01', '2026-02-05', 'aprobado')
+        )
+        prestamo_id = conn.execute("SELECT id FROM prestamos WHERE numero='PRE-MAS-001'").fetchone()['id']
+
+        # Insertar cuota programada pendiente
+        conn.execute(
+            "INSERT INTO prestamo_calendario_pagos (prestamo_id, numero_cuota, fecha_programada, monto_programado, estado) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (prestamo_id, 1, '2026-02-28', 450.0, 'pendiente')
+        )
+
+        # 3. Insertar planilla masiva
+        conn.execute(
+            '''
+            INSERT INTO planillas_masivas (tipo, nombre, fecha_pago, frecuencia, estado, total_monto, total_registros, fecha_creacion)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''',
+            ('prestamo_cuotas', 'Planilla Quincena Test', '2026-05-30', 'Quincenal', 'pendiente', 450.0, 1, '2026-05-30')
+        )
+        planilla_id = conn.execute("SELECT id FROM planillas_masivas WHERE nombre='Planilla Quincena Test'").fetchone()['id']
+
+        # 4. Insertar detalles de la planilla
+        conn.execute(
+            '''
+            INSERT INTO planilla_masiva_detalles (planilla_id, referencia_tipo, referencia_id, numero_referencia, socio_codigo, socio_nombre, monto, estado)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''',
+            (planilla_id, 'prestamo', prestamo_id, 'PRE-MAS-001', 'SOC-MAS-001', 'Juan Gomez', 450.0, 'pendiente')
+        )
+        detalle_id = conn.execute("SELECT id FROM planilla_masiva_detalles WHERE planilla_id=?", (planilla_id,)).fetchone()['id']
+        conn.commit()
+    finally:
+        conn.close()
+
+    # 5. Hacer el POST request
+    resp = client.post(
+        '/procesar_pagos_masivos',
+        json={
+            'planilla_id': planilla_id,
+            'pagos': [
+                {
+                    'prestamo_id': prestamo_id,
+                    'detalle_id': detalle_id,
+                    'numero': 'PRE-MAS-001',
+                    'monto': 450.0
+                }
+            ],
+            'fecha_pago': '2026-05-30',
+            'nombre_planilla': 'Planilla Quincena Test',
+            'boleta_deposito': 'BOL-999222',
+            'frecuencia': 'Quincenal'
+        }
+    )
+    
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data['procesados'] == 1
+    assert len(data['errores']) == 0
+
+    # 6. Validar base de datos
+    conn = app_module.get_db()
+    try:
+        prestamo = conn.execute("SELECT saldo_pendiente FROM prestamos WHERE id=?", (prestamo_id,)).fetchone()
+        assert float(prestamo['saldo_pendiente']) == 4050.0 # 4500 - 450
+        
+        pago = conn.execute("SELECT monto, capital, interes, boleta_deposito FROM pagos_prestamo WHERE prestamo_id=?", (prestamo_id,)).fetchone()
+        assert pago is not None
+        assert float(pago['monto']) == 450.0
+        assert pago['boleta_deposito'] == 'BOL-999222'
+        
+        detalle = conn.execute("SELECT estado FROM planilla_masiva_detalles WHERE id=?", (detalle_id,)).fetchone()
+        assert detalle['estado'] == 'aplicado'
+        
+        planilla = conn.execute("SELECT estado FROM planillas_masivas WHERE id=?", (planilla_id,)).fetchone()
+        assert planilla['estado'] == 'aplicada'
+
+        # Validar calendario
+        cuota = conn.execute("SELECT estado FROM prestamo_calendario_pagos WHERE prestamo_id=?", (prestamo_id,)).fetchone()
+        assert cuota['estado'] == 'pagado'
+    finally:
+        conn.close()
+
+
+def test_exportar_planilla_prestamos(client):
+    conn = app_module.get_db()
+    # Create a mock spreadsheet
+    conn.execute(
+        "INSERT INTO planillas_masivas (tipo, nombre, estado, total_monto, total_registros, fecha_creacion, fecha_pago, frecuencia) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        ('prestamo_cuotas', 'Planilla Prestamos Test Export', 'pendiente', 450.00, 1, '2026-05-30', '2026-05-31', 'Quincenal')
+    )
+    planilla = conn.execute("SELECT id FROM planillas_masivas WHERE nombre='Planilla Prestamos Test Export'").fetchone()
+
+    # Create details
+    conn.execute(
+        "INSERT INTO planilla_masiva_detalles (planilla_id, referencia_tipo, referencia_id, numero_referencia, monto, estado, socio_codigo, socio_nombre) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (planilla['id'], 'prestamo', 1, 'PRE-MAS-001', 450.0, 'pendiente', 'SOC-EXP-2', 'Pedro Export')
+    )
+    conn.commit()
+    conn.close()
+
+    resp = client.get(f'/planillas_prestamos/{planilla["id"]}/exportar')
+    assert resp.status_code == 200
+    assert 'text/csv' in resp.content_type
+    assert b'\xef\xbb\xbf' in resp.data  # UTF-8 BOM
+    assert b'Pedro Export' in resp.data
+    assert b'PRE-MAS-001' in resp.data
+    assert b'SOC-EXP-2' in resp.data
+
+
+def test_generar_planilla_prestamos_filtro_fecha(client):
+    conn = app_module.get_db()
+    # 1. Crear socio activo quincenal
+    conn.execute(
+        "INSERT INTO socios (codigo, nombre, apellido, dpi, fecha_ingreso, estado, frecuencia) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        ('SOC-DATE-1', 'Maria', 'Sosa', '2000000000003', '2026-01-01', 'activo', 'Quincenal')
+    )
+    socio_id = conn.execute("SELECT id FROM socios WHERE codigo='SOC-DATE-1'").fetchone()['id']
+
+    # 2. Crear préstamo A (Cuota vencida)
+    conn.execute(
+        "INSERT INTO prestamos (numero, socio_id, monto_solicitado, monto_aprobado, tasa_interes, plazo_meses, cuota_mensual, saldo_pendiente, fecha_solicitud, estado) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        ('PRE-DATE-A', socio_id, 5000.0, 5000.0, 12.0, 12, 450.0, 5000.0, '2026-05-01', 'aprobado')
+    )
+    prestamo_a_id = conn.execute("SELECT id FROM prestamos WHERE numero='PRE-DATE-A'").fetchone()['id']
+
+    # Calendario A (vence 2026-05-15)
+    conn.execute(
+        "INSERT INTO prestamo_calendario_pagos (prestamo_id, numero_cuota, fecha_programada, monto_programado, estado) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (prestamo_a_id, 1, '2026-05-15', 450.0, 'pendiente')
+    )
+
+    # 3. Crear préstamo B (Cuota futura)
+    conn.execute(
+        "INSERT INTO prestamos (numero, socio_id, monto_solicitado, monto_aprobado, tasa_interes, plazo_meses, cuota_mensual, saldo_pendiente, fecha_solicitud, estado) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        ('PRE-DATE-B', socio_id, 5000.0, 5000.0, 12.0, 12, 450.0, 5000.0, '2026-05-01', 'aprobado')
+    )
+    prestamo_b_id = conn.execute("SELECT id FROM prestamos WHERE numero='PRE-DATE-B'").fetchone()['id']
+
+    # Calendario B (vence 2026-06-15)
+    conn.execute(
+        "INSERT INTO prestamo_calendario_pagos (prestamo_id, numero_cuota, fecha_programada, monto_programado, estado) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (prestamo_b_id, 1, '2026-06-15', 450.0, 'pendiente')
+    )
+
+    conn.commit()
+    conn.close()
+
+    # 4. Generar planilla con fecha_pago = 2026-05-31
+    resp = client.post(
+        '/generar_planilla_prestamos',
+        data={
+            'nombre_planilla': 'Planilla Test Filtro Fecha',
+            'fecha_pago': '2026-05-31',
+            'frecuencia': 'Quincenal'
+        },
+        follow_redirects=True
+    )
+    assert resp.status_code == 200
+
+    # 5. Validar base de datos
+    conn = app_module.get_db()
+    planilla = conn.execute("SELECT id FROM planillas_masivas WHERE nombre='Planilla Test Filtro Fecha'").fetchone()
+    assert planilla is not None
+
+    detalles = conn.execute("SELECT numero_referencia FROM planilla_masiva_detalles WHERE planilla_id=?", (planilla['id'],)).fetchall()
+    numeros = [d['numero_referencia'] for d in detalles]
+
+    # Debe incluir PRE-DATE-A (vencimiento 2026-05-15 <= 2026-05-31)
+    assert 'PRE-DATE-A' in numeros
+    # NO debe incluir PRE-DATE-B (vencimiento 2026-06-15 > 2026-05-31)
+    assert 'PRE-DATE-B' not in numeros
+
+    conn.close()
+
+
+

@@ -1,114 +1,483 @@
 {% extends "base.html" %}
 {% block title %}Planillas de Ahorro Guardadas{% endblock %}
 {% block content %}
+<style>
+  /* Variables e impecable diseño premium soberbio y corporativo */
+  :root {
+    --neutral-dark: #1e293b;
+    --neutral-muted: #475569;
+    --neutral-light: #f8fafc;
+    --border-color: #cbd5e1;
+    --border-light: #e2e8f0;
+    --accent-slate: #334155;
+    --accent-teal: #0d9488;
+    --accent-teal-pale: #f0fdfa;
+    --accent-teal-border: #99f6e4;
+    --accent-amber: #b45309;
+    --accent-amber-pale: #fffbeb;
+    --accent-amber-border: #fde68a;
+    --card-shadow-corporate: 0 1px 3px rgba(0, 0, 0, 0.05), 0 10px 20px -5px rgba(0, 0, 0, 0.03);
+    --transition-smooth: all 0.2s ease-in-out;
+  }
+
+  .premium-header {
+    background: #ffffff;
+    padding: 22px 28px;
+    border-radius: 14px;
+    color: var(--neutral-dark);
+    border: 1px solid var(--border-light);
+    border-bottom: 2px solid var(--border-color);
+    box-shadow: var(--card-shadow-corporate);
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .premium-title {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--neutral-dark);
+    margin: 0;
+  }
+
+  .premium-subtitle {
+    font-size: 13.5px;
+    color: var(--neutral-muted);
+    margin-top: 4px;
+  }
+
+  .premium-card {
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1px solid var(--border-light);
+    box-shadow: var(--card-shadow-corporate);
+    margin-bottom: 24px;
+    overflow: hidden;
+    transition: var(--transition-smooth);
+  }
+
+  .premium-card:hover {
+    box-shadow: 0 12px 25px -5px rgba(0, 0, 0, 0.05);
+  }
+
+  .premium-card-header {
+    padding: 16px 24px;
+    background: #fdfdfd;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .premium-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--neutral-dark);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .premium-card-body {
+    padding: 24px;
+  }
+
+  /* Filtros Modernos */
+  .filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .filter-label {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--neutral-muted);
+  }
+
+  .filter-input {
+    min-height: 40px;
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 13.5px;
+    color: var(--neutral-dark);
+    background-color: var(--neutral-light);
+    transition: var(--transition-smooth);
+  }
+
+  .filter-input:focus {
+    outline: none;
+    border-color: var(--neutral-muted);
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(71, 85, 105, 0.08);
+  }
+
+  /* Tarjetas de estadísticas de lujo */
+  .premium-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .premium-stat-card {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 20px 24px;
+    border: 1px solid var(--border-light);
+    box-shadow: var(--card-shadow-corporate);
+    position: relative;
+    overflow: hidden;
+    transition: var(--transition-smooth);
+  }
+
+  .premium-stat-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .premium-stat-card.blue {
+    border-top: 4px solid var(--neutral-dark);
+  }
+
+  .premium-stat-card.gold {
+    border-top: 4px solid var(--neutral-muted);
+  }
+
+  .premium-stat-label {
+    font-size: 10.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--neutral-muted);
+    margin-bottom: 8px;
+  }
+
+  .premium-stat-value {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--neutral-dark);
+    line-height: 1.1;
+  }
+
+  .premium-stat-icon {
+    position: absolute;
+    right: 20px;
+    bottom: 14px;
+    font-size: 40px;
+    color: #e2e8f0;
+    pointer-events: none;
+  }
+
+  /* Tabla de Lujo */
+  .premium-table-wrap {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid var(--border-light);
+    background: #ffffff;
+  }
+
+  .premium-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .premium-table th {
+    background: var(--neutral-light);
+    padding: 14px 18px;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--neutral-muted);
+    border-bottom: 2px solid var(--border-light);
+  }
+
+  .premium-table td {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-light);
+    color: var(--neutral-dark);
+    font-size: 13.5px;
+    transition: var(--transition-smooth);
+    vertical-align: middle;
+  }
+
+  .premium-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .premium-table tr:hover td {
+    background: rgba(0, 0, 0, 0.01);
+  }
+
+  /* Badges Dinámicos Premium */
+  .badge-capsule {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .badge-capsule.pendiente {
+    background-color: var(--neutral-light);
+    color: var(--neutral-muted);
+    border: 1px solid var(--border-color);
+  }
+
+  .badge-capsule.parcial {
+    background-color: var(--accent-amber-pale);
+    color: var(--accent-amber);
+    border: 1px solid var(--accent-amber-border);
+  }
+
+  .badge-capsule.aplicada {
+    background-color: var(--accent-teal-pale);
+    color: var(--accent-teal);
+    border: 1px solid var(--accent-teal-border);
+  }
+
+  /* Botones Premium */
+  .btn-action-premium {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: var(--transition-smooth);
+    cursor: pointer;
+    border: 1px solid transparent;
+  }
+
+  .btn-action-premium.primary {
+    background: var(--neutral-dark);
+    color: #ffffff;
+  }
+
+  .btn-action-premium.primary:hover {
+    background: #0f172a;
+    transform: translateY(-1px);
+  }
+
+  .btn-action-premium.secondary {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    color: var(--neutral-muted);
+  }
+
+  .btn-action-premium.secondary:hover {
+    background: var(--neutral-light);
+    color: var(--neutral-dark);
+    border-color: var(--neutral-muted);
+  }
+
+  .btn-action-premium.danger {
+    background: #ffffff;
+    border: 1px solid #fca5a5;
+    color: #b91c1c;
+  }
+
+  .btn-action-premium.danger:hover {
+    background: #fee2e2;
+    border-color: #ef4444;
+  }
+
+  .btn-back-premium {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--neutral-muted);
+    background: #ffffff;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    border: 1px solid var(--border-color);
+    transition: var(--transition-smooth);
+  }
+
+  .btn-back-premium:hover {
+    background: var(--neutral-light);
+    color: var(--neutral-dark);
+    border-color: var(--neutral-muted);
+    transform: translateX(-2px);
+  }
+
+  .btn-filter-apply {
+    background: var(--neutral-dark);
+    color: #ffffff;
+    font-weight: 700;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+  }
+
+  .btn-filter-apply:hover {
+    background: #0f172a;
+  }
+</style>
+
 <div class="container-fluid mt-4">
-  <div class="page-header">
+  <div class="premium-header">
     <div>
-      <h1 class="page-title">Planillas de Ahorro Guardadas</h1>
-      <p class="page-subtitle">Revise, retome o aplique planillas pendientes cuando lo necesite</p>
+      <h1 class="premium-title">Planillas de Ahorro Guardadas</h1>
+      <p class="premium-subtitle">Revise, retome o aplique planillas pendientes cuando lo necesite</p>
     </div>
-    <a href="{{ url_for('prestamos.transacciones_masivas') }}" class="btn btn-outline">Volver</a>
+    <a href="{{ url_for('prestamos.transacciones_masivas') }}" class="btn-back-premium">
+      <i class="fas fa-arrow-left"></i> Volver a Transacciones
+    </a>
   </div>
 
-  <div class="card mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
-      <h3 class="card-title">Filtros</h3>
-      <a href="{{ url_for('ahorro.planillas_ahorro_pendientes') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
+  <div class="premium-card">
+    <div class="premium-card-header">
+      <h3 class="premium-card-title"><i class="fas fa-filter"></i> Filtros de Búsqueda</h3>
+      <a href="{{ url_for('ahorro.planillas_ahorro_pendientes') }}" class="btn-action-premium secondary" style="padding: 4px 10px; font-size: 11px;">Limpiar Filtros</a>
     </div>
-    <div class="card-body">
+    <div class="premium-card-body">
       <form method="GET" action="{{ url_for('ahorro.planillas_ahorro_pendientes') }}">
-        <div class="row">
-          <div class="col-md-3 mb-3">
-            <label class="form-label">Nombre de Planilla</label>
-            <input type="text" class="form-control" name="nombre" value="{{ filtros.nombre }}" placeholder="Ej: Quincena Abril">
+        <div class="filter-grid mb-4">
+          <div class="filter-group">
+            <span class="filter-label">Nombre de Planilla</span>
+            <input type="text" class="filter-input" name="nombre" value="{{ filtros.nombre }}" placeholder="Ej: Quincena Abril">
           </div>
-          <div class="col-md-3 mb-3">
-            <label class="form-label">Frecuencia</label>
-            <select class="form-select" name="frecuencia">
+          <div class="filter-group">
+            <span class="filter-label">Frecuencia</span>
+            <select class="filter-input" name="frecuencia">
               <option value="" {% if not filtros.frecuencia %}selected{% endif %}>Todas</option>
               <option value="Quincenal" {% if filtros.frecuencia == 'Quincenal' %}selected{% endif %}>Quincenal</option>
               <option value="Catorcenal" {% if filtros.frecuencia == 'Catorcenal' %}selected{% endif %}>Catorcenal</option>
             </select>
           </div>
-          <div class="col-md-3 mb-3">
-            <label class="form-label">Estado</label>
-            <select class="form-select" name="estado">
+          <div class="filter-group">
+            <span class="filter-label">Estado</span>
+            <select class="filter-input" name="estado">
               <option value="" {% if not filtros.estado %}selected{% endif %}>Todos</option>
               <option value="pendiente" {% if filtros.estado == 'pendiente' %}selected{% endif %}>Pendiente</option>
               <option value="parcial" {% if filtros.estado == 'parcial' %}selected{% endif %}>Parcial</option>
               <option value="aplicada" {% if filtros.estado == 'aplicada' %}selected{% endif %}>Aplicada</option>
             </select>
           </div>
-          <div class="col-md-3 mb-3">
-            <label class="form-label">Fecha Desde</label>
-            <input type="date" class="form-control" name="fecha_desde" value="{{ filtros.fecha_desde }}">
+          <div class="filter-group">
+            <span class="filter-label">Fecha Desde</span>
+            <input type="date" class="filter-input" name="fecha_desde" value="{{ filtros.fecha_desde }}">
           </div>
-          <div class="col-md-3 mb-3">
-            <label class="form-label">Fecha Hasta</label>
-            <input type="date" class="form-control" name="fecha_hasta" value="{{ filtros.fecha_hasta }}">
+          <div class="filter-group">
+            <span class="filter-label">Fecha Hasta</span>
+            <input type="date" class="filter-input" name="fecha_hasta" value="{{ filtros.fecha_hasta }}">
           </div>
         </div>
         <div class="text-end">
-          <button type="submit" class="btn btn-success">Aplicar Filtros</button>
+          <button type="submit" class="btn-filter-apply">
+            <i class="fas fa-search me-1"></i> Aplicar Filtros
+          </button>
         </div>
       </form>
     </div>
   </div>
 
-  <div class="stats-grid mb-4">
-    <div class="stat-card">
-      <div class="stat-label">Planillas Encontradas</div>
-      <div class="stat-value">{{ total_planillas }}</div>
+  <div class="premium-stats-grid">
+    <div class="premium-stat-card blue">
+      <div class="premium-stat-label">Planillas Encontradas</div>
+      <div class="premium-stat-value">{{ total_planillas }}</div>
+      <i class="fas fa-file-invoice-dollar premium-stat-icon"></i>
     </div>
-    <div class="stat-card gold">
-      <div class="stat-label">Monto Total</div>
-      <div class="stat-value">Q{{ "{:,.2f}".format(total_monto) }}</div>
+    <div class="premium-stat-card gold">
+      <div class="premium-stat-label">Monto Total</div>
+      <div class="premium-stat-value">Q{{ "{:,.2f}".format(total_monto) }}</div>
+      <i class="fas fa-wallet premium-stat-icon"></i>
     </div>
   </div>
 
-  <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-      <h3 class="card-title">Listado de Planillas</h3>
-      <a href="{{ url_for('ahorro.generar_planilla_cuotas_ahorro') }}" class="btn btn-success">Nueva Planilla</a>
+  <div class="premium-card">
+    <div class="premium-card-header">
+      <h3 class="premium-card-title"><i class="fas fa-list-ul"></i> Listado de Planillas</h3>
+      <a href="{{ url_for('ahorro.generar_planilla_cuotas_ahorro') }}" class="btn-action-premium primary">
+        <i class="fas fa-plus"></i> Nueva Planilla de Ahorro
+      </a>
     </div>
-    <div class="card-body">
-      <div class="table-wrap">
-        <table>
+    <div class="premium-card-body" style="padding: 0;">
+      <div class="premium-table-wrap" style="border: none; border-radius: 0;">
+        <table class="premium-table">
           <thead>
             <tr>
               <th>Nombre</th>
               <th>Tipo de Cuenta</th>
               <th>Fecha de Pago</th>
               <th>Frecuencia</th>
-              <th>Registros</th>
-              <th>Total</th>
-              <th>Estado</th>
+              <th style="text-align: center;">Registros</th>
+              <th style="text-align: right;">Total</th>
+              <th style="text-align: center;">Estado</th>
               <th>Boleta</th>
-              <th>Acción</th>
+              <th style="text-align: center;">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {% for p in planillas %}
             <tr>
-              <td>{{ p.nombre }}</td>
+              <td style="font-weight: 600;">{{ p.nombre }}</td>
               <td>{{ p.tipo_cuenta_label }}</td>
               <td>{{ p.fecha_pago }}</td>
               <td>{{ p.frecuencia }}</td>
-              <td>{{ p.total_registros }}</td>
-              <td class="amount">Q{{ "{:,.2f}".format(p.total_monto or 0) }}</td>
-              <td>
-                <span class="badge {% if p.estado == 'aplicada' %}bg-success{% elif p.estado == 'parcial' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+              <td style="text-align: center; font-weight: 500;">{{ p.total_registros }}</td>
+              <td style="text-align: right; font-weight: 700; color: var(--neutral-dark);">Q{{ "{:,.2f}".format(p.total_monto or 0) }}</td>
+              <td style="text-align: center;">
+                <span class="badge-capsule {% if p.estado == 'aplicada' %}aplicada{% elif p.estado == 'parcial' %}parcial{% else %}pendiente{% endif %}">
                   {{ p.estado.title() }}
                 </span>
               </td>
-              <td>{{ p.boleta_deposito or 'Pendiente' }}</td>
               <td>
-                <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                  <a href="{{ url_for('ahorro.detalle_planilla_ahorro', planilla_id=p.id) }}" class="btn btn-sm btn-primary">Abrir</a>
+                {% if p.boleta_deposito %}
+                  <code style="font-weight: 600; color: var(--neutral-muted);">{{ p.boleta_deposito }}</code>
+                {% else %}
+                  <span style="color: #94a3b8; font-style: italic; font-size: 12px;">Pendiente</span>
+                {% endif %}
+              </td>
+              <td style="text-align: center;">
+                <div style="display:inline-flex;gap:6px;justify-content:center;align-items:center;">
+                  <a href="{{ url_for('ahorro.detalle_planilla_ahorro', planilla_id=p.id) }}" class="btn-action-premium secondary" style="padding: 6px 12px; font-size: 12px;">
+                    <i class="fas fa-folder-open"></i> Abrir
+                  </a>
+                  <a href="{{ url_for('ahorro.exportar_planilla_ahorro', planilla_id=p.id) }}" class="btn-action-premium secondary" style="padding: 6px 12px; font-size: 12px; border-color: #10b981; color: #047857;" title="Exportar a Excel">
+                    <i class="fas fa-file-excel"></i> Excel
+                  </a>
                   {% if p.estado != 'aplicada' %}
-                  <a href="{{ url_for('ahorro.editar_planilla_ahorro', planilla_id=p.id) }}" class="btn btn-sm btn-warning">Modificar</a>
-                  <form method="POST" action="{{ url_for('ahorro.eliminar_planilla_ahorro', planilla_id=p.id) }}" onsubmit="return confirm('¿Desea eliminar esta planilla de ahorro?');" style="display:inline;">
-                    <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+                  <a href="{{ url_for('ahorro.editar_planilla_ahorro', planilla_id=p.id) }}" class="btn-action-premium secondary" style="padding: 6px 12px; font-size: 12px; border-color: #fcd34d; color: #b45309;">
+                    <i class="fas fa-edit"></i> Modificar
+                  </a>
+                  <form method="POST" action="{{ url_for('ahorro.eliminar_planilla_ahorro', planilla_id=p.id) }}" onsubmit="return confirm('¿Desea eliminar esta planilla de ahorro?');" style="display:inline; margin: 0;">
+                    <button type="submit" class="btn-action-premium danger" style="padding: 6px 12px; font-size: 12px;">
+                      <i class="fas fa-trash-alt"></i> Eliminar
+                    </button>
                   </form>
                   {% endif %}
                 </div>
@@ -116,7 +485,9 @@
             </tr>
             {% else %}
             <tr>
-              <td colspan="9" style="text-align:center;color:#9ca3af;padding:24px;">No hay planillas de ahorro guardadas.</td>
+              <td colspan="9" style="text-align:center;color:#94a3b8;padding:36px;font-style:italic;">
+                No se encontraron planillas de ahorro guardadas.
+              </td>
             </tr>
             {% endfor %}
           </tbody>
@@ -124,5 +495,41 @@
       </div>
     </div>
   </div>
+
+  {% if total_pages > 1 %}
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-top:8px;margin-bottom:24px;">
+    <span style="font-size:13px;color:var(--neutral-muted);">
+      Página <strong>{{ page }}</strong> de <strong>{{ total_pages }}</strong>
+      &nbsp;&middot;&nbsp; {{ total_planillas }} planilla(s) en total
+    </span>
+    <nav style="display:inline-flex;gap:6px;align-items:center;">
+      {% if page > 1 %}
+      <a href="{{ url_for('ahorro.planillas_ahorro_pendientes', page=page-1, per_page=per_page, nombre=filtros.nombre, frecuencia=filtros.frecuencia, estado=filtros.estado, fecha_desde=filtros.fecha_desde, fecha_hasta=filtros.fecha_hasta) }}"
+         class="btn-action-premium secondary" style="padding:6px 12px;font-size:12px;">
+        &laquo; Anterior
+      </a>
+      {% endif %}
+      {% for p_num in range(1, total_pages + 1) %}
+        {% if p_num == page %}
+        <span class="btn-action-premium primary" style="padding:6px 12px;font-size:12px;">{{ p_num }}</span>
+        {% elif p_num == 1 or p_num == total_pages or (p_num >= page - 2 and p_num <= page + 2) %}
+        <a href="{{ url_for('ahorro.planillas_ahorro_pendientes', page=p_num, per_page=per_page, nombre=filtros.nombre, frecuencia=filtros.frecuencia, estado=filtros.estado, fecha_desde=filtros.fecha_desde, fecha_hasta=filtros.fecha_hasta) }}"
+           class="btn-action-premium secondary" style="padding:6px 12px;font-size:12px;">
+          {{ p_num }}
+        </a>
+        {% elif p_num == page - 3 or p_num == page + 3 %}
+        <span style="color:var(--neutral-muted);padding:0 2px;">…</span>
+        {% endif %}
+      {% endfor %}
+      {% if page < total_pages %}
+      <a href="{{ url_for('ahorro.planillas_ahorro_pendientes', page=page+1, per_page=per_page, nombre=filtros.nombre, frecuencia=filtros.frecuencia, estado=filtros.estado, fecha_desde=filtros.fecha_desde, fecha_hasta=filtros.fecha_hasta) }}"
+         class="btn-action-premium secondary" style="padding:6px 12px;font-size:12px;">
+        Siguiente &raquo;
+      </a>
+      {% endif %}
+    </nav>
+  </div>
+  {% endif %}
+
 </div>
 {% endblock %}

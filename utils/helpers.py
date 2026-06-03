@@ -266,3 +266,27 @@ def limpiar_descripcion_filter(s):
     s = re.sub(r'\s*\|\s*Boleta:\s*[^|]+', '', s)
     s = re.sub(r'^Boleta:\s*[^|]+\s*\|?\s*', '', s)
     return s.strip()
+
+def formatear_fecha_dmy(val):
+    """Convierte fechas ISO (YYYY-MM-DD) o datetimes a formato de visualización Día/Mes/Año (DD/MM/YYYY)."""
+    if not val:
+        return "—"
+    try:
+        val = str(val).strip()
+        # Verificar si tiene componente de hora
+        if " " in val or "T" in val:
+            val_clean = val.replace("T", " ")
+            parts = val_clean.split(" ")
+            date_part = parts[0]
+            time_part = parts[1].split(".")[0]  # eliminar microsegundos
+            
+            date_y, date_m, date_d = date_part.split("-")
+            time_subparts = time_part.split(":")
+            time_formatted = ":".join(time_subparts[:2]) # HH:MM
+            return f"{date_d}/{date_m}/{date_y} {time_formatted}"
+        else:
+            y, m, d = val.split("-")
+            return f"{d}/{m}/{y}"
+    except Exception:
+        return val
+

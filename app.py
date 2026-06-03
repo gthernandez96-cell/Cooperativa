@@ -6,6 +6,9 @@ from flask import Flask, request, session, g
 from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv
 
+# Dummy variable for test compatibility
+DB = None
+
 # Importar utilidades y configuración
 from config import DEFAULT_COOPERATIVA_NOMBRE
 from utils.db import get_db, close_db, obtener_marca_cooperativa
@@ -27,6 +30,9 @@ def create_app():
         raise RuntimeError('SECRET_KEY no está definida en el archivo .env')
     app.secret_key = _secret
     
+    # Recargar templates automáticamente al detectar cambios (útil en desarrollo)
+    app.config['TEMPLATES_AUTO_RELOAD'] = True
+    
     # Protección CSRF global
     CSRFProtect(app)
 
@@ -39,6 +45,8 @@ def create_app():
     from blueprints.prestamos import bp as prestamos_bp
     from blueprints.configuraciones import bp as configuraciones_bp
     from blueprints.promotora import bp as promotora_bp
+    from blueprints.movimientos import bp as movimientos_bp
+    from blueprints.reportes import bp as reportes_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
@@ -48,11 +56,16 @@ def create_app():
     app.register_blueprint(prestamos_bp)
     app.register_blueprint(configuraciones_bp)
     app.register_blueprint(promotora_bp)
+    app.register_blueprint(movimientos_bp)
+    app.register_blueprint(reportes_bp)
 
     # Filtros de Jinja2
+    from utils.helpers import formatear_fecha_dmy
     app.jinja_env.filters['tipo_transaccion'] = tipo_transaccion_label
     app.jinja_env.filters['es_transaccion_positiva'] = es_transaccion_positiva
     app.jinja_env.filters['limpiar_descripcion'] = limpiar_descripcion_filter
+    app.jinja_env.filters['fecha_dmy'] = formatear_fecha_dmy
+
 
     # Procesador de contexto global
     @app.context_processor

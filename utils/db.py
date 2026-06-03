@@ -109,9 +109,12 @@ def db_executemany(conn, query, rows):
 
 
 def db_insert_ignore(conn, table, columns, values, conflict_columns):
-    placeholders = ', '.join(['?'] * len(columns))
+    """Inserta un registro ignorando conflictos. Compatible con SQLite y PostgreSQL."""
     cols_sql = ', '.join(columns)
     conflict_sql = ', '.join(conflict_columns)
+    # Usamos db_execute para que _adapt_query_for_backend maneje el placeholder correcto (? vs %s)
+    placeholder_char = '%s' if _is_postgres_connection(conn) else '?'
+    placeholders = ', '.join([placeholder_char] * len(columns))
     db_execute(
         conn,
         f"INSERT INTO {table} ({cols_sql}) VALUES ({placeholders}) ON CONFLICT ({conflict_sql}) DO NOTHING",
@@ -135,16 +138,10 @@ def db_insert_and_get_id(conn, query, params=(), id_column='id'):
     return cur.lastrowid
 
 
-def get_db_connection():
-    # Alias de compatibilidad para rutas legacy.
-    return get_db()
-
-
 def get_config(tipo):
-    """Obtiene el valor de una configuración por tipo"""
+    """Obtiene el valor de una configuración por tipo. No cierra la conexión del contexto."""
     conn = get_db()
     config = db_fetchone(conn, "SELECT tasa_interes FROM configuraciones WHERE tipo=?", [tipo])
-    conn.close()
     return config['tasa_interes'] if config else 0
 
 def ensure_system_settings(conn):
@@ -413,6 +410,10 @@ def init_db():
         saldo_despues REAL NOT NULL,
         descripcion TEXT,
         fecha TEXT NOT NULL,
+        jornalizado INTEGER DEFAULT 0,
+        fecha_jornalizado TEXT,
+        boleta_jornalizado TEXT,
+        metodo_pago TEXT DEFAULT 'deposito',
         FOREIGN KEY (cuenta_id) REFERENCES cuentas(id)
     )''')
 
@@ -446,14 +447,8 @@ def init_db():
         FOREIGN KEY (user_id) REFERENCES usuarios(id)
     )''')
 
-    c.execute('''CREATE TABLE IF NOT EXISTS socio_beneficiarios (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        socio_id INTEGER NOT NULL,
-        nombre TEXT NOT NULL,
-        parentesco TEXT NOT NULL,
-        porcentaje REAL NOT NULL,
-        FOREIGN KEY (socio_id) REFERENCES socios(id)
-    )''')
+    # Nota: socio_beneficiarios se crea más arriba en init_db con la definición completa (incluye dpi).
+    # El bloque duplicado fue eliminado para evitar inconsistencias.
 
     c.execute('''CREATE TABLE IF NOT EXISTS planillas_masivas (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -532,33 +527,34 @@ def init_db():
             except Exception:
                 pass
 
-        c.execute('''CREATE TABLE IF NOT EXISTS prestamos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            numero TEXT UNIQUE NOT NULL,
-            socio_id INTEGER NOT NULL,
-            monto_solicitado REAL NOT NULL,
-            monto_aprobado REAL,
-            tasa_interes REAL NOT NULL,
-            plazo_meses INTEGER NOT NULL,
-            cuota_mensual REAL,
-            saldo_pendiente REAL,
-            fecha_solicitud TEXT NOT NULL,
-            fecha_aprobacion TEXT,
-            estado TEXT DEFAULT "pendiente"
-        )''')
+    # Los CREATE TABLE de prestamos y pagos_prestamo deben ejecutarse una sola vez, fuera del loop.
+    c.execute('''CREATE TABLE IF NOT EXISTS prestamos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        numero TEXT UNIQUE NOT NULL,
+        socio_id INTEGER NOT NULL,
+        monto_solicitado REAL NOT NULL,
+        monto_aprobado REAL,
+        tasa_interes REAL NOT NULL,
+        plazo_meses INTEGER NOT NULL,
+        cuota_mensual REAL,
+        saldo_pendiente REAL,
+        fecha_solicitud TEXT NOT NULL,
+        fecha_aprobacion TEXT,
+        estado TEXT DEFAULT "pendiente"
+    )''')
 
-        c.execute('''CREATE TABLE IF NOT EXISTS pagos_prestamo (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            prestamo_id INTEGER NOT NULL,
-            monto REAL NOT NULL,
-            capital REAL NOT NULL,
-            interes REAL NOT NULL,
-            saldo_restante REAL NOT NULL,
-            descripcion TEXT,
-            boleta_deposito TEXT,
-            fecha TEXT NOT NULL,
-            FOREIGN KEY (prestamo_id) REFERENCES prestamos(id)
-        )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS pagos_prestamo (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        prestamo_id INTEGER NOT NULL,
+        monto REAL NOT NULL,
+        capital REAL NOT NULL,
+        interes REAL NOT NULL,
+        saldo_restante REAL NOT NULL,
+        descripcion TEXT,
+        boleta_deposito TEXT,
+        fecha TEXT NOT NULL,
+        FOREIGN KEY (prestamo_id) REFERENCES prestamos(id)
+    )''')
 
     c.execute('''CREATE TABLE IF NOT EXISTS auditoria_eventos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -633,6 +629,26 @@ def init_db():
             c.execute("ALTER TABLE pagos_prestamo ADD COLUMN fecha_boleta TEXT")
         except Exception:
             pass
+    if 'jornalizado' not in pagos_cols:
+        try:
+            c.execute("ALTER TABLE pagos_prestamo ADD COLUMN jornalizado INTEGER DEFAULT 0")
+        except Exception:
+            pass
+    if 'fecha_jornalizado' not in pagos_cols:
+        try:
+            c.execute("ALTER TABLE pagos_prestamo ADD COLUMN fecha_jornalizado TEXT")
+        except Exception:
+            pass
+    if 'boleta_jornalizado' not in pagos_cols:
+        try:
+            c.execute("ALTER TABLE pagos_prestamo ADD COLUMN boleta_jornalizado TEXT")
+        except Exception:
+            pass
+    if 'metodo_pago' not in pagos_cols:
+        try:
+            c.execute("ALTER TABLE pagos_prestamo ADD COLUMN metodo_pago TEXT DEFAULT 'deposito'")
+        except Exception:
+            pass
 
 
     c.execute("PRAGMA table_info(prestamos)")
@@ -692,6 +708,30 @@ def init_db():
             c.execute("ALTER TABLE prestamos ADD COLUMN interes_amortizado REAL DEFAULT 0")
         except Exception:
             pass
+    if 'jornalizado' not in prestamos_cols:
+        try:
+            c.execute("ALTER TABLE prestamos ADD COLUMN jornalizado INTEGER DEFAULT 0")
+        except Exception:
+            pass
+    if 'fecha_jornalizado' not in prestamos_cols:
+        try:
+            c.execute("ALTER TABLE prestamos ADD COLUMN fecha_jornalizado TEXT")
+        except Exception:
+            pass
+    if 'boleta_jornalizado' not in prestamos_cols:
+        try:
+            c.execute("ALTER TABLE prestamos ADD COLUMN boleta_jornalizado TEXT")
+        except Exception:
+            pass
+
+    c.execute("PRAGMA table_info(transacciones)")
+    transacciones_cols = [row[1] for row in c.fetchall()]
+    for col, defn in [('jornalizado', 'INTEGER DEFAULT 0'), ('fecha_jornalizado', 'TEXT'), ('boleta_jornalizado', 'TEXT'), ('metodo_pago', "TEXT DEFAULT 'deposito'")]:
+        if col not in transacciones_cols:
+            try:
+                c.execute(f"ALTER TABLE transacciones ADD COLUMN {col} {defn}")
+            except Exception:
+                pass
 
     c.execute("PRAGMA table_info(cuentas)")
     cuentas_cols = [row[1] for row in c.fetchall()]
@@ -807,28 +847,28 @@ def init_db():
         
         # Configuraciones iniciales de tasas de interés
         configuraciones_demo = [
-            ('ahorro_corriente', 2.5, 'Tasa de interés para cuentas de ahorro corriente', date.today().isoformat()),
+            ('ahorro_corriente', 5.0, 'Tasa de interés para cuentas de ahorro corriente', date.today().isoformat()),
             ('ahorro_plazo_fijo', 4.0, 'Tasa de interés para cuentas de ahorro a plazo fijo', date.today().isoformat()),
-            ('ahorro_aportacion', 3.0, 'Tasa de interés para cuentas de aportación', date.today().isoformat()),
+            ('ahorro_aportacion', 5.0, 'Tasa de interés para cuentas de aportación', date.today().isoformat()),
             ('prestamo_personal', 18.0, 'Tasa de interés para préstamos personales', date.today().isoformat()),
             ('prestamo_vivienda', 12.0, 'Tasa de interés para préstamos de vivienda', date.today().isoformat()),
             ('prestamo_negocio', 15.0, 'Tasa de interés para préstamos de negocio', date.today().isoformat()),
         ]
         for conf in configuraciones_demo:
             c.execute("INSERT OR IGNORE INTO configuraciones (tipo,tasa_interes,descripcion,fecha_actualizacion) VALUES (?,?,?,?)", conf)
-        
+         
         c.execute("INSERT OR IGNORE INTO usuarios (username,password,rol_id,fecha_creacion) VALUES (?,?,?,?)", ('admin',generate_password_hash('admin123'),1,date.today().isoformat()))
-
+ 
         cuentas_demo = [
-            ('AHO-0001',1,'ahorro',15000,3.5,'2022-01-16'),
-            ('AHO-0002',2,'ahorro',8500,3.5,'2022-03-11'),
+            ('AHO-0001',1,'ahorro',15000,5.0,'2022-01-16'),
+            ('AHO-0002',2,'ahorro',8500,5.0,'2022-03-11'),
             ('COR-0001',1,'corriente',3200,0,'2022-01-16'),
-            ('AHO-0003',3,'ahorro',22000,3.5,'2023-06-21'),
-            ('AHO-0004',4,'ahorro',5000,3.5,'2023-09-06'),
+            ('AHO-0003',3,'ahorro',22000,5.0,'2023-06-21'),
+            ('AHO-0004',4,'ahorro',5000,5.0,'2023-09-06'),
         ]
         for cu in cuentas_demo:
             c.execute("INSERT INTO cuentas (numero,socio_id,tipo,saldo,tasa_interes,fecha_apertura) VALUES (?,?,?,?,?,?)", cu)
-
+ 
         prestamos_demo = [
             ('PRE-0001',1,25000,25000,18,24,1041.67,12500,'2023-01-10','2023-01-15','aprobado'),
             ('PRE-0002',2,10000,10000,18,12,916.67,6000,'2023-06-01','2023-06-05','aprobado'),
@@ -836,7 +876,7 @@ def init_db():
         ]
         for p in prestamos_demo:
             c.execute("INSERT INTO prestamos (numero,socio_id,monto_solicitado,monto_aprobado,tasa_interes,plazo_meses,cuota_mensual,saldo_pendiente,fecha_solicitud,fecha_aprobacion,estado) VALUES (?,?,?,?,?,?,?,?,?,?,?)", p)
-
+ 
         # Some transactions
         txns = [
             (1,'deposito',5000,15000,'Depósito inicial','2022-01-16'),
@@ -847,10 +887,20 @@ def init_db():
         ]
         for t in txns:
             c.execute("INSERT INTO transacciones (cuenta_id,tipo,monto,saldo_despues,descripcion,fecha) VALUES (?,?,?,?,?,?)", t)
-
+ 
     # Se ejecuta al final para cubrir tanto BD nueva como existente.
     ensure_permissions_catalog(conn)
-
+ 
+    # Migración de 'isr' a 'ipf' en transacciones y auditoría existentes
+    c.execute("UPDATE transacciones SET tipo = 'ipf' WHERE tipo = 'isr'")
+    c.execute("UPDATE auditoria_eventos SET accion = 'ipf' WHERE accion = 'isr'")
+    c.execute("UPDATE transacciones SET descripcion = REPLACE(descripcion, 'ISR', 'IPF') WHERE descripcion LIKE '%ISR%'")
+ 
+    # Migración de tasas de interés de Ahorro y Aportación a 5%
+    c.execute("UPDATE configuraciones SET tasa_interes = 5.0 WHERE tipo IN ('ahorro_corriente', 'ahorro_aportacion')")
+    c.execute("UPDATE cuentas SET tasa_interes = 5.0 WHERE tipo = 'ahorro' AND tasa_interes IN (3.5, 2.5, 3.0)")
+    c.execute("UPDATE ajustes_sistema SET valor = '5.0' WHERE clave = 'ahorro_tasa_interes_default'")
+ 
     conn.commit()
     conn.close()
 

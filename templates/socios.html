@@ -3,79 +3,404 @@
 {% block extra_head %}
 <style>
 /* ── Stats bar ──────────────────────────────────────────────── */
-.soc-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:20px;}
-.soc-stat{background:#fff;border-radius:14px;border:1.5px solid #e5e7eb;padding:18px 20px;position:relative;overflow:hidden;transition:transform .18s,box-shadow .18s;}
-.soc-stat:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,42,80,.1);}
-.soc-stat-accent{position:absolute;top:-14px;right:-14px;width:60px;height:60px;border-radius:50%;opacity:.08;}
-.soc-stat-label{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:#6b7280;margin-bottom:4px;}
-.soc-stat-value{font-family:'Fraunces',serif;font-size:28px;font-weight:600;line-height:1;color:#1a1a1a;}
-.soc-stat-sub{font-size:12px;color:#9ca3af;margin-top:4px;}
+.soc-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.soc-stat {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid rgba(229, 231, 235, 0.9);
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 6px -1px rgba(0, 32, 68, 0.03), 0 2px 4px -1px rgba(0, 32, 68, 0.01);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.soc-stat:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px -8px rgba(0, 42, 80, 0.12);
+  border-color: rgba(0, 59, 116, 0.2);
+}
+.soc-stat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.soc-stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #6b7280;
+  font-weight: 700;
+}
+.soc-stat-icon-container {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.soc-stat-value {
+  font-family: 'Fraunces', serif;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #001f3d;
+}
+.soc-stat-sub {
+  font-size: 12px;
+  color: #8896a6;
+  margin-top: 4px;
+}
+
+.soc-stat.active-total { border-color: rgba(0, 59, 116, 0.4); box-shadow: 0 4px 12px rgba(0, 59, 116, 0.08); background: linear-gradient(180deg, #ffffff 0%, #f0f7ff 100%); }
+.soc-stat.active-activo { border-color: rgba(16, 185, 129, 0.4); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.08); background: linear-gradient(180deg, #ffffff 0%, #ecfdf5 100%); }
+.soc-stat.active-inactivo { border-color: rgba(107, 114, 128, 0.4); box-shadow: 0 4px 12px rgba(107, 114, 128, 0.08); background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%); }
 
 /* ── Filter card ────────────────────────────────────────────── */
-.soc-filter{background:#fff;border-radius:14px;border:1px solid #e5e7eb;padding:14px 18px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,32,68,.04);}
-.soc-filter-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-.soc-input{padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:13px;font-family:inherit;background:#fff;color:#1a1a1a;transition:border-color .15s;}
-.soc-input:focus{outline:none;border-color:#003b74;box-shadow:0 0 0 3px rgba(0,59,116,.08);}
-.soc-input.search{flex:1;min-width:200px;}
-.soc-btn{padding:9px 18px;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;border:none;font-family:inherit;transition:all .15s;min-height:40px;display:inline-flex;align-items:center;gap:6px;}
-.soc-btn.primary{background:#003b74;color:#fff;}
-.soc-btn.primary:hover{background:#0057a3;}
-.soc-btn.outline{background:#fff;border:1.5px solid #e5e7eb;color:#374151;text-decoration:none;}
-.soc-btn.outline:hover{background:#f9fafb;}
-.soc-btn.green{background:#fff;border:1.5px solid #059669;color:#047857;text-decoration:none;}
-.soc-btn.green:hover{background:#f0fdf4;}
+.soc-filter {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 16px;
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 14px rgba(0, 32, 68, 0.04);
+}
+.soc-filter-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.soc-input {
+  padding: 10px 14px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-family: inherit;
+  background: #ffffff;
+  color: #1a1a1a;
+  transition: all 0.2s ease;
+  min-height: 42px;
+}
+.soc-input:focus {
+  outline: none;
+  border-color: #003b74;
+  box-shadow: 0 0 0 3px rgba(0, 59, 116, 0.08);
+}
+.soc-input.search {
+  flex: 1;
+  min-width: 250px;
+}
+.soc-btn {
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.soc-btn.primary {
+  background: #003b74;
+  color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 59, 116, 0.15);
+}
+.soc-btn.primary:hover {
+  background: #0057a3;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 59, 116, 0.2);
+}
+.soc-btn.outline {
+  background: #ffffff;
+  border: 1.5px solid #e5e7eb;
+  color: #4b5563;
+  text-decoration: none;
+}
+.soc-btn.outline:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
 
 /* ── Info bar ───────────────────────────────────────────────── */
-.soc-info{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#f8fafb;border-radius:10px;border:1px solid #e5e7eb;margin-bottom:14px;font-size:13px;color:#6b7280;}
+.soc-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  background: rgba(248, 250, 251, 0.7);
+  border-radius: 12px;
+  border: 1px solid rgba(229, 231, 235, 0.6);
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #4b5563;
+}
 
 /* ── Table ──────────────────────────────────────────────────── */
-.soc-table{width:100%;border-collapse:separate;border-spacing:0;}
-.soc-table th{background:#f8fafb;padding:10px 14px;text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;color:#6b7280;border-bottom:1.5px solid #e5e7eb;font-weight:600;white-space:nowrap;}
-.soc-table td{padding:13px 14px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
-.soc-table tr:last-child td{border-bottom:none;}
-.soc-table tbody tr{transition:background .12s;}
-.soc-table tbody tr:hover td{background:#f0f7ff;}
+.soc-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.soc-table th {
+  background: #f8fafb;
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #4b5563;
+  border-bottom: 2px solid #e5e7eb;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.soc-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+.soc-table tr:last-child td {
+  border-bottom: none;
+}
+.soc-table tbody tr {
+  transition: all 0.15s ease;
+}
+.soc-table tbody tr:hover td {
+  background: rgba(0, 87, 163, 0.03);
+}
 
-/* Avatar */
-.soc-avatar{width:36px;height:36px;border-radius:10px;object-fit:cover;border:1.5px solid #e5e7eb;flex-shrink:0;}
-.soc-avatar-placeholder{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#003b74,#4a7ebf);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;letter-spacing:.5px;}
-.soc-name-wrap{display:flex;align-items:center;gap:10px;}
-.soc-name-main{font-weight:600;font-size:13px;color:#1a1a1a;}
-.soc-name-sub{font-size:11px;color:#9ca3af;margin-top:1px;}
-.soc-code{font-family:'Fraunces',serif;font-size:13px;color:#2d6a4f;font-weight:600;}
+/* Avatar styling */
+.soc-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  flex-shrink: 0;
+}
+.soc-avatar-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+  letter-spacing: 0.5px;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+/* Modern Gradient List */
+.avatar-grad-1 { background: linear-gradient(135deg, #3b82f6, #06b6d4); }
+.avatar-grad-2 { background: linear-gradient(135deg, #10b981, #059669); }
+.avatar-grad-3 { background: linear-gradient(135deg, #8b5cf6, #d946ef); }
+.avatar-grad-4 { background: linear-gradient(135deg, #f59e0b, #ef4444); }
+.avatar-grad-5 { background: linear-gradient(135deg, #ec4899, #f43f5e); }
+
+.soc-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.soc-name-main {
+  font-weight: 600;
+  font-size: 13.5px;
+  color: #001f3d;
+}
+.soc-name-sub {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+.soc-code {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  color: #003b74;
+  font-weight: 700;
+  background: rgba(0, 59, 116, 0.06);
+  padding: 3px 8px;
+  border-radius: 6px;
+}
 
 /* Badges */
-.soc-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;}
-.soc-badge-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
-.soc-badge.activo{background:#d1fae5;color:#065f46;}.soc-badge.activo .soc-badge-dot{background:#10b981;}
-.soc-badge.inactivo{background:#f3f4f6;color:#6b7280;}.soc-badge.inactivo .soc-badge-dot{background:#9ca3af;}
+.soc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.soc-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.soc-badge.activo {
+  background: #d1fae5;
+  color: #065f46;
+}
+.soc-badge.activo .soc-badge-dot {
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: pulse-dot 2s infinite;
+}
+.soc-badge.inactivo {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+.soc-badge.inactivo .soc-badge-dot {
+  background: #9ca3af;
+}
+
+@keyframes pulse-dot {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+  70% { transform: scale(1); box-shadow: 0 0 0 5px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
 
 /* Action buttons */
-.soc-actions{display:flex;gap:5px;align-items:center;}
-.soc-act{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;border:1.5px solid #e5e7eb;background:#fff;text-decoration:none;color:#374151;cursor:pointer;transition:all .15s;}
-.soc-act:hover{background:#f0f7ff;border-color:#93c5fd;}
-.soc-act.edit{border-color:#ddd6fe;background:#f5f3ff;color:#6d28d9;}
-.soc-act.edit:hover{background:#ede9fe;}
-.soc-act.danger{border-color:#fecaca;background:#fff5f5;color:#dc2626;}
-.soc-act.danger:hover{background:#fee2e2;}
-.soc-act.ok{border-color:#bbf7d0;background:#f0fdf4;color:#047857;}
-.soc-act.ok:hover{background:#dcfce7;}
+.soc-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.soc-act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  text-decoration: none;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.soc-act:hover {
+  background: #f0f7ff;
+  border-color: #93c5fd;
+  color: #0057a3;
+  transform: translateY(-1px);
+}
+.soc-act.edit {
+  border-color: #ddd6fe;
+  background: #f5f3ff;
+  color: #6d28d9;
+}
+.soc-act.edit:hover {
+  background: #ede9fe;
+  border-color: #c084fc;
+  color: #5b21b6;
+}
+.soc-act.danger {
+  border-color: #fecaca;
+  background: #fff5f5;
+  color: #dc2626;
+}
+.soc-act.danger:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+.soc-act.ok {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #047857;
+}
+.soc-act.ok:hover {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #065f46;
+}
 
 /* Frecuencia chip */
-.frec-chip{display:inline-block;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:600;background:#eff6ff;color:#1e40af;}
+.frec-chip {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #dbeafe;
+}
 
 /* Empty state */
-.soc-empty{text-align:center;padding:48px 24px;color:#9ca3af;}
-.soc-empty svg{width:48px;height:48px;opacity:.25;margin-bottom:12px;}
-.soc-empty p{font-size:15px;font-weight:500;color:#6b7280;}
+.soc-empty {
+  text-align: center;
+  padding: 56px 24px;
+  color: #9ca3af;
+}
+.soc-empty svg {
+  width: 54px;
+  height: 54px;
+  opacity: .35;
+  margin-bottom: 16px;
+  color: #003b74;
+}
+.soc-empty p {
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+}
 
 /* Pagination */
-.soc-pag{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-top:1px solid #f1f5f9;}
-.soc-pag-info{font-size:12px;color:#6b7280;}
-.soc-pag-btns{display:flex;gap:6px;}
+.soc-pag {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-top: 1px solid #f1f5f9;
+}
+.soc-pag-info {
+  font-size: 13px;
+  color: #6b7280;
+}
+.soc-pag-btns {
+  display: flex;
+  gap: 8px;
+}
 
 /* Active filter pills */
-.filter-pill{display:inline-flex;align-items:center;gap:4px;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:99px;padding:2px 10px;font-size:11px;font-weight:600;}
+.filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+  border-radius: 99px;
+  padding: 4px 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
 
 @media(max-width:860px){
   .soc-stats{grid-template-columns:repeat(2,1fr);}
@@ -104,39 +429,59 @@
 <!-- Stats cards -->
 <div class="soc-stats">
   <a href="{{ url_for('socios.socios') }}" style="text-decoration:none;color:inherit;">
-    <div class="soc-stat">
-      <div class="soc-stat-accent" style="background:#003b74;"></div>
-      <div class="soc-stat-label">Total</div>
+    <div class="soc-stat {% if not estado_filtro %}active-total{% endif %}">
+      <div class="soc-stat-header">
+        <div class="soc-stat-label" style="{% if not estado_filtro %}color:#003b74;{% endif %}">Total</div>
+        <div class="soc-stat-icon-container" style="background: rgba(0, 59, 116, 0.08); color: #003b74;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+      </div>
       <div class="soc-stat-value">{{ total or socios|length }}</div>
       <div class="soc-stat-sub">Socios registrados</div>
     </div>
   </a>
   <a href="{{ url_for('socios.socios', estado='activo') }}" style="text-decoration:none;color:inherit;">
-    <div class="soc-stat" style="border-color:{% if estado_filtro=='activo' %}#10b981{% else %}#e5e7eb{% endif %};">
-      <div class="soc-stat-accent" style="background:#10b981;"></div>
-      <div class="soc-stat-label" style="color:#047857;">Activos</div>
+    <div class="soc-stat {% if estado_filtro=='activo' %}active-activo{% endif %}">
+      <div class="soc-stat-header">
+        <div class="soc-stat-label" style="color:#047857;">Activos</div>
+        <div class="soc-stat-icon-container" style="background: rgba(16, 185, 129, 0.08); color: #059669;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
+        </div>
+      </div>
       <div class="soc-stat-value" style="color:#047857;">{{ conteos.activos }}</div>
       <div class="soc-stat-sub">Con estado activo</div>
     </div>
   </a>
   <a href="{{ url_for('socios.socios', estado='inactivo') }}" style="text-decoration:none;color:inherit;">
-    <div class="soc-stat" style="border-color:{% if estado_filtro=='inactivo' %}#6b7280{% else %}#e5e7eb{% endif %};">
-      <div class="soc-stat-accent" style="background:#6b7280;"></div>
-      <div class="soc-stat-label" style="color:#6b7280;">Inactivos</div>
-      <div class="soc-stat-value" style="color:#6b7280;">{{ conteos.inactivos }}</div>
+    <div class="soc-stat {% if estado_filtro=='inactivo' %}active-inactivo{% endif %}">
+      <div class="soc-stat-header">
+        <div class="soc-stat-label" style="color:#4b5563;">Inactivos</div>
+        <div class="soc-stat-icon-container" style="background: rgba(107, 114, 128, 0.08); color: #4b5563;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="18" y1="8" x2="22" y2="12"/><line x1="22" y1="8" x2="18" y2="12"/></svg>
+        </div>
+      </div>
+      <div class="soc-stat-value" style="color:#4b5563;">{{ conteos.inactivos }}</div>
       <div class="soc-stat-sub">Con estado inactivo</div>
     </div>
   </a>
   <div class="soc-stat">
-    <div class="soc-stat-accent" style="background:#0057a3;"></div>
-    <div class="soc-stat-label">Quincenal</div>
-    <div class="soc-stat-value">{{ conteos.quincenal }}</div>
+    <div class="soc-stat-header">
+      <div class="soc-stat-label" style="color:#0057a3;">Quincenal</div>
+      <div class="soc-stat-icon-container" style="background: rgba(0, 87, 163, 0.08); color: #0057a3;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </div>
+    </div>
+    <div class="soc-stat-value" style="color:#0057a3;">{{ conteos.quincenal }}</div>
     <div class="soc-stat-sub">Frecuencia de cobro</div>
   </div>
   <div class="soc-stat">
-    <div class="soc-stat-accent" style="background:#8b5cf6;"></div>
-    <div class="soc-stat-label">Catorcenal</div>
-    <div class="soc-stat-value">{{ conteos.catorcenal }}</div>
+    <div class="soc-stat-header">
+      <div class="soc-stat-label" style="color:#7c3aed;">Catorcenal</div>
+      <div class="soc-stat-icon-container" style="background: rgba(139, 92, 246, 0.08); color: #7c3aed;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </div>
+    </div>
+    <div class="soc-stat-value" style="color:#7c3aed;">{{ conteos.catorcenal }}</div>
     <div class="soc-stat-sub">Frecuencia de cobro</div>
   </div>
 </div>
@@ -209,6 +554,18 @@
       <tbody>
         {% for s in socios %}
         {% set iniciales = ((s.nombre or '?')[0] | upper) + ((s.apellido or '?')[0] | upper) %}
+        {% set char_lower = (s.primer_nombre or s.nombre or 'A')[0] | lower %}
+        {% if char_lower in 'abcdef' %}
+          {% set grad_class = 'avatar-grad-1' %}
+        {% elif char_lower in 'ghijkl' %}
+          {% set grad_class = 'avatar-grad-2' %}
+        {% elif char_lower in 'mnopqr' %}
+          {% set grad_class = 'avatar-grad-3' %}
+        {% elif char_lower in 'stuvw' %}
+          {% set grad_class = 'avatar-grad-4' %}
+        {% else %}
+          {% set grad_class = 'avatar-grad-5' %}
+        {% endif %}
         <tr>
           <td><span class="soc-code">{{ s.codigo }}</span></td>
           <td>
@@ -216,7 +573,7 @@
               {% if s.foto %}
               <img src="{{ url_for('static', filename=s.foto) }}" class="soc-avatar" alt="{{ s.nombre }}">
               {% else %}
-              <span class="soc-avatar-placeholder">{{ iniciales }}</span>
+              <span class="soc-avatar-placeholder {{ grad_class }}">{{ iniciales }}</span>
               {% endif %}
               <div>
                 <div class="soc-name-main">{{ s.nombre_completo or (s.nombre ~ ' ' ~ s.apellido) }}</div>

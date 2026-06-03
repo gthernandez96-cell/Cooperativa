@@ -324,7 +324,7 @@
             <td style="font-size: 12px; color: var(--c-swiss-gray);">
               {% if pago.es_amortizacion %}
                 {% if pago.prestamo_origen_numero %}
-                Amortización desde {{ pago.prestamo_origen_numero }}
+                Pagado con préstamo {{ pago.prestamo_origen_numero }}
                 {% else %}
                 Amortización de {{ pago.prestamo_amortizado_numero }}
                 {% endif %}

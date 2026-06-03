@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+{% block title %}Reporte de Morosidad y Antigüedad — {{ cooperativa_nombre }}{% endblock %}
+
+{% block extra_head %}
+<style>
+.report-layout { display: grid; grid-template-columns: 280px 1fr; gap: 28px; align-items: start; margin-bottom: 60px; }
+@media (max-width: 900px) { .report-layout { grid-template-columns: 1fr; } }
+.report-controls { background: var(--c-white); border: 1px solid var(--c-border); border-radius: 16px; padding: 22px; position: sticky; top: 130px; box-shadow: 0 4px 18px rgba(0,32,68,.04); }
+.report-controls-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--c-gray); margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid var(--c-border); }
+.ctrl-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+.ctrl-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; color: var(--c-gray); }
+.ctrl-select { padding: 9px 12px; font-size: 13px; border: 1.5px solid var(--c-border); border-radius: 10px; width: 100%; background: #fff; color: var(--c-dark); font-family: inherit; transition: all .2s; cursor: pointer; height: 40px; }
+.ctrl-select:focus { outline: none; border-color: #b91c1c; box-shadow: 0 0 0 3px rgba(185,28,28,.08); }
+.ctrl-divider { border: none; border-top: 1px solid var(--c-border); margin: 16px 0; }
+.btn-export-main { width: 100%; padding: 11px; border-radius: 11px; font-size: 14px; font-weight: 700; background: #b91c1c; color: #fff; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all .2s; margin-bottom: 8px; }
+.btn-export-main:hover { background: #991b1b; transform: translateY(-1px); box-shadow: 0 6px 18px rgba(185,28,28,.25); }
+.btn-ctrl-back { width: 100%; padding: 9px; border-radius: 11px; font-size: 13px; font-weight: 600; background: #fff; color: var(--c-gray); border: 1.5px solid var(--c-border); cursor: pointer; text-align: center; text-decoration: none; display: block; transition: all .2s; }
+.btn-ctrl-back:hover { background: var(--c-cream); color: var(--c-dark); }
+.ctrl-stats { margin-bottom: 16px; }
+.ctrl-stat-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f3f4f6; font-size: 12.5px; }
+.ctrl-stat-item:last-child { border-bottom: none; }
+.ctrl-stat-label { color: var(--c-gray); }
+.ctrl-stat-value { font-weight: 700; color: var(--c-dark); }
+.report-preview-area { background: #e8edf5; border-radius: 16px; padding: 32px; min-height: 600px; }
+.preview-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.preview-toolbar-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #7b8ea6; display: flex; align-items: center; gap: 8px; }
+.preview-count-badge { background: #fff; border: 1px solid #d1d9e6; border-radius: 20px; padding: 3px 12px; font-size: 12px; font-weight: 600; color: #4b5563; }
+.doc-page { background: #ffffff; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,.04), 0 20px 50px rgba(0,0,0,.10); padding: 52px 56px; max-width: 1050px; margin: 0 auto; position: relative; }
+.doc-page-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #b91c1c; padding-bottom: 20px; margin-bottom: 28px; }
+.doc-org-name { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 700; color: #b91c1c; letter-spacing: -.3px; line-height: 1.2; }
+.doc-org-dept { font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--c-gray); letter-spacing: 1.2px; margin-top: 3px; }
+.doc-meta-block { text-align: right; font-size: 11px; color: var(--c-gray); line-height: 1.8; }
+.doc-meta-block strong { color: var(--c-dark); }
+.doc-report-title-block { text-align: center; margin-bottom: 24px; }
+.doc-report-title { font-family: 'Fraunces', serif; font-size: 17px; font-weight: 700; color: #0f1f32; text-transform: uppercase; letter-spacing: .5px; }
+.doc-report-subtitle { font-size: 12px; color: var(--c-gray); margin-top: 4px; }
+.doc-filter-badge { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; margin-top: 10px; background: #fff5f5; border: 1px solid #fecaca; border-radius: 8px; padding: 6px 14px; font-size: 11px; color: #4b5563; }
+.doc-filter-badge strong { color: #991b1b; }
+.doc-data-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 4px; }
+.doc-data-table th { background: #fff5f5; border-bottom: 2px solid #fecaca; border-top: 1px solid #fecaca; padding: 8px 9px; font-weight: 700; font-size: 9.5px; text-transform: uppercase; letter-spacing: .6px; color: #374151; text-align: left; }
+.doc-data-table th.text-right { text-align: right; }
+.doc-data-table td { padding: 8px 9px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; color: #1f2937; }
+.doc-data-table td.text-right { text-align: right; }
+.doc-data-table tbody tr:last-child td { border-bottom: 2px solid #fecaca; }
+.doc-data-table tfoot td { padding: 10px 9px; font-weight: 700; background: #fff8f8; font-size: 12px; color: var(--c-dark); border-top: 2px solid #fecaca; }
+.doc-data-table tfoot td.text-right { text-align: right; }
+.mora-chip { display: inline-block; font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 20px; }
+.mora-ok   { background: #d1fae5; color: #065f46; }
+.mora-t1   { background: #fef3c7; color: #92400e; }
+.mora-t2   { background: #fed7aa; color: #9a3412; }
+.mora-t3   { background: #fee2e2; color: #991b1b; font-weight: 900; }
+.doc-sign-block { display: grid; grid-template-columns: repeat(3,1fr); gap: 30px; margin-top: 52px; padding-top: 28px; border-top: 1px dashed #c8d3e0; text-align: center; }
+.doc-sign-line { border-top: 1px solid #94a3b8; padding-top: 8px; margin: 0 auto; width: 170px; margin-bottom: 8px; }
+.doc-sign-role { font-size: 11px; font-weight: 700; color: #374151; }
+.doc-sign-caption { font-size: 10px; color: var(--c-gray); margin-top: 2px; }
+.doc-page-footer { text-align: center; margin-top: 28px; padding-top: 16px; border-top: 1px solid #f3f4f6; font-size: 10px; color: #9ca3af; }
+.doc-page-number { position: absolute; bottom: 24px; right: 40px; font-size: 10px; color: #9ca3af; }
+.export-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,40,.5); z-index: 2000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+.export-modal-overlay.active { display: flex; }
+.export-modal { background: #fff; border-radius: 20px; padding: 36px; width: 420px; max-width: 95vw; box-shadow: 0 24px 60px rgba(0,20,60,.18); animation: modalIn .25s cubic-bezier(.34,1.56,.64,1); }
+@keyframes modalIn { from { opacity: 0; transform: translateY(24px) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.export-modal-title { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 700; color: #0f1f32; margin-bottom: 6px; }
+.export-modal-sub { font-size: 13px; color: var(--c-gray); margin-bottom: 28px; }
+.export-options { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px; }
+.export-option { border: 2px solid var(--c-border); border-radius: 14px; padding: 22px 16px; cursor: pointer; text-align: center; transition: all .2s; text-decoration: none; display: flex; flex-direction: column; align-items: center; gap: 10px; background: #fff; }
+.export-option:hover { border-color: #059669; background: #f0fff8; transform: translateY(-2px); }
+.export-option.pdf:hover { border-color: #dc2626; background: #fff5f5; }
+.export-option-icon { font-size: 32px; }
+.export-option-label { font-size: 13px; font-weight: 700; color: var(--c-dark); }
+.export-option-sub { font-size: 11px; color: var(--c-gray); }
+.btn-modal-cancel { width: 100%; padding: 11px; border: 1.5px solid var(--c-border); border-radius: 10px; background: #fff; color: var(--c-gray); font-size: 14px; font-weight: 600; cursor: pointer; transition: all .2s; }
+.btn-modal-cancel:hover { background: var(--c-cream); color: var(--c-dark); }
+@media print {
+  .report-controls, .preview-toolbar, .top-brand, .header, .footer, .export-modal-overlay { display: none !important; }
+  .report-layout { grid-template-columns: 1fr !important; }
+  .report-preview-area { background: transparent !important; padding: 0 !important; border-radius: 0 !important; }
+  .doc-page { box-shadow: none !important; padding: 0 !important; border-radius: 0 !important; }
+  body { background: white !important; }
+  .main { margin-top: 0 !important; padding: 0 !important; }
+  .container { max-width: 100% !important; padding: 0 !important; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title" style="color:#b91c1c">Morosidad y Antigüedad</h1>
+      <p class="page-subtitle">Previsualización oficial · Control de cobros y clasificación de mora</p>
+    </div>
+  </div>
+
+  <div class="report-layout">
+    <!-- Panel de controles -->
+    <aside class="report-controls">
+      <div class="report-controls-title">⚙ Filtros del Reporte</div>
+      <form method="get" action="{{ url_for('reportes.morosidad') }}" id="filterForm">
+        <div class="ctrl-field">
+          <label class="ctrl-label">Clasificación de Mora</label>
+          <select name="rango_mora" class="ctrl-select" onchange="document.getElementById('filterForm').submit()">
+            <option value="todos"  {% if rango_mora=='todos'  %}selected{% endif %}>Todos los vigentes</option>
+            <option value="mora"   {% if rango_mora=='mora'   %}selected{% endif %}>Solo créditos con mora</option>
+            <option value="tramo1" {% if rango_mora=='tramo1' %}selected{% endif %}>Mora Temprana (1-30 días)</option>
+            <option value="tramo2" {% if rango_mora=='tramo2' %}selected{% endif %}>Mora Media (31-60 días)</option>
+            <option value="tramo3" {% if rango_mora=='tramo3' %}selected{% endif %}>Mora Crítica (61-90 días)</option>
+            <option value="tramo4" {% if rango_mora=='tramo4' %}selected{% endif %}>Mora Jurídica (&gt;90 días)</option>
+          </select>
+        </div>
+        <a href="{{ url_for('reportes.morosidad') }}" class="btn-ctrl-back" style="margin-bottom:6px">✕ Limpiar filtros</a>
+      </form>
+      <hr class="ctrl-divider">
+      <div class="ctrl-stats">
+        <div class="ctrl-stat-item">
+          <span class="ctrl-stat-label">Créditos mostrados</span>
+          <span class="ctrl-stat-value">{{ prestamos|length }}</span>
+        </div>
+        <div class="ctrl-stat-item">
+          <span class="ctrl-stat-label">Créditos en mora</span>
+          <span class="ctrl-stat-value" style="color:#dc2626">{{ total_creditos_mora }}</span>
+        </div>
+        <div class="ctrl-stat-item">
+          <span class="ctrl-stat-label">Cartera vencida</span>
+          <span class="ctrl-stat-value" style="color:#dc2626">Q{{ "{:,.0f}".format(total_monto_mora) }}</span>
+        </div>
+        <div class="ctrl-stat-item">
+          <span class="ctrl-stat-label">Índice de mora</span>
+          <span class="ctrl-stat-value" style="color:#b45309">
+            {% set total_cap = prestamos|sum(attribute='saldo_pendiente') %}
+            {% if total_cap > 0 %}{{ "{:.2f}%".format((total_monto_mora/total_cap)*100) }}{% else %}0.00%{% endif %}
+          </span>
+        </div>
+      </div>
+      <hr class="ctrl-divider">
+      <button type="button" class="btn-export-main" onclick="openExportModal()">
+        <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Exportar Reporte
+      </button>
+      <a href="{{ url_for('reportes.index') }}" class="btn-ctrl-back">← Volver a Reportes</a>
+    </aside>
+
+    <!-- Área de previsualización -->
+    <section class="report-preview-area">
+      <div class="preview-toolbar">
+        <div class="preview-toolbar-label">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Vista Previa del Documento
+        </div>
+        <span class="preview-count-badge">{{ prestamos|length }} registros</span>
+      </div>
+
+      <div class="doc-page">
+        <div class="doc-page-header">
+          <div>
+            <div class="doc-org-name">{{ cooperativa_nombre }}</div>
+            <div class="doc-org-dept">Departamento de Riesgos y Cobranzas</div>
+          </div>
+          <div class="doc-meta-block">
+            <strong>Fecha de emisión:</strong> {{ now.strftime('%d/%m/%Y') }}<br>
+            <strong>Hora:</strong> {{ now.strftime('%H:%M') }}<br>
+            <strong>Generado por:</strong> {{ session.get('username','Sistema') }}
+          </div>
+        </div>
+
+        <div class="doc-report-title-block">
+          <div class="doc-report-title">Estado de Antigüedad de Saldos y Morosidad</div>
+          <div class="doc-report-subtitle">Clasificación de cartera vencida · Gestión de cobranza</div>
+          <div class="doc-filter-badge">
+            <strong>Clasificación:</strong>
+            {% if rango_mora=='todos' %}Todos los vigentes
+            {% elif rango_mora=='mora' %}Solo créditos con mora
+            {% elif rango_mora=='tramo1' %}Mora Temprana (1-30 días)
+            {% elif rango_mora=='tramo2' %}Mora Media (31-60 días)
+            {% elif rango_mora=='tramo3' %}Mora Crítica (61-90 días)
+            {% else %}Mora Jurídica (&gt;90 días){% endif %}
+          </div>
+        </div>
+
+        <table class="doc-data-table">
+          <thead>
+            <tr>
+              <th>No. Préstamo</th>
+              <th>Asociado</th>
+              <th>DPI / Teléfono</th>
+              <th class="text-right">Monto Aprobado</th>
+              <th class="text-right">Saldo Pendiente</th>
+              <th>Días Mora</th>
+              <th>Cuotas Venc.</th>
+              <th>Último Pago</th>
+              <th>Etapa Cobro</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in prestamos %}
+            <tr>
+              <td><strong>{{ p.numero }}</strong></td>
+              <td>
+                <span style="font-weight:600">{{ p.socio_nombre }}</span><br>
+                <span style="color:#6b7280;font-size:10px">{{ p.socio_codigo }}</span>
+              </td>
+              <td style="font-size:10px">
+                <span style="font-family:monospace">{{ p.socio_dpi or '—' }}</span><br>
+                <span style="color:#6b7280">{{ p.socio_telefono or '—' }}</span>
+              </td>
+              <td class="text-right">Q{{ "{:,.2f}".format(p.monto_aprobado or 0) }}</td>
+              <td class="text-right" style="color:#dc2626;font-weight:700">Q{{ "{:,.2f}".format(p.saldo_pendiente or 0) }}</td>
+              <td>
+                {% if p.dias_mora <= 0 %}<span class="mora-chip mora-ok">Al día</span>
+                {% elif p.dias_mora <= 30 %}<span class="mora-chip mora-t1">{{ p.dias_mora }}d</span>
+                {% elif p.dias_mora <= 60 %}<span class="mora-chip mora-t2">{{ p.dias_mora }}d</span>
+                {% else %}<span class="mora-chip mora-t3">{{ p.dias_mora }}d</span>{% endif %}
+              </td>
+              <td style="text-align:center">{{ p.cuotas_vencidas_count }}</td>
+              <td style="font-size:10.5px">
+                {% if p.fecha_ultimo_pago %}
+                  {{ p.fecha_ultimo_pago | fecha_dmy }}<br><span style="color:#6b7280">Q{{ "{:,.2f}".format(p.monto_ultimo_pago or 0) }}</span>
+                {% else %}<span style="color:#9ca3af">Sin pagos</span>{% endif %}
+              </td>
+              <td style="font-size:10px">
+                {% if p.etapa_cobranza=='activo' %}<span style="color:#047857;font-weight:700">VIGENTE</span>
+                {% elif p.etapa_cobranza=='intensiva' %}<span style="color:#c2410c;font-weight:700">INTENSIVO</span>
+                {% else %}<span style="color:#b91c1c;font-weight:900">LEGAL</span>{% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="9" style="text-align:center;padding:40px;color:#9ca3af">No se encontraron créditos con los filtros aplicados.</td></tr>
+            {% endfor %}
+          </tbody>
+          {% if prestamos %}
+          <tfoot>
+            <tr>
+              <td colspan="4"><strong>TOTALES ({{ prestamos|length }} créditos)</strong></td>
+              <td class="text-right" style="color:#dc2626">Q{{ "{:,.2f}".format(prestamos|sum(attribute='saldo_pendiente')) }}</td>
+              <td colspan="4"><strong>Cartera vencida: Q{{ "{:,.2f}".format(total_monto_mora) }}</strong></td>
+            </tr>
+          </tfoot>
+          {% endif %}
+        </table>
+
+        <div class="doc-sign-block">
+          <div><div class="doc-sign-line"></div><div class="doc-sign-role">Preparado por</div><div class="doc-sign-caption">Firma y Sello del Operador</div></div>
+          <div><div class="doc-sign-line"></div><div class="doc-sign-role">Revisado por</div><div class="doc-sign-caption">Comité de Crédito / Auditoría</div></div>
+          <div><div class="doc-sign-line"></div><div class="doc-sign-role">Autorizado por</div><div class="doc-sign-caption">Firma y Sello Gerencial</div></div>
+        </div>
+
+        <div class="doc-page-footer">Documento generado electrónicamente por el Sistema de Gestión de {{ cooperativa_nombre }} · {{ now.strftime('%d/%m/%Y %H:%M') }}</div>
+        <div class="doc-page-number">Página 1</div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- Modal de Exportación -->
+<div class="export-modal-overlay" id="exportModal" onclick="closeExportModal(event)">
+  <div class="export-modal">
+    <div class="export-modal-title">Exportar Reporte</div>
+    <div class="export-modal-sub">Selecciona el formato para exportar el Reporte de Morosidad y Antigüedad.</div>
+    <div class="export-options">
+      <a href="{{ url_for('reportes.morosidad') }}/exportar?{{ request.query_string.decode('utf-8') }}" class="export-option excel">
+        <span class="export-option-icon">📊</span>
+        <div class="export-option-label">Excel / CSV</div>
+        <div class="export-option-sub">Descarga directa<br>compatible con Excel</div>
+      </a>
+      <a href="javascript:void(0)" onclick="closeExportModal();window.print();" class="export-option pdf">
+        <span class="export-option-icon">📄</span>
+        <div class="export-option-label">PDF / Imprimir</div>
+        <div class="export-option-sub">Vista de impresión<br>o guardar como PDF</div>
+      </a>
+    </div>
+    <button type="button" class="btn-modal-cancel" onclick="closeExportModal()">Cancelar</button>
+  </div>
+</div>
+
+<script>
+function openExportModal()  { document.getElementById('exportModal').classList.add('active'); }
+function closeExportModal(e) { if (!e || e.target===document.getElementById('exportModal')) document.getElementById('exportModal').classList.remove('active'); }
+document.addEventListener('keydown', e => { if (e.key==='Escape') closeExportModal({target:document.getElementById('exportModal')}); });
+</script>
+{% endblock %}

@@ -1,0 +1,560 @@
+{% extends "base.html" %}
+
+{% block title %}Movimientos del Día — {{ cooperativa_nombre }}{% endblock %}
+
+{% block extra_head %}
+<style>
+/* Estilos mínimos específicos del módulo */
+.floating-action-banner {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--c-white);
+    border-top: 1px solid var(--c-border);
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+    z-index: 1000;
+    transform: translateY(100%);
+    transition: transform 0.25s ease-out;
+}
+
+.floating-action-banner.show {
+    transform: translateY(0);
+}
+
+.banner-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.banner-badge {
+    background: var(--c-blue);
+    color: white;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 99px;
+    font-size: 13px;
+}
+
+.modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.modal-box {
+    background: var(--c-white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--c-border);
+    width: min(100%, 460px);
+    overflow: hidden;
+}
+
+.badge-tipo {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 3px 8px;
+    border-radius: 12px;
+}
+
+.badge-tipo-retiro { background-color: var(--c-danger-light); color: var(--c-danger); }
+.badge-tipo-deposito { background-color: var(--c-green-pale); color: var(--c-green-mid); }
+.badge-tipo-prestamo { background-color: #e0f2fe; color: #0369a1; }
+.badge-tipo-amortizacion { background-color: #fef9c3; color: #854d0e; }
+.badge-tipo-interes { background-color: #ecfdf5; color: #047857; }
+.badge-tipo-ipf { background-color: #fffbeb; color: #b45309; }
+
+/* ── Estilos de Filtros Nuevos y Limpios ── */
+.mov-filters-container {
+    background: var(--c-white);
+    border: 1px solid var(--c-border);
+    border-radius: 16px;
+    padding: 18px 22px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 14px rgba(0, 32, 68, 0.03);
+}
+
+.mov-filters-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-end;
+    margin: 0;
+}
+
+.mov-filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1 1 180px;
+}
+
+.mov-filter-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--c-gray);
+    letter-spacing: 0.8px;
+}
+
+.mov-filter-select {
+    padding: 10px 12px;
+    font-size: 13.5px;
+    border: 1.5px solid var(--c-border);
+    border-radius: 10px;
+    width: 100%;
+    background: #ffffff;
+    color: var(--c-dark);
+    height: 42px;
+    font-family: inherit;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.mov-filter-select:focus {
+    outline: none;
+    border-color: var(--c-blue);
+    box-shadow: 0 0 0 3px rgba(0, 59, 116, 0.08);
+}
+
+/* Date range group & inputs */
+.mov-date-range-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 2 1 340px;
+}
+
+.mov-date-range-capsule {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #ffffff;
+    border: 1.5px solid var(--c-border);
+    border-radius: 10px;
+    padding: 0 14px;
+    height: 42px;
+    transition: all 0.2s ease;
+}
+
+.mov-date-range-capsule:focus-within {
+    border-color: var(--c-blue);
+    box-shadow: 0 0 0 3px rgba(0, 59, 116, 0.08);
+}
+
+.mov-date-text {
+    font-size: 13.5px;
+    color: var(--c-gray);
+    font-weight: 500;
+    user-select: none;
+}
+
+.mov-date-input {
+    border: none !important;
+    background: transparent !important;
+    font-size: 13.5px;
+    font-family: inherit;
+    color: var(--c-dark);
+    padding: 0;
+    outline: none;
+    cursor: pointer;
+    flex: 1;
+    min-width: 110px;
+    height: 100%;
+}
+
+.mov-date-input:focus {
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+.mov-date-input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.65;
+    transition: opacity 0.15s;
+}
+
+.mov-date-input::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}
+
+.mov-btn-clear {
+    height: 42px;
+    padding: 0 20px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13.5px;
+    font-weight: 600;
+    background: #ffffff;
+    border: 1.5px solid var(--c-border);
+    color: var(--c-gray);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.mov-btn-clear:hover {
+    background: #f9fafb;
+    border-color: #cbd5e1;
+    color: var(--c-dark);
+    transform: translateY(-1px);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    
+    <!-- Encabezado de Página -->
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Movimientos del Día</h1>
+            <p class="page-subtitle">Visualiza y procesa la jornalización de las operaciones diarias de la cooperativa.</p>
+        </div>
+    </div>
+
+    <!-- Barra de Filtros Profesional -->
+    <div class="mov-filters-container">
+        <form method="get" action="{{ url_for('movimientos.diarios') }}" class="mov-filters-form">
+            
+            <!-- Grupo de fecha única/rango -->
+            <div class="mov-date-range-group">
+                <span class="mov-filter-label">Fecha</span>
+                <div class="mov-date-range-capsule">
+                    <span class="mov-date-text">desde</span>
+                    <input type="date" id="fecha_desde" name="fecha_desde" value="{{ fecha_desde }}" class="mov-date-input" onchange="this.form.submit()">
+                    <span class="mov-date-text">hasta</span>
+                    <input type="date" id="fecha_hasta" name="fecha_hasta" value="{{ fecha_hasta }}" class="mov-date-input" onchange="this.form.submit()">
+                </div>
+            </div>
+
+            <div class="mov-filter-field">
+                <label for="tipo" class="mov-filter-label">Operación</label>
+                <select id="tipo" name="tipo" class="mov-filter-select" onchange="this.form.submit()">
+                    <option value="todos" {% if tipo_filtro == 'todos' %}selected{% endif %}>Todos los movimientos</option>
+                    <option value="retiros" {% if tipo_filtro == 'retiros' %}selected{% endif %}>Retiros de Ahorro</option>
+                    <option value="prestamos" {% if tipo_filtro == 'prestamos' %}selected{% endif %}>Desembolsos de Préstamos</option>
+                    <option value="amortizaciones" {% if tipo_filtro == 'amortizaciones' %}selected{% endif %}>Amortizaciones de Préstamo</option>
+                    <option value="intereses" {% if tipo_filtro == 'intereses' %}selected{% endif %}>Intereses Generados</option>
+                    <option value="ipf" {% if tipo_filtro == 'ipf' %}selected{% endif %}>IPF sobre Intereses</option>
+                    <option value="cheques" {% if tipo_filtro == 'cheques' %}selected{% endif %}>Operaciones con Cheque</option>
+                </select>
+            </div>
+
+            <div class="mov-filter-field">
+                <label for="estado" class="mov-filter-label">Jornalización</label>
+                <select id="estado" name="estado" class="mov-filter-select" onchange="this.form.submit()">
+                    <option value="todos" {% if estado_filtro == 'todos' %}selected{% endif %}>Todos los estados</option>
+                    <option value="pendientes" {% if estado_filtro == 'pendientes' %}selected{% endif %}>Pendientes de Jornalizar</option>
+                    <option value="jornalizados" {% if estado_filtro == 'jornalizados' %}selected{% endif %}>Jornalizados</option>
+                </select>
+            </div>
+
+            <div style="flex-shrink: 0; display: flex; align-items: flex-end;">
+                <a href="{{ url_for('movimientos.diarios') }}" class="mov-btn-clear">
+                    Limpiar
+                </a>
+            </div>
+
+        </form>
+    </div>
+
+    <!-- Listado de Operaciones -->
+    <div class="card" style="margin-bottom: 100px;">
+        <div class="card-header">
+            <span class="card-title">Listado de Operaciones</span>
+            <span class="badge badge-gray">{{ movimientos|length }} registros</span>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40px; text-align: center;">
+                            <input type="checkbox" id="select-all" style="width: 16px; height: 16px; cursor: pointer;">
+                        </th>
+                        <th>Fecha/Hora</th>
+                        <th>Asociado</th>
+                        <th>Tipo</th>
+                        <th>Referencia</th>
+                        <th>Método</th>
+                        <th class="text-right">Monto</th>
+                        <th>Estado</th>
+                        <th>Concepto / Detalle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in movimientos %}
+                    <tr>
+                        <td style="text-align: center; vertical-align: middle;">
+                            {% if m.jornalizado == 0 %}
+                            <input type="checkbox" class="movement-checkbox" data-id="{{ m.id }}" data-type="{{ m.tipo_origen }}" data-amount="{{ m.monto }}" style="width: 16px; height: 16px; cursor: pointer;">
+                            {% else %}
+                            <span style="color: var(--c-green-mid); font-weight: bold;">✓</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if 'T' in m.fecha %}
+                            {{ m.fecha.split('T')[0] }} <span class="text-muted" style="font-size: 12px;">{{ m.fecha.split('T')[1][:5] }}</span>
+                            {% else %}
+                            {{ m.fecha }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong>{{ m.socio_codigo }}</strong><br>
+                            <span class="text-muted" style="font-size: 13px;">{{ m.socio }}</span>
+                        </td>
+                        <td>
+                            {% if m.sub_tipo == 'retiro' %}
+                            <span class="badge-tipo badge-tipo-retiro">Retiro</span>
+                            {% elif m.sub_tipo == 'desembolso' %}
+                            <span class="badge-tipo badge-tipo-prestamo">Desembolso</span>
+                            {% elif m.sub_tipo == 'amortizacion' %}
+                            <span class="badge-tipo badge-tipo-amortizacion">Amortización</span>
+                            {% elif m.sub_tipo == 'interes' %}
+                            <span class="badge-tipo badge-tipo-interes">Interés</span>
+                            {% elif m.sub_tipo == 'ipf' %}
+                            <span class="badge-tipo badge-tipo-ipf">IPF</span>
+                            {% else %}
+                            <span class="badge-tipo badge-gray">{{ m.sub_tipo|upper }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <code>{{ m.referencia }}</code>
+                            {% if m.doc_ref %}
+                            <br><small class="text-muted">Doc: {{ m.doc_ref }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if m.sub_tipo in ['interes', 'ipf'] %}
+                            <span class="badge badge-gray">Interno</span>
+                            {% elif m.metodo_pago == 'cheque' %}
+                            <span class="badge badge-gold">Cheque</span>
+                            {% else %}
+                            <span class="badge badge-gray">Depósito</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-right amount {% if m.sub_tipo in ['amortizacion', 'interes'] %}amount-positive{% else %}amount-negative{% endif %}" style="font-weight: 500;">
+                            Q{{ "{:,.2f}".format(m.monto) }}
+                        </td>
+                        <td>
+                            {% if m.jornalizado == 1 %}
+                            <span class="badge badge-green">Jornalizado</span><br>
+                            <small class="text-muted" style="font-size: 11px;">{{ m.fecha_jornalizado }} ({{ m.boleta_jornalizado }})</small>
+                            {% else %}
+                            <span class="badge badge-gray">Pendiente</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted" style="font-size: 13px;">{{ m.detalle or '—' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 48px; color: var(--c-gray);">
+                            No se encontraron transacciones para los filtros seleccionados.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Banner de Acción Flotante (Clean bottom bar) -->
+<div class="floating-action-banner" id="action-banner">
+    <div class="banner-content">
+        <span class="banner-badge" id="selected-count">0</span>
+        <span style="font-weight: 500; color: var(--c-dark);">Movimientos seleccionados listos para jornalizar: <strong id="selected-amount">Q0.00</strong></span>
+    </div>
+    <button type="button" class="btn btn-primary" id="btn-abrir-modal">Jornalizar Movimientos (<span id="btn-total-amount">Q0.00</span>)</button>
+</div>
+
+<!-- Modal de Jornalización (Simple Popup) -->
+<div class="modal-backdrop" id="journal-modal">
+    <div class="modal-box">
+        <div class="card-header">
+            <span class="card-title">Jornalizar Movimientos (<span id="modal-total-amount" style="font-weight: 700; color: var(--c-blue);">Q0.00</span>)</span>
+            <button type="button" style="background: transparent; border: none; font-size: 16px; cursor: pointer; float: right; color: var(--c-gray);" id="btn-cerrar-modal">✕</button>
+        </div>
+        <form id="journal-form">
+            <div class="card-body">
+                <div class="form-group mb-3">
+                    <label for="fecha_jornalizacion">Fecha Contable / Diario</label>
+                    <input type="date" id="fecha_jornalizacion" name="fecha_jornalizacion" required value="{{ now.strftime('%Y-%m-%d') }}">
+                </div>
+                <div class="form-group">
+                    <label for="boleta_jornalizacion">Número de Boleta</label>
+                    <input type="text" id="boleta_jornalizacion" name="boleta_jornalizacion" placeholder="Ej: BOL-994825" maxlength="50" required>
+                    <div id="modal-error" class="text-danger small mt-2" style="display: none;"></div>
+                </div>
+            </div>
+            <div class="form-actions" style="margin: 0; padding: 16px 22px; background: var(--c-cream); border-top: 1px solid var(--c-border); justify-content: flex-end;">
+                <button type="button" class="btn btn-outline" id="btn-cancelar-modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary" id="btn-confirmar-jornalizacion">Confirmar Jornalización</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAllCheckbox = document.getElementById('select-all');
+    const movementCheckboxes = document.querySelectorAll('.movement-checkbox');
+    const actionBanner = document.getElementById('action-banner');
+    const selectedCountSpan = document.getElementById('selected-count');
+    const btnAbrirModal = document.getElementById('btn-abrir-modal');
+    const btnCerrarModal = document.getElementById('btn-cerrar-modal');
+    const btnCancelarModal = document.getElementById('btn-cancelar-modal');
+    const journalModal = document.getElementById('journal-modal');
+    const journalForm = document.getElementById('journal-form');
+    const modalError = document.getElementById('modal-error');
+    
+    // Actualizar Banner de Acción
+    function updateBanner() {
+        const checkedBoxes = document.querySelectorAll('.movement-checkbox:checked');
+        const count = checkedBoxes.length;
+        selectedCountSpan.textContent = count;
+        
+        let totalAmount = 0.0;
+        checkedBoxes.forEach(cb => {
+            totalAmount += parseFloat(cb.getAttribute('data-amount') || '0');
+        });
+        
+        const formattedAmount = 'Q' + totalAmount.toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        document.getElementById('selected-amount').textContent = formattedAmount;
+        document.getElementById('modal-total-amount').textContent = formattedAmount;
+        document.getElementById('btn-total-amount').textContent = formattedAmount;
+        
+        if (count > 0) {
+            actionBanner.classList.add('show');
+        } else {
+            actionBanner.classList.remove('show');
+        }
+    }
+    
+    // Checkbox Master
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            movementCheckboxes.forEach(cb => {
+                cb.checked = selectAllCheckbox.checked;
+            });
+            updateBanner();
+        });
+    }
+    
+    // Checkboxes individuales
+    movementCheckboxes.forEach(cb => {
+        cb.addEventListener('change', function() {
+            if (!this.checked && selectAllCheckbox) {
+                selectAllCheckbox.checked = false;
+            }
+            const allChecked = Array.from(movementCheckboxes).every(box => box.checked);
+            if (allChecked && selectAllCheckbox) {
+                selectAllCheckbox.checked = true;
+            }
+            updateBanner();
+        });
+    });
+    
+    // Abrir Modal
+    btnAbrirModal.addEventListener('click', function() {
+        modalError.style.display = 'none';
+        modalError.textContent = '';
+        journalModal.style.display = 'flex';
+    });
+    
+    // Cerrar Modal
+    function closeModal() {
+        journalModal.style.display = 'none';
+    }
+    
+    btnCerrarModal.addEventListener('click', closeModal);
+    btnCancelarModal.addEventListener('click', closeModal);
+    
+    // Cerrar click fuera
+    journalModal.addEventListener('click', function(e) {
+        if (e.target === journalModal) {
+            closeModal();
+        }
+    });
+    
+    // Enviar Jornalización (Fetch API)
+    journalForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const fecha = document.getElementById('fecha_jornalizacion').value;
+        const boleta = document.getElementById('boleta_jornalizacion').value.trim();
+        
+        if (!fecha || !boleta) {
+            modalError.textContent = 'Debe ingresar la fecha y el número de boleta.';
+            modalError.style.display = 'block';
+            return;
+        }
+        
+        const items = [];
+        document.querySelectorAll('.movement-checkbox:checked').forEach(cb => {
+            items.push({
+                id: parseInt(cb.getAttribute('data-id')),
+                tipo_origen: cb.getAttribute('data-type')
+            });
+        });
+        
+        if (items.length === 0) {
+            modalError.textContent = 'Debe seleccionar al menos una transacción.';
+            modalError.style.display = 'block';
+            return;
+        }
+        
+        const btnSubmit = document.getElementById('btn-confirmar-jornalizacion');
+        const originalText = btnSubmit.textContent;
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = 'Procesando...';
+        
+        fetch("{{ url_for('movimientos.jornalizar') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': window._csrfToken || ''
+            },
+            body: JSON.stringify({
+                items: items,
+                fecha_jornalizacion: fecha,
+                boleta_jornalizacion: boleta
+            })
+        })
+        .then(response => response.json().then(data => ({ status: response.status, body: data })))
+        .then(res => {
+            if (res.status === 200 && res.body.success) {
+                closeModal();
+                window.location.reload();
+            } else {
+                modalError.textContent = res.body.error || 'Ocurrió un error inesperado al procesar.';
+                modalError.style.display = 'block';
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = originalText;
+            }
+        })
+        .catch(err => {
+            modalError.textContent = 'Error de conexión. Inténtelo de nuevo.';
+            modalError.style.display = 'block';
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = originalText;
+            console.error('Error:', err);
+        });
+    });
+});
+</script>
+{% endblock %}

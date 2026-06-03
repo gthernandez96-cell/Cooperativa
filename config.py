@@ -40,9 +40,9 @@ TRANSACCIONES_POSITIVAS = {'deposito', 'interes', 'abono', 'transferencia_entrad
 
 # ── Configuraciones de tasas requeridas ────────────────────────────────────────
 REQUIRED_CONFIGURACIONES = [
-    ('ahorro_corriente', 2.5, 'Tasa de interes para Ahorro'),
+    ('ahorro_corriente', 5.0, 'Tasa de interes para Ahorro'),
     ('ahorro_plazo_fijo', 4.0, 'Tasa de interes para Plazo Fijo'),
-    ('ahorro_aportacion', 3.0, 'Tasa de interes para Aportacion'),
+    ('ahorro_aportacion', 5.0, 'Tasa de interes para Aportacion'),
     ('prestamo', 18.0, 'Tasa de interes para Prestamos'),
 ]
 
@@ -74,7 +74,7 @@ SYSTEM_SETTINGS_DEFAULTS = {
 
 # ── Ajustes de ahorro por defecto ──────────────────────────────────────────────
 AHORRO_SETTINGS_DEFAULTS = {
-    'ahorro_tasa_interes_default': '3.5',
+    'ahorro_tasa_interes_default': '5.0',
     'ahorro_saldo_minimo_default': '100.00',
     'ahorro_limite_retiro_diario': '5000.00',
     'ahorro_comision_transferencia': '2.00',
@@ -143,5 +143,8 @@ ROLE_PERMISSION_DEFAULTS = {
     },
     'Asociado': {
         'socios.ver',
+    },
+    'Promotora': {
+        'promotora.ver',
     },
 }

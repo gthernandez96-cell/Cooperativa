@@ -1,215 +1,798 @@
 {% extends "base.html" %}
 {% block title %}{{ socio.nombre_completo }} — {{ cooperativa_nombre }}{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ── Layout & Profile ────────────────────────────────────────── */
+.det-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .det-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.profile-card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid rgba(229, 231, 235, 0.9);
+  padding: 24px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 32, 68, 0.03);
+}
+
+.profile-avatar-container {
+  width: 110px;
+  height: 110px;
+  border-radius: 28px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  border: 3px solid #ffffff;
+  outline: 1px solid #e5e7eb;
+}
+
+.profile-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Fraunces', serif;
+  font-size: 38px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+/* Modern Gradient List */
+.avatar-grad-1 { background: linear-gradient(135deg, #3b82f6, #06b6d4); }
+.avatar-grad-2 { background: linear-gradient(135deg, #10b981, #059669); }
+.avatar-grad-3 { background: linear-gradient(135deg, #8b5cf6, #d946ef); }
+.avatar-grad-4 { background: linear-gradient(135deg, #f59e0b, #ef4444); }
+.avatar-grad-5 { background: linear-gradient(135deg, #ec4899, #f43f5e); }
+
+.profile-name {
+  font-family: 'Fraunces', serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #001f3d;
+  line-height: 1.25;
+  margin-bottom: 6px;
+}
+
+.profile-code {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12.5px;
+  color: #003b74;
+  font-weight: 700;
+  background: rgba(0, 59, 116, 0.06);
+  padding: 4px 12px;
+  border-radius: 8px;
+  display: inline-block;
+  margin-bottom: 20px;
+}
+
+.profile-summary {
+  border-top: 1px solid #f1f5f9;
+  margin-top: 10px;
+  padding-top: 14px;
+  text-align: left;
+}
+
+.profile-summary-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #9ca3af;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.profile-summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.profile-summary-label {
+  font-size: 12px;
+  color: #4b5563;
+}
+
+.profile-summary-value {
+  font-weight: 600;
+  font-size: 13.5px;
+  color: #1a1a1a;
+}
+
+.profile-summary-value.positive {
+  color: #059669;
+}
+
+.profile-summary-value.negative {
+  color: #dc2626;
+}
+
+/* ── Info Panels ────────────────────────────────────────────── */
+.det-panel {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid rgba(229, 231, 235, 0.9);
+  box-shadow: 0 4px 12px rgba(0, 32, 68, 0.02);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.det-panel-header {
+  padding: 14px 20px;
+  background: #f8fafb;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.det-panel-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #003b74;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.det-panel-title svg {
+  color: #4a7ebf;
+}
+
+.det-panel-body {
+  padding: 20px;
+}
+
+/* Fields Grid */
+.fields-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.field-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #9ca3af;
+  font-weight: 700;
+}
+
+.field-value {
+  font-size: 13.5px;
+  color: #1a1a1a;
+  font-weight: 500;
+}
+
+/* Beneficiaries layout */
+.beneficiary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.beneficiary-card {
+  background: #f8fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.beneficiary-card:hover {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+
+.beneficiary-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.beneficiary-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: #001f3d;
+}
+
+.beneficiary-rel {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.beneficiary-pct {
+  font-family: 'Fraunces', serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #003b74;
+}
+
+/* Loan progress component */
+.progress-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 120px;
+}
+
+.progress-track {
+  flex: 1;
+  background: #e5e7eb;
+  height: 6px;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  background: linear-gradient(90deg, #10b981, #059669);
+  height: 100%;
+  border-radius: 99px;
+}
+
+.progress-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #059669;
+  white-space: nowrap;
+}
+
+/* Timeline component */
+.payment-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  padding-left: 20px;
+}
+
+.payment-timeline::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 6px;
+  width: 2px;
+  background: #e5e7eb;
+}
+
+.timeline-item {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+
+.timeline-dot {
+  position: absolute;
+  top: 50%;
+  left: -19px;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #003b74;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 2px rgba(0, 59, 116, 0.15);
+}
+
+.timeline-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.timeline-title {
+  font-weight: 600;
+  font-size: 12.5px;
+  color: #001f3d;
+}
+
+.timeline-meta {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.timeline-amount {
+  font-family: 'Fraunces', serif;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #059669;
+}
+</style>
+{% endblock %}
+
 {% block content %}
+<!-- Page Header -->
 <div class="page-header">
   <div>
     <div class="page-title">{{ socio.nombre_completo }}</div>
-    <div class="page-subtitle">{{ socio.codigo }} · Miembro desde {{ socio.fecha_ingreso }}</div>
+    <div class="page-subtitle">{{ socio.codigo }} · Miembro desde {{ socio.fecha_ingreso or '—' }}</div>
   </div>
-  <div style="display:flex;gap:8px;align-items:center;">
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
     <a href="{{ url_for('socios.socios') }}" class="btn btn-outline">← Asociados</a>
-    <a href="{{ url_for('socios.editar_socio', sid=socio.id) }}" class="btn btn-primary">Editar</a>
+    <a href="{{ url_for('socios.editar_socio', sid=socio.id) }}" class="btn btn-primary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+      Editar
+    </a>
     {% if socio.estado == 'activo' %}
     <form action="{{ url_for('socios.inactivar_socio', sid=socio.id) }}" method="post" style="margin:0;">
-      <button type="submit" class="btn btn-warning" onclick="return confirm('¿Inactivar socio?')">Inactivar</button>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-danger" onclick="return confirm('¿Inactivar socio?')">Inactivar</button>
     </form>
     {% else %}
     <form action="{{ url_for('socios.activar_socio', sid=socio.id) }}" method="post" style="margin:0;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="btn btn-success" onclick="return confirm('¿Activar socio?')">Activar</button>
     </form>
     {% endif %}
   </div>
 </div>
 
-<div style="display:grid; grid-template-columns: 280px 1fr; gap:20px;">
+<!-- Calculate financials for profile summary -->
+{% set savings = namespace(val=0.0) %}
+{% for c in cuentas %}
+  {% if c.estado == 'activa' %}
+    {% set savings.val = savings.val + c.saldo %}
+  {% endif %}
+{% endfor %}
+
+{% set debt = namespace(val=0.0) %}
+{% for p in prestamos %}
+  {% if p.estado == 'aprobado' %}
+    {% set debt.val = debt.val + (p.saldo_pendiente or 0.0) %}
+  {% endif %}
+{% endfor %}
+
+<div class="det-grid">
+  <!-- Left Side: Profile & Consolidated info -->
   <div>
-    <div class="card">
-      <div class="card-body">
-        <div style="width:88px;height:88px;border-radius:50%;background:#d8f3dc;display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:28px;color:#2d6a4f;font-weight:700;margin-bottom:12px;overflow:hidden;border:2px solid #cfe8d5;">
-          {% if socio.foto %}
-          <img src="{{ url_for('static', filename=socio.foto) }}" alt="Foto de {{ socio.nombre_completo }}" style="width:100%;height:100%;object-fit:cover;">
+    <div class="profile-card">
+      <div class="profile-avatar-container">
+        {% if socio.foto %}
+        <img src="{{ url_for('static', filename=socio.foto) }}" alt="Foto de {{ socio.nombre_completo }}" class="profile-avatar">
+        {% else %}
+          {% set char_lower = (socio.primer_nombre or socio.nombre or 'A')[0] | lower %}
+          {% if char_lower in 'abcdef' %}
+            {% set grad_class = 'avatar-grad-1' %}
+          {% elif char_lower in 'ghijkl' %}
+            {% set grad_class = 'avatar-grad-2' %}
+          {% elif char_lower in 'mnopqr' %}
+            {% set grad_class = 'avatar-grad-3' %}
+          {% elif char_lower in 'stuvw' %}
+            {% set grad_class = 'avatar-grad-4' %}
           {% else %}
-          {{ socio.primer_nombre[:1] }}{{ socio.primer_apellido[:1] }}
+            {% set grad_class = 'avatar-grad-5' %}
           {% endif %}
+          <div class="profile-avatar-placeholder {{ grad_class }}">
+            {{ socio.primer_nombre[:1]|upper }}{{ socio.primer_apellido[:1]|upper }}
+          </div>
+        {% endif %}
+      </div>
+      
+      <div class="profile-name">{{ socio.nombre_completo }}</div>
+      <div class="profile-code">{{ socio.codigo }}</div>
+      
+      <div style="margin-top:4px;">
+        <span class="soc-badge {{ socio.estado or 'inactivo' }}">
+          <span class="soc-badge-dot"></span>
+          {{ (socio.estado or 'inactivo')|capitalize }}
+        </span>
+      </div>
+
+      <div class="profile-summary">
+        <div class="profile-summary-title">Resumen Financiero</div>
+        
+        <div class="profile-summary-item">
+          <span class="profile-summary-label">Total Ahorrado</span>
+          <span class="profile-summary-value positive">Q{{ "{:,.2f}".format(savings.val) }}</span>
         </div>
-        <p style="font-weight:500;font-size:17px;">{{ socio.nombre_completo }}</p>
-        <p style="font-size:13px;color:#6b7280;margin-top:2px;">{{ socio.codigo }}</p>
-        <div style="margin-top:16px;">
-          <span class="badge {% if socio.estado=='activo' %}badge-green{% else %}badge-gray{% endif %}">{{ socio.estado.capitalize() }}</span>
+        
+        <div class="profile-summary-item">
+          <span class="profile-summary-label">Deuda Pendiente</span>
+          <span class="profile-summary-value negative">Q{{ "{:,.2f}".format(debt.val) }}</span>
+        </div>
+
+        <div class="profile-summary-item">
+          <span class="profile-summary-label">Cuentas Activas</span>
+          <span class="profile-summary-value">{{ cuentas|selectattr('estado', 'equalto', 'activa')|list|length }}</span>
+        </div>
+
+        <div class="profile-summary-item">
+          <span class="profile-summary-label">Préstamos Activos</span>
+          <span class="profile-summary-value">{{ prestamos|selectattr('estado', 'equalto', 'aprobado')|list|length }}</span>
         </div>
       </div>
     </div>
   </div>
 
-  <div style="display:flex;flex-direction:column;gap:20px;">
-    <div class="card">
-      <div class="card-header"><span class="card-title">Información Personal</span></div>
-      <div class="card-body">
-        <div class="form-grid">
-          <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Primer nombre</div><div style="margin-top:4px;">{{ socio.primer_nombre or '—' }}</div></div>
-          <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Segundo nombre</div><div style="margin-top:4px;">{{ socio.segundo_nombre or '—' }}</div></div>
-          <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Tercer nombre</div><div style="margin-top:4px;">{{ socio.tercer_nombre or '—' }}</div></div>
-          <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Primer apellido</div><div style="margin-top:4px;">{{ socio.primer_apellido or '—' }}</div></div>
-          <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Segundo apellido</div><div style="margin-top:4px;">{{ socio.segundo_apellido or '—' }}</div></div>
-          <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Estado civil</div><div style="margin-top:4px;">{{ socio.estado_civil or '—' }}</div></div>
-          {% if socio.estado_civil == 'Casado' %}
-          <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Apellido de casada</div><div style="margin-top:4px;">{{ socio.apellido_casada or '—' }}</div></div>
+  <!-- Right Side: Details Tabs -->
+  <div style="display:flex; flex-direction:column;">
+    
+    <!-- Personal Information Card -->
+    <div class="det-panel">
+      <div class="det-panel-header">
+        <div class="det-panel-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Información Personal
+        </div>
+      </div>
+      <div class="det-panel-body">
+        <div class="fields-grid">
+          <div class="field-item">
+            <span class="field-label">Primer Nombre</span>
+            <span class="field-value">{{ socio.primer_nombre or '—' }}</span>
+          </div>
+          <div class="field-item">
+            <span class="field-label">Segundo Nombre</span>
+            <span class="field-value">{{ socio.segundo_nombre or '—' }}</span>
+          </div>
+          <div class="field-item">
+            <span class="field-label">Tercer Nombre</span>
+            <span class="field-value">{{ socio.tercer_nombre or '—' }}</span>
+          </div>
+          <div class="field-item">
+            <span class="field-label">Primer Apellido</span>
+            <span class="field-value">{{ socio.primer_apellido or '—' }}</span>
+          </div>
+          <div class="field-item">
+            <span class="field-label">Segundo Apellido</span>
+            <span class="field-value">{{ socio.segundo_apellido or '—' }}</span>
+          </div>
+          <div class="field-item">
+            <span class="field-label">Estado Civil</span>
+            <span class="field-value">{{ socio.estado_civil or '—' }}</span>
+          </div>
+          {% if socio.estado_civil == 'Casado' and socio.apellido_casada %}
+          <div class="field-item">
+            <span class="field-label">Apellido de Casada</span>
+            <span class="field-value">{{ socio.apellido_casada }}</span>
+          </div>
           {% endif %}
-          <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">DPI</div><div style="margin-top:4px;">{{ socio.dpi or '—' }}</div></div>
-          <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Teléfono</div><div style="margin-top:4px;">{{ socio.telefono or '—' }}</div></div>
-          <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Email</div><div style="margin-top:4px;">{{ socio.email or '—' }}</div></div>
-          <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">NIT</div><div style="margin-top:4px;">{{ socio.nit or '—' }}</div></div>
-          <div style="grid-column:span 2;"><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Dirección</div><div style="margin-top:4px;">{{ socio.direccion or '—' }}</div></div>
-          <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Departamento</div><div style="margin-top:4px;">{{ socio.departamento or '—' }}</div></div>
-          <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Municipio</div><div style="margin-top:4px;">{{ socio.municipio or '—' }}</div></div>
-          <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Salario</div><div style="margin-top:4px;">{{ "{:.2f}".format(socio.salario) if socio.salario else '—' }}</div></div>
-          <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Fecha ingreso a laborar</div><div style="margin-top:4px;">{{ socio.fecha_ingreso_laborar or '—' }}</div></div>
-          <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Fecha ingreso a la cooperativa</div><div style="margin-top:4px;">{{ socio.fecha_ingreso or '—' }}</div></div>
+          <div class="field-item">
+            <span class="field-label">DPI</span>
+            <span class="field-value" style="font-variant-numeric: tabular-nums;">{{ socio.dpi or '—' }}</span>
+          </div>
+          <div class="field-item">
+            <span class="field-label">Teléfono</span>
+            <span class="field-value">{{ socio.telefono or '—' }}</span>
+          </div>
+          <div class="field-item">
+            <span class="field-label">Email</span>
+            <span class="field-value">{{ socio.email or '—' }}</span>
+          </div>
+          <div class="field-item">
+            <span class="field-label">NIT</span>
+            <span class="field-value">{{ socio.nit or '—' }}</span>
+          </div>
+          <div class="field-item" style="grid-column: span 2;">
+            <span class="field-label">Dirección</span>
+            <span class="field-value">{{ socio.direccion or '—' }}</span>
+          </div>
+          <div class="field-item">
+            <span class="field-label">Departamento</span>
+            <span class="field-value">{{ socio.departamento or '—' }}</span>
+          </div>
+          <div class="field-item">
+            <span class="field-label">Municipio</span>
+            <span class="field-value">{{ socio.municipio or '—' }}</span>
+          </div>
+          <div class="field-item">
+            <span class="field-label">Salario</span>
+            <span class="field-value">{% if socio.salario %}Q{{ "{:,.2f}".format(socio.salario) }}{% else %}—{% endif %}</span>
+          </div>
+          <div class="field-item">
+            <span class="field-label">Ingreso Laborar</span>
+            <span class="field-value">{{ socio.fecha_ingreso_laborar or '—' }}</span>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-header"><span class="card-title">Beneficiarios</span></div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Nombre</th><th>Parentesco</th><th>DPI</th><th>Porcentaje</th></tr></thead>
-          <tbody>
-            {% for beneficiario in beneficiarios %}
-            <tr>
-              <td>{{ beneficiario.nombre }}</td>
-              <td style="font-size:13px;color:#6b7280;">{{ beneficiario.parentesco }}</td>
-              <td style="font-size:13px;color:#6b7280;">{{ beneficiario.dpi or '—' }}</td>
-              <td style="font-weight:600;color:#002a50;">{{ "{:.2f}".format(beneficiario.porcentaje) }}%</td>
-            </tr>
-            {% else %}
-            <tr><td colspan="4" style="text-align:center;color:#9ca3af;padding:20px;">Sin beneficiarios registrados.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
+    <!-- Beneficiarios -->
+    <div class="det-panel">
+      <div class="det-panel-header">
+        <div class="det-panel-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Beneficiarios
+        </div>
       </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header"><span class="card-title">Datos Bancarios</span></div>
-      <div class="card-body">
-        <div class="form-grid">
-          <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Banco</div><div style="margin-top:4px;">{{ socio.banco_nombre or '—' }}</div></div>
-          <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Tipo de cuenta</div><div style="margin-top:4px;">{{ socio.banco_tipo_cuenta or '—' }}</div></div>
-          <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Número de cuenta</div><div style="margin-top:4px;">{{ socio.banco_numero_cuenta or '—' }}</div></div>
+      <div class="det-panel-body">
+        <div class="beneficiary-cards">
+          {% for beneficiario in beneficiarios %}
+          <div class="beneficiary-card">
+            <div class="beneficiary-info">
+              <span class="beneficiary-name">{{ beneficiario.nombre }}</span>
+              <span class="beneficiary-rel">{{ beneficiario.parentesco }}{% if beneficiario.dpi %} · DPI: {{ beneficiario.dpi }}{% endif %}</span>
+            </div>
+            <span class="beneficiary-pct">{{ "{:.1f}".format(beneficiario.porcentaje) }}%</span>
+          </div>
+          {% else %}
+          <div style="grid-column: span 2; text-align:center; color:#9ca3af; padding:10px 0;">Sin beneficiarios registrados.</div>
+          {% endfor %}
         </div>
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-header"><span class="card-title">Ahorro y Datos Complementarios</span></div>
-      <div class="card-body">
-        <div class="form-grid">
-          <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Frecuencia</div><div style="margin-top:4px;">{{ socio.frecuencia or '—' }}</div></div>
-          <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Cuota de ahorro</div><div style="margin-top:4px;">{% if socio.cuota_ahorro %}Q{{ "{:,.2f}".format(socio.cuota_ahorro) }}{% else %}—{% endif %}</div></div>
-          <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Tipo de ahorro</div><div style="margin-top:4px;">{{ socio.tipo_ahorro or '—' }}</div></div>
-          <div><div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Finca</div><div style="margin-top:4px;">{{ socio.finca or '—' }}</div></div>
+    <!-- Cuentas Bancarias / Ahorros -->
+    <div class="det-panel">
+      <div class="det-panel-header">
+        <div class="det-panel-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+          Datos Bancarios y Ahorro
+        </div>
+      </div>
+      <div class="det-panel-body">
+        <div class="fields-grid" style="margin-bottom:20px; border-bottom:1px solid #f1f5f9; padding-bottom:16px;">
+          <div class="field-item">
+            <span class="field-label">Banco</span>
+            <span class="field-value">{{ socio.banco_nombre or '—' }}</span>
+          </div>
+          <div class="field-item">
+            <span class="field-label">Tipo de Cuenta</span>
+            <span class="field-value">{{ socio.banco_tipo_cuenta or '—' }}</span>
+          </div>
+          <div class="field-item">
+            <span class="field-label">Número de Cuenta</span>
+            <span class="field-value" style="font-variant-numeric: tabular-nums;">{{ socio.banco_numero_cuenta or '—' }}</span>
+          </div>
+          <div class="field-item">
+            <span class="field-label">Frecuencia de Ahorro</span>
+            <span class="field-value">{% if socio.frecuencia %}<span class="frec-chip">{{ socio.frecuencia }}</span>{% else %}—{% endif %}</span>
+          </div>
+          <div class="field-item">
+            <span class="field-label">Cuota Ahorro</span>
+            <span class="field-value">{% if socio.cuota_ahorro %}Q{{ "{:,.2f}".format(socio.cuota_ahorro) }}{% else %}—{% endif %}</span>
+          </div>
+          <div class="field-item">
+            <span class="field-label">Tipo Ahorro</span>
+            <span class="field-value">{{ (socio.tipo_ahorro or '—')|capitalize }}</span>
+          </div>
+          <div class="field-item">
+            <span class="field-label">Finca</span>
+            <span class="field-value">{{ socio.finca or '—' }}</span>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <span style="font-weight:700; color:#001f3d; font-size:13px;">Cuentas Cooperativa ({{ cuentas|length }})</span>
+          <a href="{{ url_for('ahorro.nueva_cuenta') }}" class="btn btn-outline btn-sm">+ Abrir cuenta</a>
+        </div>
+        
+        <div class="table-wrap">
+          <table class="soc-table">
+            <thead>
+              <tr>
+                <th>Número</th>
+                <th>Tipo</th>
+                <th>Tasa</th>
+                <th>Estado</th>
+                <th style="text-align:right;">Saldo</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in cuentas %}
+              <tr>
+                <td style="font-weight:700; color:#003b74;">{{ c.numero }}</td>
+                <td><span class="badge badge-gray">{{ c.tipo.capitalize() }}</span></td>
+                <td style="font-size:12.5px; color:#4b5563;">{{ c.tasa_interes }}%</td>
+                <td>
+                  <span class="badge {% if c.estado=='activa' %}badge-green{% else %}badge-gray{% endif %}">
+                    {{ c.estado }}
+                  </span>
+                </td>
+                <td style="text-align:right; font-weight:700;" class="amount">Q{{ "{:,.2f}".format(c.saldo) }}</td>
+                <td style="text-align:right;">
+                  <a href="{{ url_for('ahorro.detalle_cuenta', cid=c.id) }}" class="btn btn-outline btn-sm">Ver</a>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="6" style="text-align:center;color:#9ca3af;padding:20px;">Sin cuentas registradas.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Cuentas ({{ cuentas|length }})</span>
-        <a href="{{ url_for('ahorro.nueva_cuenta') }}" class="btn btn-outline btn-sm">+ Abrir cuenta</a>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Número</th><th>Tipo</th><th>Saldo</th><th>Tasa</th><th>Estado</th><th></th></tr></thead>
-          <tbody>
-            {% for c in cuentas %}
-            <tr>
-              <td style="font-family:'Fraunces',serif;color:#2d6a4f;font-weight:500;">{{ c.numero }}</td>
-              <td><span class="badge badge-gray">{{ c.tipo.capitalize() }}</span></td>
-              <td class="amount">Q{{ "{:,.2f}".format(c.saldo) }}</td>
-              <td style="font-size:13px;color:#6b7280;">{{ c.tasa_interes }}%</td>
-              <td><span class="badge {% if c.estado=='activa' %}badge-green{% else %}badge-gray{% endif %}">{{ c.estado }}</span></td>
-              <td><a href="{{ url_for('ahorro.detalle_cuenta', cid=c.id) }}" class="btn btn-outline btn-sm">Ver</a></td>
-            </tr>
-            {% else %}
-            <tr><td colspan="6" style="text-align:center;color:#9ca3af;padding:20px;">Sin cuentas</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Préstamos ({{ prestamos|length }})</span>
-        <div style="display:flex;gap:8px;align-items:center;">
+    <!-- Préstamos -->
+    <div class="det-panel">
+      <div class="det-panel-header">
+        <div class="det-panel-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          Préstamos ({{ prestamos|length }})
+        </div>
+        <div style="display:flex; gap:8px;">
           <a href="{{ url_for('prestamos.estado_cuenta_prestamo', sid=socio.id) }}" class="btn btn-outline btn-sm">Estado de cuenta</a>
           <a href="{{ url_for('prestamos.nuevo_prestamo') }}" class="btn btn-outline btn-sm">+ Solicitar</a>
         </div>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Número</th><th>Categoría</th><th>Desembolso</th><th>Monto</th><th>Plazo</th><th>Cuota</th><th>Saldo</th><th>Cuotas pagadas</th><th>Estado cuenta</th><th>Estado</th><th></th></tr></thead>
-          <tbody>
-            {% for p in prestamos %}
-            <tr>
-              <td style="font-family:'Fraunces',serif;color:#2d6a4f;font-weight:500;">{{ p.numero }}</td>
-              <td style="font-size:13px;color:#6b7280;">{{ p.categoria_nombre or '—' }}</td>
-              <td style="font-size:13px;color:#6b7280;">{{ (p.desembolso_tipo or '—')|capitalize }}{% if p.desembolso_referencia %}<br><span style="font-size:11px;color:#9ca3af;">{{ p.desembolso_referencia }}</span>{% endif %}</td>
-              <td class="amount">Q{{ "{:,.2f}".format(p.monto_solicitado) }}</td>
-              <td style="font-size:13px;">{{ p.plazo_meses }} meses</td>
-              <td class="amount" style="font-size:13px;">{% if p.cuota_mensual %}Q{{ "{:,.2f}".format(p.cuota_mensual) }}{% else %}—{% endif %}</td>
-              <td class="amount" style="color:#dc2626;">{% if p.saldo_pendiente %}Q{{ "{:,.2f}".format(p.saldo_pendiente) }}{% else %}—{% endif %}</td>
-              <td style="font-size:13px;">
-                {{ p.pagos_realizados }}
-                {% if p.total_cuotas %}
-                  / {{ p.total_cuotas }}
-                {% endif %}
-              </td>
-              <td style="font-size:13px;color:#6b7280;">{{ p.estado_cuenta }}</td>
-              <td>
-                <span class="badge {% if p.estado=='aprobado' %}badge-green{% elif p.estado=='pendiente' %}badge-gold{% elif p.estado=='pagado' %}badge-gray{% elif p.estado=='no_procede' %}badge-red{% else %}badge-red{% endif %}">
-                  {{ 'No procede' if p.estado == 'no_procede' else p.estado.capitalize() }}
-                </span>
-              </td>
-              <td><a href="{{ url_for('prestamos.detalle_prestamo', pid=p.id) }}" class="btn btn-outline btn-sm">Ver</a></td>
-            </tr>
-            {% else %}
-            <tr><td colspan="11" style="text-align:center;color:#9ca3af;padding:20px;">Sin préstamos</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      <div class="det-panel-body" style="padding: 0;">
+        <div class="table-wrap">
+          <table class="soc-table">
+            <thead>
+              <tr>
+                <th>Número</th>
+                <th>Categoría</th>
+                <th>Monto Aprobado</th>
+                <th>Plazo / Cuota</th>
+                <th>Progreso Pago</th>
+                <th style="text-align:right;">Saldo Pendiente</th>
+                <th>Estado</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in prestamos %}
+              {% set pct_pagado = 0 %}
+              {% if p.monto_aprobado and p.saldo_pendiente is not none and p.monto_aprobado > 0 %}
+                {% set pct_pagado = (((p.monto_aprobado - p.saldo_pendiente) / p.monto_aprobado) * 100) | int %}
+                {% if pct_pagado < 0 %}{% set pct_pagado = 0 %}{% endif %}
+                {% if pct_pagado > 100 %}{% set pct_pagado = 100 %}{% endif %}
+              {% endif %}
+              <tr class="{% if p.estado != 'aprobado' %}loan-row-inactive{% endif %}" {% if p.estado != 'aprobado' %}style="display: none;"{% endif %}>
+                <td style="font-weight:700; color:#003b74;">{{ p.numero }}</td>
+                <td>
+                  <span style="font-size:12.5px; color:#4b5563;">{{ p.categoria_nombre or '—' }}</span>
+                  {% if p.desembolso_tipo %}
+                  <div style="font-size:10px; color:#9ca3af;">{{ p.desembolso_tipo|capitalize }}</div>
+                  {% endif %}
+                </td>
+                <td class="amount" style="font-weight:600;">Q{{ "{:,.2f}".format(p.monto_solicitado) }}</td>
+                <td style="font-size:12.5px; color:#4b5563;">
+                  <div>{{ p.plazo_meses }} meses</div>
+                  <div style="font-size:11px; color:#9ca3af;">Cuota: Q{{ "{:,.2f}".format(p.cuota_mensual or 0) }}</div>
+                </td>
+                <td>
+                  {% if p.estado == 'aprobado' %}
+                  <div class="progress-container">
+                    <div class="progress-track">
+                      <div class="progress-fill" style="width: {{ pct_pagado }}%;"></div>
+                    </div>
+                    <span class="progress-label">{{ pct_pagado }}%</span>
+                  </div>
+                  {% else %}—{% endif %}
+                </td>
+                <td style="text-align:right; font-weight:700; color:#dc2626;" class="amount">
+                  {% if p.saldo_pendiente is not none %}Q{{ "{:,.2f}".format(p.saldo_pendiente) }}{% else %}—{% endif %}
+                </td>
+                <td>
+                  <span class="badge {% if p.estado=='aprobado' %}badge-green{% elif p.estado=='pendiente' %}badge-gold{% elif p.estado=='pagado' %}badge-gray{% else %}badge-red{% endif %}">
+                    {{ 'No procede' if p.estado == 'no_procede' else p.estado.capitalize() }}
+                  </span>
+                </td>
+                <td style="text-align:right;">
+                  <a href="{{ url_for('prestamos.detalle_prestamo', pid=p.id) }}" class="btn btn-outline btn-sm">Ver</a>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:20px;">Sin préstamos.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% set has_inactive_loans = namespace(val=false) %}
+        {% for p in prestamos %}
+          {% if p.estado != 'aprobado' %}
+            {% set has_inactive_loans.val = true %}
+          {% endif %}
+        {% endfor %}
+        {% if has_inactive_loans.val %}
+        <div style="padding: 12px; text-align: center; border-top: 1px solid #f1f5f9;">
+          <button id="btn-toggle-loans" class="btn btn-outline btn-sm">Ver todos los préstamos</button>
+        </div>
+        {% endif %}
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Historial de pagos de préstamos ({{ pagos_prestamos|length }})</span>
+    <!-- Pagos de préstamos -->
+    <div class="det-panel">
+      <div class="det-panel-header">
+        <div class="det-panel-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><polyline points="12 6 12 12 16 14"/></svg>
+          Historial de Pagos de Préstamos ({{ pagos_prestamos|length }})
+        </div>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Fecha</th><th>Préstamo</th><th>Monto pagado</th><th>Capital</th><th>Interés</th><th>Saldo restante</th><th>Boleta</th><th>Comprobante</th></tr></thead>
-          <tbody>
-            {% for pago in pagos_prestamos %}
-            <tr>
-              <td style="font-size:13px;">{{ pago.fecha }}</td>
-              <td style="font-family:'Fraunces',serif;color:#2d6a4f;font-weight:500;">{{ pago.numero_prestamo }}</td>
-              <td class="amount">Q{{ "{:,.2f}".format(pago.monto) }}</td>
-              <td class="amount" style="font-size:13px;">Q{{ "{:,.2f}".format(pago.capital) }}</td>
-              <td class="amount" style="font-size:13px;">Q{{ "{:,.2f}".format(pago.interes) }}</td>
-              <td class="amount" style="color:#dc2626;">Q{{ "{:,.2f}".format(pago.saldo_restante) }}</td>
-              <td style="font-size:13px;">{{ pago.boleta_deposito or '—' }}</td>
-              <td>
-                <a href="{{ url_for('prestamos.comprobante_pago_prestamo', pago_id=pago.id) }}" class="btn btn-outline btn-sm">Ver</a>
-              </td>
-            </tr>
-            {% else %}
-            <tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:20px;">Sin pagos registrados de préstamos.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      <div class="det-panel-body">
+        <div class="payment-timeline">
+          {% for pago in pagos_prestamos %}
+          <div class="timeline-item {% if loop.index > 3 %}payment-row-hidden{% endif %}" {% if loop.index > 3 %}style="display: none;"{% endif %}>
+            <span class="timeline-dot"></span>
+            <div class="timeline-details">
+              <span class="timeline-title">Abono a Préstamo {{ pago.numero_prestamo }}</span>
+              <span class="timeline-meta">
+                Fecha: <strong>{{ pago.fecha }}</strong> · Boleta: <strong>{{ pago.boleta_deposito or '—' }}</strong>
+                {% if pago.capital or pago.interes %}
+                (Cap: Q{{ "{:,.2f}".format(pago.capital or 0) }} · Int: Q{{ "{:,.2f}".format(pago.interes or 0) }})
+                {% endif %}
+              </span>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <span class="timeline-amount">Q{{ "{:,.2f}".format(pago.monto) }}</span>
+              <a href="{{ url_for('prestamos.comprobante_pago_prestamo', pago_id=pago.id) }}" class="btn btn-outline btn-sm">Comprobante</a>
+            </div>
+          </div>
+          {% else %}
+          <div style="text-align:center; color:#9ca3af; padding:10px 0; margin-left:-20px;">Sin pagos de préstamos registrados.</div>
+          {% endfor %}
+        </div>
+        {% if pagos_prestamos|length > 3 %}
+        <div style="padding-top: 14px; text-align: center; border-top: 1px dashed #e5e7eb; margin-top: 12px;">
+          <button id="btn-toggle-payments" class="btn btn-outline btn-sm">Ver todos los pagos</button>
+        </div>
+        {% endif %}
       </div>
     </div>
+
   </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle for Inactive Loans
+    const btnToggleLoans = document.getElementById('btn-toggle-loans');
+    const inactiveLoans = document.querySelectorAll('.loan-row-inactive');
+    let showingAllLoans = false;
+    
+    if (btnToggleLoans && inactiveLoans.length > 0) {
+        btnToggleLoans.addEventListener('click', function() {
+            showingAllLoans = !showingAllLoans;
+            inactiveLoans.forEach(row => {
+                row.style.display = showingAllLoans ? '' : 'none';
+            });
+            btnToggleLoans.textContent = showingAllLoans ? 'Ver solo préstamos activos' : 'Ver todos los préstamos';
+        });
+    }
+
+    // Toggle for Payment History (Timeline)
+    const btnTogglePayments = document.getElementById('btn-toggle-payments');
+    const hiddenPayments = document.querySelectorAll('.payment-row-hidden');
+    let showingAllPayments = false;
+    
+    if (btnTogglePayments && hiddenPayments.length > 0) {
+        btnTogglePayments.addEventListener('click', function() {
+            showingAllPayments = !showingAllPayments;
+            hiddenPayments.forEach(item => {
+                item.style.display = showingAllPayments ? 'flex' : 'none';
+            });
+            btnTogglePayments.textContent = showingAllPayments ? 'Ver menos' : 'Ver todos los pagos';
+        });
+    }
+});
+</script>
 {% endblock %}

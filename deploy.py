@@ -1,126 +1,147 @@
 #!/usr/bin/env python3
 """
-deploy.py — Despliega CoopAhorro a PythonAnywhere (cuenta gratuita).
+deploy.py — Despliegue Total para CoopAhorro en PythonAnywhere.
+Empaqueta el código, base de datos e imágenes, lo sube y recarga el servidor.
 
 Uso:
-    python deploy.py              # git push + abre consola PA + recarga webapp
-    python deploy.py --no-push    # Solo abre consola PA + recarga webapp
-    python deploy.py --only-push  # Solo git push
-    python deploy.py --reload     # Solo recarga la webapp (ya hiciste git pull)
+    python deploy.py
 """
 
 import sys
 import time
 import subprocess
-import argparse
 import urllib.request
 import urllib.parse
 import json
+import os
 
 # ── Configuración ─────────────────────────────────────────────────────────────
 PA_USER      = "gthernandez96"
 PA_API_TOKEN = "1e628583fd7c3b8aeadcf91b5ae29aa820f6daea"
 PA_DOMAIN    = f"{PA_USER}.pythonanywhere.com"
-PA_APP_DIR   = f"/home/{PA_USER}/Cooperativa"
-PA_VENV      = f"{PA_APP_DIR}/.venv"
 BASE_URL     = f"https://www.pythonanywhere.com/api/v0/user/{PA_USER}"
 HEADERS      = {"Authorization": f"Token {PA_API_TOKEN}"}
-PA_CONSOLE_URL = "https://www.pythonanywhere.com/user/gthernandez96/consoles/"
+ZIP_NAME     = "coop_deploy.zip"
+ZIP_PATH     = f"/tmp/{ZIP_NAME}"
 # ─────────────────────────────────────────────────────────────────────────────
-
 
 def pa_request(method, endpoint, data=None, expect_json=True):
     url = f"{BASE_URL}{endpoint}"
     body = urllib.parse.urlencode(data).encode() if data else None
     req = urllib.request.Request(url, data=body, headers=HEADERS, method=method)
     try:
-        with urllib.request.urlopen(req, timeout=30) as r:
+        with urllib.request.urlopen(req, timeout=45) as r:
             raw = r.read()
-            if not raw or not expect_json:
-                return True
+            if not raw or not expect_json: return True
             return json.loads(raw)
-    except urllib.error.HTTPError as e:
-        err = e.read().decode()
-        print(f"  ✗ Error HTTP {e.code}: {err}")
+    except Exception as e:
+        print(f"  ✗ Error en API PythonAnywhere: {e}")
         return None
 
-
-def git_push():
-    print("\n📦 [1/3] Subiendo cambios a GitHub...")
-    r = subprocess.run(["git", "push", "origin", "main"],
-                       capture_output=True, text=True)
+def pack_project():
+    print(f"\n📦 [1/4] Empaquetando el proyecto local...")
+    if os.path.exists(ZIP_PATH):
+        os.remove(ZIP_PATH)
+    
+    # Comprimir ignorando carpetas pesadas/innecesarias
+    cmd = [
+        "zip", "-q", "-r", ZIP_PATH, ".", 
+        "-x", "*.git*", "*.venv*", "*__pycache__*", "*.pytest_cache*", "*instance*"
+    ]
+    r = subprocess.run(cmd)
     if r.returncode == 0:
-        print("  ✓ git push completado")
+        size = os.path.getsize(ZIP_PATH) / (1024 * 1024)
+        print(f"  ✓ Empaquetado listo ({size:.1f} MB)")
         return True
-    if "up-to-date" in r.stderr or "up to date" in r.stderr:
-        print("  ✓ Ya estaba actualizado en GitHub")
-        return True
-    print(f"  ✗ git push falló:\n{r.stderr}")
+    print("  ✗ Error al empaquetar")
     return False
 
+def upload_zip():
+    print(f"\n☁️ [2/4] Subiendo a PythonAnywhere...")
+    with open(ZIP_PATH, "rb") as fh:
+        data = fh.read()
 
-def open_pa_console():
-    """Abre la consola de PythonAnywhere en el navegador."""
-    print(f"\n🌐 [2/3] Abriendo la consola de PythonAnywhere en el navegador...")
-    subprocess.run(["open", PA_CONSOLE_URL])
-    print(f"  ✓ Consola abierta: {PA_CONSOLE_URL}")
-    print()
-    print("  ┌─────────────────────────────────────────────────────────┐")
-    print("  │  En la consola Bash de PythonAnywhere, ejecuta:         │")
-    print(f"  │  cd ~/Cooperativa && git pull origin main               │")
-    print("  │                                                         │")
-    print("  │  Luego regresa aquí y presiona ENTER para continuar.    │")
-    print("  └─────────────────────────────────────────────────────────┘")
-    input("\n  ▶ Presiona ENTER cuando hayas ejecutado git pull... ")
+    boundary = b"----boundary"
+    body  = b"--" + boundary + b"\r\n"
+    body += b'Content-Disposition: form-data; name="content"; filename="file"\r\n'
+    body += b"Content-Type: application/zip\r\n\r\n"
+    body += data + b"\r\n"
+    body += b"--" + boundary + b"--\r\n"
 
+    req = urllib.request.Request(
+        f"{BASE_URL}/files/path/home/{PA_USER}/{ZIP_NAME}",
+        data=body,
+        headers={
+            "Authorization": f"Token {PA_API_TOKEN}",
+            "Content-Type": "multipart/form-data; boundary=----boundary",
+        },
+        method="POST"
+    )
+
+    try:
+        with urllib.request.urlopen(req) as r:
+            print("  ✓ Archivo subido exitosamente")
+            return True
+    except Exception as e:
+        print(f"  ✗ Error al subir: {e}")
+        return False
+
+def extract_and_install():
+    print("\n⚙️ [3/4] Descomprimiendo y actualizando el servidor...")
+    
+    console = pa_request("POST", "/consoles/", {"executable": "bash"})
+    if not console:
+        consoles = pa_request("GET", "/consoles/")
+        if consoles: console = consoles[0]
+        else: return False
+
+    cid = console["id"]
+    time.sleep(2)
+    
+    script = f"""
+    cd /home/{PA_USER}
+    mkdir -p Cooperativa
+    cd Cooperativa
+    unzip -q -o ../{ZIP_NAME}
+    if [ ! -d ".venv" ]; then python3.12 -m venv .venv; fi
+    .venv/bin/pip install -q -r requirements.txt
+    rm ../{ZIP_NAME}
+    echo "=== DONE ==="
+    """
+    
+    pa_request("POST", f"/consoles/{cid}/send_input/", {"input": script + "\n"})
+    
+    print("  ⏳ Procesando (esto toma unos 15 segundos)", end="")
+    success = False
+    for _ in range(8):
+        time.sleep(4)
+        print(".", end="", flush=True)
+        out = pa_request("GET", f"/consoles/{cid}/get_latest_output/")
+        if out and "output" in out and "=== DONE ===" in out["output"]:
+            success = True
+            break
+            
+    print("\n  ✓ Servidor actualizado" if success else "\n  ⚠ El proceso sigue en segundo plano")
+    pa_request("DELETE", f"/consoles/{cid}/")
+    return True
 
 def reload_webapp():
-    print("\n🔄 [3/3] Recargando aplicación web en PythonAnywhere...")
-    result = pa_request("POST", f"/webapps/{PA_DOMAIN}/reload/", expect_json=False)
-    if result:
-        print("  ✓ Aplicación recargada exitosamente")
+    print("\n🔄 [4/4] Recargando aplicación web...")
+    if pa_request("POST", f"/webapps/{PA_DOMAIN}/reload/", expect_json=False):
+        print("  ✓ Aplicación recargada")
         return True
-    print("  ✗ No se pudo recargar — recárgala manualmente desde la pestaña Web")
     return False
 
-
 def main():
-    parser = argparse.ArgumentParser(description="Deploy CoopAhorro → PythonAnywhere (free)")
-    parser.add_argument("--no-push",   action="store_true", help="No hacer git push")
-    parser.add_argument("--only-push", action="store_true", help="Solo git push")
-    parser.add_argument("--reload",    action="store_true", help="Solo recargar webapp")
-    args = parser.parse_args()
-
-    print()
     print("╔══════════════════════════════════════════════════════╗")
-    print("║    CoopAhorro — Deploy a PythonAnywhere (free)      ║")
-    print(f"║    → https://{PA_DOMAIN}   ║")
+    print("║    CoopAhorro — Deploy Automático a Producción       ║")
     print("╚══════════════════════════════════════════════════════╝")
-
-    # Modo: solo reload
-    if args.reload:
-        reload_webapp()
-        print(f"\n✅ Listo. Visita: https://{PA_DOMAIN}")
-        return
-
-    # Modo: solo push
-    if args.only_push:
-        git_push()
-        return
-
-    # Flujo completo
-    if not args.no_push:
-        ok = git_push()
-        if not ok:
-            print("\n⚠ git push falló. Abortando.")
-            sys.exit(1)
-
-    open_pa_console()
-    reload_webapp()
-
-    print(f"\n✅ ¡Deploy completado!")
-    print(f"   → https://{PA_DOMAIN}")
-
+    
+    if pack_project() and upload_zip() and extract_and_install() and reload_webapp():
+        print(f"\n✅ ¡Deploy completado con éxito!")
+        print(f"   → https://{PA_DOMAIN}")
+    else:
+        print(f"\n❌ El deploy falló. Revisa los errores arriba.")
 
 if __name__ == "__main__":
     main()

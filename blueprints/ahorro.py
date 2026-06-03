@@ -7,7 +7,7 @@ import io
 from datetime import date, datetime, timedelta
 from werkzeug.utils import secure_filename
 from utils.db import (
-    get_db, get_db_connection, db_fetchone, db_fetchall, db_execute, 
+    get_db, db_fetchone, db_fetchall, db_execute, 
     db_insert_and_get_id, db_executemany, ensure_system_settings, 
     ensure_module_settings, get_system_setting, set_system_setting
 )
@@ -130,15 +130,15 @@ def aplicar_intereses():
     
     procesados = 0
     total_interes_bruto = 0
-    total_isr = 0
+    total_ipf = 0
     
     for c in cuentas:
         # Cálculo Bruto: (Saldo * (Tasa/100)) / 12 meses
         monto_interes_bruto = round(c['saldo'] * (c['tasa_interes'] / 100 / 12), 2)
         
         if monto_interes_bruto > 0:
-            # Cálculo ISR (10% sobre el interés generado)
-            monto_isr = round(monto_interes_bruto * 0.10, 2)
+            # Cálculo IPF (10% sobre el interés generado)
+            monto_ipf = round(monto_interes_bruto * 0.10, 2)
             
             # 1. Registrar Crédito de INTERES
             saldo_con_interes = round(c['saldo'] + monto_interes_bruto, 2)
@@ -149,15 +149,15 @@ def aplicar_intereses():
                 (c['id'], monto_interes_bruto, saldo_con_interes, f"INTERES - {hoy.strftime('%B %Y')}", datetime.now().isoformat())
             )
             
-            # 2. Registrar Débito de ISR (si aplica)
+            # 2. Registrar Débito de IPF (si aplica)
             nuevo_saldo = saldo_con_interes
-            if monto_isr > 0:
-                nuevo_saldo = round(saldo_con_interes - monto_isr, 2)
+            if monto_ipf > 0:
+                nuevo_saldo = round(saldo_con_interes - monto_ipf, 2)
                 db_execute(
                     conn,
                     """INSERT INTO transacciones (cuenta_id, tipo, monto, saldo_despues, descripcion, fecha)
-                       VALUES (?, 'isr', ?, ?, ?, ?)""",
-                    (c['id'], monto_isr, nuevo_saldo, f"ISR 10% s/Interés - {hoy.strftime('%B %Y')}", datetime.now().isoformat())
+                       VALUES (?, 'ipf', ?, ?, ?, ?)""",
+                    (c['id'], monto_ipf, nuevo_saldo, f"IPF 10% s/Interés - {hoy.strftime('%B %Y')}", datetime.now().isoformat())
                 )
             
             # 3. Actualizar Saldo Final en la Cuenta
@@ -165,7 +165,7 @@ def aplicar_intereses():
             
             procesados += 1
             total_interes_bruto += monto_interes_bruto
-            total_isr += monto_isr
+            total_ipf += monto_ipf
             
     conn.commit()
     conn.close()
@@ -175,11 +175,11 @@ def aplicar_intereses():
         entidad='cuentas',
         entidad_id=None,
         accion='capitalizacion',
-        descripcion=f'Capitalización mensual procesada: {procesados} cuentas. Total Interés: Q{total_interes_bruto:.2f}, Total ISR: Q{total_isr:.2f}',
-        datos={'cuentas_procesadas': procesados, 'interes_total': total_interes_bruto, 'isr_total': total_isr}
+        descripcion=f'Capitalización mensual procesada: {procesados} cuentas. Total Interés: Q{total_interes_bruto:.2f}, Total IPF: Q{total_ipf:.2f}',
+        datos={'cuentas_procesadas': procesados, 'interes_total': total_interes_bruto, 'ipf_total': total_ipf}
     )
     
-    flash(f'Proceso finalizado: Se aplicaron intereses a {procesados} cuentas. (Total Interés: Q{total_interes_bruto:,.2f}, Total ISR: Q{total_isr:,.2f})', 'success')
+    flash(f'Proceso finalizado: Se aplicaron intereses a {procesados} cuentas. (Total Interés: Q{total_interes_bruto:,.2f}, Total IPF: Q{total_ipf:,.2f})', 'success')
     return redirect(url_for('ahorro.configuracion_ahorro'))
 
 @bp.route('/cuentas/<int:cid>')
@@ -223,7 +223,8 @@ def imprimir_estado_cuenta(cid):
     
     # Calcular resumen para el reporte
     total_depositos = sum(t['monto'] for t in txns if t['tipo'] in ['deposito', 'interes'])
-    total_retiros = sum(t['monto'] for t in txns if t['tipo'] in ['retiro', 'isr', 'debito'])
+    total_retiros = sum(t['monto'] for t in txns if t['tipo'] in ['retiro', 'ipf', 'debito'])
+
     
     return render_template('imprimir_estado_cuenta.html', 
                            cuenta=cuenta, 
@@ -538,8 +539,8 @@ def aprobar_solicitud_retiro(rid):
         conn,
         '''
         INSERT INTO transacciones
-        (cuenta_id, tipo, monto, saldo_despues, descripcion, fecha)
-        VALUES (?, 'retiro', ?, ?, ?, ?)
+        (cuenta_id, tipo, monto, saldo_despues, descripcion, fecha, metodo_pago)
+        VALUES (?, 'retiro', ?, ?, ?, ?, ?)
         ''',
         (
             solicitud['cuenta_id'],
@@ -547,6 +548,7 @@ def aprobar_solicitud_retiro(rid):
             nuevo_saldo,
             solicitud['descripcion'] or 'Retiro aprobado desde modulo gestiones',
             datetime.now().isoformat(),
+            solicitud['metodo_retiro'] or 'cheque'
         ),
     )
 
@@ -1111,7 +1113,7 @@ def generar_reporte_ahorro():
 @bp.route('/generar_planilla_ahorro')
 @login_required()
 def generar_planilla_ahorro():
-    conn = get_db_connection()
+    conn = get_db()
     cuentas = db_fetchall(conn, '''
         SELECT c.id, c.numero, c.saldo, s.nombre, s.apellido, s.codigo
         FROM cuentas c
@@ -1131,36 +1133,36 @@ def planilla_ahorro():
 @bp.route('/planillas_ahorro_pendientes')
 @login_required()
 def planillas_ahorro_pendientes():
-    conn = get_db_connection()
+    import math as _math
+    conn = get_db()
     nombre = request.args.get('nombre', '').strip()
     frecuencia = request.args.get('frecuencia', '').strip()
     estado = request.args.get('estado', '').strip().lower()
     fecha_desde = request.args.get('fecha_desde', '').strip()
     fecha_hasta = request.args.get('fecha_hasta', '').strip()
+    page = max(1, int(request.args.get('page', 1) or 1))
+    per_page = min(100, max(10, int(request.args.get('per_page', 50) or 50)))
 
-    query = '''
-        SELECT * FROM planillas_masivas
-        WHERE tipo = 'ahorro_cuotas'
-    '''
+    base_query = "FROM planillas_masivas WHERE tipo = 'ahorro_cuotas'"
     params = []
 
     if nombre:
-        query += ' AND nombre LIKE ?'
+        base_query += ' AND nombre LIKE ?'
         params.append(f'%{nombre}%')
     if frecuencia:
-        query += ' AND frecuencia = ?'
+        base_query += ' AND frecuencia = ?'
         params.append(frecuencia)
     if estado:
-        query += ' AND estado = ?'
+        base_query += ' AND estado = ?'
         params.append(estado)
     if fecha_desde:
-        query += ' AND date(fecha_pago) >= date(?)'
+        base_query += ' AND date(fecha_pago) >= date(?)'
         params.append(fecha_desde)
     if fecha_hasta:
-        query += ' AND date(fecha_pago) <= date(?)'
+        base_query += ' AND date(fecha_pago) <= date(?)'
         params.append(fecha_hasta)
 
-    query += '''
+    order_sql = '''
         ORDER BY CASE estado
             WHEN 'pendiente' THEN 1
             WHEN 'parcial' THEN 2
@@ -1169,7 +1171,18 @@ def planillas_ahorro_pendientes():
         END, fecha_creacion DESC, id DESC
     '''
 
-    planillas_rows = db_fetchall(conn, query, params)
+    total_planillas = db_fetchone(conn, f'SELECT COUNT(*) {base_query}', params)[0]
+    total_pages = max(1, _math.ceil(total_planillas / per_page))
+    offset = (page - 1) * per_page
+
+    planillas_rows = db_fetchall(
+        conn,
+        f'SELECT * {base_query} {order_sql} LIMIT ? OFFSET ?',
+        params + [per_page, offset]
+    )
+    # Calcular total de monto sin paginación para el resumen
+    total_monto_row = db_fetchone(conn, f'SELECT COALESCE(SUM(total_monto),0) {base_query}', params)
+    total_monto = float(total_monto_row[0] or 0)
     conn.close()
 
     planillas = []
@@ -1188,14 +1201,17 @@ def planillas_ahorro_pendientes():
             'fecha_desde': fecha_desde,
             'fecha_hasta': fecha_hasta
         },
-        total_planillas=len(planillas),
-        total_monto=sum(float(p['total_monto'] or 0) for p in planillas)
+        total_planillas=total_planillas,
+        total_monto=total_monto,
+        page=page,
+        per_page=per_page,
+        total_pages=total_pages,
     )
 
 @bp.route('/planillas_ahorro/<int:planilla_id>')
 @login_required()
 def detalle_planilla_ahorro(planilla_id):
-    conn = get_db_connection()
+    conn = get_db()
     planilla = db_fetchone(conn, '''
         SELECT * FROM planillas_masivas
         WHERE id=? AND tipo='ahorro_cuotas'
@@ -1226,10 +1242,64 @@ def detalle_planilla_ahorro(planilla_id):
         total_cuotas=planilla['total_monto'] or 0
     )
 
+@bp.route('/planillas_ahorro/<int:planilla_id>/exportar')
+@login_required()
+def exportar_planilla_ahorro(planilla_id):
+    conn = get_db()
+    planilla = db_fetchone(conn, '''
+        SELECT * FROM planillas_masivas
+        WHERE id=? AND tipo='ahorro_cuotas'
+    ''', (planilla_id,))
+
+    if not planilla:
+        conn.close()
+        flash('Planilla de ahorro no encontrada.', 'danger')
+        return redirect(url_for('ahorro.planillas_ahorro_pendientes'))
+
+    detalles = db_fetchall(conn, '''
+        SELECT d.*, c.saldo AS saldo_actual
+        FROM planilla_masiva_detalles d
+        LEFT JOIN cuentas c ON d.referencia_id = c.id AND d.referencia_tipo = 'cuenta'
+        WHERE d.planilla_id=?
+        ORDER BY socio_nombre, numero_referencia
+    ''', (planilla_id,))
+    conn.close()
+
+    import io
+    import csv
+    from flask import Response
+
+    output = io.StringIO()
+    output.write('\ufeff')  # BOM de UTF-8 para Excel
+    writer = csv.writer(output, delimiter=';')
+
+    headers = [
+        'Código Socio', 'Nombre Socio', 'Número de Cuenta', 
+        'Saldo Actual', 'Abono Programado', 'Estado'
+    ]
+    writer.writerow(headers)
+
+    for d in detalles:
+        saldo = f"Q{d['saldo_actual']:.2f}" if d['saldo_actual'] is not None else "Pendiente de aplicar"
+        writer.writerow([
+            d['socio_codigo'],
+            d['socio_nombre'],
+            d['numero_referencia'],
+            saldo,
+            f"Q{d['monto']:.2f}",
+            d['estado'].upper()
+        ])
+
+    filename = f"Planilla_Ahorro_{planilla['nombre'].replace(' ', '_')}"
+    response = Response(output.getvalue(), mimetype='text/csv')
+    response.headers['Content-Disposition'] = f'attachment; filename={filename}_{datetime.now().strftime("%Y%m%d_%H%M")}.csv'
+    response.headers['Content-type'] = 'text/csv; charset=utf-8'
+    return response
+
 @bp.route('/planillas_ahorro/<int:planilla_id>/editar', methods=['GET', 'POST'])
 @login_required()
 def editar_planilla_ahorro(planilla_id):
-    conn = get_db_connection()
+    conn = get_db()
     planilla = db_fetchone(conn, '''
         SELECT * FROM planillas_masivas
         WHERE id=? AND tipo='ahorro_cuotas'
@@ -1376,7 +1446,7 @@ def editar_planilla_ahorro(planilla_id):
 @bp.route('/planillas_ahorro/<int:planilla_id>/eliminar', methods=['POST'])
 @login_required()
 def eliminar_planilla_ahorro(planilla_id):
-    conn = get_db_connection()
+    conn = get_db()
     planilla = db_fetchone(conn, '''
         SELECT * FROM planillas_masivas
         WHERE id=? AND tipo='ahorro_cuotas'
@@ -1444,7 +1514,7 @@ def generar_planilla_cuotas_ahorro():
             flash('Tipo de cuenta no valido.', 'danger')
             return render_template('generar_planilla_cuotas_ahorro.html', form_data=form_data)
 
-        conn = get_db_connection()
+        conn = get_db()
 
         filtro_tipo = "AND COALESCE(c.producto_ahorro, 'ahorro_corriente') = ?"
         params = [frecuencia, tipo_cuenta]
@@ -1540,7 +1610,7 @@ def procesar_abonos_masivos():
     if not boleta_deposito:
         return jsonify({'error': 'Debe indicar numero de boleta de pago para aplicar la planilla.'}), 400
     
-    conn = get_db_connection()
+    conn = get_db()
     planilla = None
     detalles_planilla = []
     if planilla_id:
@@ -1557,6 +1627,26 @@ def procesar_abonos_masivos():
             conn.close()
             return jsonify({'error': 'La planilla ya fue aplicada anteriormente.'}), 400
 
+        # Actualizar los montos modificados en la base de datos antes de aplicar
+        for abono in abonos:
+            if abono.get('detalle_id') and 'monto' in abono:
+                try:
+                    db_execute(conn, '''
+                        UPDATE planilla_masiva_detalles
+                        SET monto=?
+                        WHERE id=? AND estado='pendiente'
+                    ''', (float(abono['monto']), abono['detalle_id']))
+                except (ValueError, TypeError):
+                    pass
+
+        # Recalcular el monto total de la planilla masiva
+        db_execute(conn, '''
+            UPDATE planillas_masivas
+            SET total_monto = (SELECT SUM(monto) FROM planilla_masiva_detalles WHERE planilla_id=?)
+            WHERE id=?
+        ''', (planilla_id, planilla_id))
+
+        # Recuperar los detalles actualizados
         detalles_planilla = db_fetchall(conn, '''
             SELECT * FROM planilla_masiva_detalles
             WHERE planilla_id=? AND estado='pendiente'
@@ -1582,8 +1672,15 @@ def procesar_abonos_masivos():
             cuenta_id = abono['cuenta_id']
             monto = float(abono['monto'])
             
-            if monto <= 0:
+            if monto < 0:
                 errores.append(f"Monto inválido para cuenta {abono.get('numero', cuenta_id)}")
+                continue
+
+            if monto == 0:
+                # Si el monto es cero, se marca como aplicado sin registrar transacción ni alterar saldo
+                if abono.get('detalle_id'):
+                    db_execute(conn, "UPDATE planilla_masiva_detalles SET estado='aplicado', monto=0 WHERE id=?", (abono['detalle_id'],))
+                procesados += 1
                 continue
             
             # Obtener información de la cuenta y socio

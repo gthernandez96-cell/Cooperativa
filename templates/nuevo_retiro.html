@@ -21,8 +21,9 @@
 .nr-header-actions { display:flex;gap:10px;flex-shrink:0; }
 
 .nr-mode-bar {
-  display:flex;align-items:center;gap:12px;padding:10px 16px;
-  border-radius:8px;background:#f8fafc;border:1px solid #e5e7eb;font-size:13px;
+  display:flex;align-items:center;gap:12px;padding:12px 18px;
+  border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0;font-size:13px;
+  box-shadow:0 2px 4px rgba(0,0,0,0.01);
 }
 .nr-mode-bar .nr-mode-label { color:#6b7280; }
 .nr-mode-bar strong { color:#0f1f32; }
@@ -33,60 +34,121 @@
 }
 .nr-mode-pill.amort { background:#f5f0ff;color:#6d28d9; }
 
-.nr-main { display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start; }
+.nr-main { display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start; }
 
 .nr-card {
-  background:#fff;border:1px solid var(--c-border,#e5e7eb);
-  border-radius:10px;overflow:hidden;
+  background:#fff;border:1px solid rgba(229, 231, 235, 0.9);
+  border-radius:16px;overflow:hidden;
+  box-shadow:0 4px 12px rgba(0, 32, 68, 0.02);
 }
 .nr-card-head {
   display:flex;align-items:center;justify-content:space-between;gap:12px;
-  padding:14px 18px;background:#fafafa;border-bottom:1px solid var(--c-border,#e5e7eb);
+  padding:16px 20px;background:#f8fafb;border-bottom:1px solid #e5e7eb;
 }
-.nr-card-head-title { font-size:13px;font-weight:700;color:#374151; }
-.nr-card-body { padding:18px; }
+.nr-card-head-title { font-size:13px;font-weight:700;color:#001f3d; }
+.nr-card-body { padding:24px; }
 
-.nr-grid { display:grid;grid-template-columns:1fr 1fr;gap:14px; }
-.nr-field { display:flex;flex-direction:column;gap:5px; }
+.nr-grid { display:grid;grid-template-columns:1fr 1fr;gap:16px; }
+.nr-field { display:flex;flex-direction:column;gap:6px; }
 .nr-field-full { grid-column:span 2; }
 .nr-field label {
-  font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6b7280;
+  font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#4b5563;
 }
 .nr-field input, .nr-field select {
-  width:100%;box-sizing:border-box;padding:9px 11px;
-  border:1px solid var(--c-border,#e5e7eb);border-radius:7px;
-  font-size:13px;background:#fafafa;color:#0f1f32;
-  transition:border-color .15s,background .15s;
+  width:100%;box-sizing:border-box;padding:10px 12px;
+  border:1px solid var(--c-border,#e5e7eb);border-radius:10px;
+  font-size:13px;background:#ffffff;color:#0f1f32;
+  transition:border-color .15s ease,box-shadow .15s ease,background .15s ease;
+  box-shadow:inset 0 1px 2px rgba(0,0,0,0.02);
 }
 .nr-field input:focus, .nr-field select:focus {
   outline:none;border-color:var(--c-blue,#003b74);background:#fff;
+  box-shadow:0 0 0 3px rgba(0, 59, 116, 0.08);
 }
-.nr-field input[readonly] { background:#f3f4f6;color:#6b7280;cursor:default; }
-.nr-hint { font-size:12px;color:#9ca3af;margin-top:3px; }
-.nr-actions { display:flex;gap:10px;margin-top:16px; }
+.nr-field input[readonly] { background:#f3f4f6;color:#4b5563;cursor:default;border-color:#e5e7eb; }
+.nr-hint { font-size:11px;color:#9ca3af;margin-top:4px;line-height:1.4; }
+.nr-actions { display:flex;gap:10px;margin-top:20px; }
 
-.nr-side { display:flex;flex-direction:column;gap:14px; }
-.nr-summary-card { background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden; }
-.nr-summary-head { background:#03284c;padding:14px 18px;color:#fff; }
-.nr-summary-head .sh-label { font-size:11px;opacity:.65;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px; }
-.nr-summary-head .sh-value {
-  font-family:'Fraunces',serif;font-size:32px;font-weight:700;line-height:1;color:#f6c954;
+.nr-side { display:flex;flex-direction:column;gap:16px; }
+.nr-summary-card {
+  background:#fff;border:1px solid rgba(229, 231, 235, 0.9);
+  border-radius:16px;overflow:hidden;
+  box-shadow:0 4px 12px rgba(0, 32, 68, 0.02);
 }
-.nr-summary-body { padding:0 18px 4px; }
+.nr-summary-head {
+  background:linear-gradient(135deg, #03284c, #001f3d);
+  padding:20px;color:#fff;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+}
+.nr-summary-head .sh-label { font-size:10px;opacity:.75;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;font-weight:700; }
+.nr-summary-head .sh-value {
+  font-family:'Fraunces',serif;font-size:36px;font-weight:700;line-height:1;color:#f6c954;
+  text-shadow:0 2px 4px rgba(0,0,0,0.15);
+}
+.nr-summary-body { padding:10px 20px; }
 .nr-row {
   display:flex;justify-content:space-between;align-items:center;
-  padding:9px 0;border-bottom:1px solid #f3f4f6;font-size:13px;
+  padding:12px 0;border-bottom:1px solid #f1f5f9;font-size:13px;
 }
 .nr-row:last-child { border-bottom:none; }
-.nr-row .r-label { color:#6b7280; }
-.nr-row .r-value { font-weight:600;color:#0f1f32; }
+.nr-row .r-label { color:#4b5563; }
+.nr-row .r-value { font-weight:600;color:#001f3d; }
 .nr-row.danger .r-value { color:#c2410c; }
 
-.nr-tips { background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:12px; }
+/* Tarjetas Premium de Barra Lateral */
+.nr-side-card {
+  background:#fff;
+  border:1px solid rgba(229, 231, 235, 0.9);
+  border-radius:16px;
+  padding:18px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  box-shadow:0 4px 12px rgba(0, 32, 68, 0.02);
+  transition:transform 0.2s ease, box-shadow 0.2s ease;
+}
+.nr-side-card:hover {
+  transform:translateY(-2px);
+  box-shadow:0 6px 16px rgba(0, 32, 68, 0.05);
+}
+.nr-side-card-title {
+  font-size:12px;
+  font-weight:700;
+  color:#003b74;
+  text-transform:uppercase;
+  letter-spacing:0.8px;
+  border-bottom:1px solid #f1f5f9;
+  padding-bottom:8px;
+  margin-bottom:4px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+/* Badge de sugerencia clicable */
+.sug-badge-clickable {
+  color:#059669;
+  background:rgba(5, 150, 105, 0.08);
+  border:1px solid rgba(5, 150, 105, 0.15);
+  padding:6px 12px;
+  border-radius:8px;
+  font-weight:700;
+  cursor:pointer;
+  transition:all 0.2s ease;
+  font-variant-numeric:tabular-nums;
+  display:inline-block;
+  text-align:right;
+}
+.sug-badge-clickable:hover {
+  background:rgba(5, 150, 105, 0.15);
+  transform:scale(1.03);
+  box-shadow:0 2px 8px rgba(5, 150, 105, 0.12);
+}
+
+.nr-tips { background:#fff;border:1px solid rgba(229, 231, 235, 0.9);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px;box-shadow:0 4px 12px rgba(0, 32, 68, 0.02); }
 .nr-tip-item { display:flex;flex-direction:column;gap:3px; }
 .nr-tip-item strong { font-size:12px;font-weight:700;color:#374151; }
-.nr-tip-item span { font-size:12px;color:#9ca3af;line-height:1.5; }
-
+.nr-tip-item span { font-size:12px;color:#6b7280;line-height:1.5; }
 @media(max-width:900px){ .nr-main{ grid-template-columns:1fr; } .nr-side{ order:-1; } }
 @media(max-width:640px){ .nr-grid{ grid-template-columns:1fr; } .nr-field-full{ grid-column:span 1; } }
 </style>
@@ -251,6 +313,42 @@
           </div>
         </div>
       </div>
+      <!-- Préstamos del Asociado -->
+      <div class="nr-side-card" id="side-prestamos-card" style="display: none;">
+        <span class="nr-side-card-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
+          Préstamos del Asociado
+        </span>
+        <div id="side-prestamos-list" style="display:flex; flex-direction:column; gap:8px; font-size:12.5px; margin-top: 4px;">
+          <!-- Se llena por JavaScript -->
+        </div>
+      </div>
+
+      <!-- Sugerencia de Retiro -->
+      <div class="nr-side-card" id="side-sugerencia-card" style="display: none;">
+        <span class="nr-side-card-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          Sugerencia de Retiro
+        </span>
+        <div style="font-size: 13px; line-height: 1.5; margin-top: 4px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:#6b7280; font-size: 12.5px;">Saldo Ahorro:</span>
+            <span id="side-sug-ahorro" style="font-weight:600; color:#001f3d; font-variant-numeric: tabular-nums;">Q0.00</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:#6b7280; font-size: 12.5px;">Total Préstamos:</span>
+            <span id="side-sug-prestamos" style="font-weight:600; color:#dc2626; font-variant-numeric: tabular-nums;">-Q0.00</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; border-top:1px solid #f1f5f9; padding-top:8px;">
+            <span style="color:#374151; font-weight:700; font-size:12.5px;">Sugerido para Retirar:</span>
+            <span id="side-sug-total" class="sug-badge-clickable" onclick="copiarSugerencia()" title="Haz clic para copiar este monto al formulario">Q0.00</span>
+          </div>
+          <div style="font-size:10.5px; color:#9ca3af; line-height:1.2; text-align:center; margin-top: 4px;">
+            (Haz clic en el monto sugerido para copiarlo)
+          </div>
+        </div>
+      </div>
+
       <div class="nr-tips">
         <div class="nr-tip-item">
           <strong>Aprobación centralizada</strong>
@@ -326,6 +424,58 @@ function renderOpcionesCuenta(filtro) {
   });
   actualizarCuenta(); renderPrestamosCuenta(); calcularRetiro();
 }
+function copiarSugerencia() {
+  const totalText = document.getElementById('side-sug-total').textContent;
+  const value = parseFloat(totalText.replace('Q', '').replace(/,/g, ''));
+  if (!isNaN(value) && value > 0) {
+    const inpMonto = document.getElementById('inp-monto');
+    inpMonto.value = value.toFixed(2);
+    calcularRetiro();
+  }
+}
+function actualizarInformacionLateral() {
+  const option = selectCuenta.options[selectCuenta.selectedIndex];
+  const sidePrestamosCard = document.getElementById('side-prestamos-card');
+  const sideSugerenciaCard = document.getElementById('side-sugerencia-card');
+  
+  if (!option || !option.value) {
+    if (sidePrestamosCard) sidePrestamosCard.style.display = 'none';
+    if (sideSugerenciaCard) sideSugerenciaCard.style.display = 'none';
+    return;
+  }
+  
+  const socioId = option.dataset.socioId || '';
+  const saldoAhorro = parseFloat(option.dataset.saldo || '0');
+  
+  const prestamosSocio = opcionesPrestamo.filter(item => item.socioId === socioId);
+  const listElement = document.getElementById('side-prestamos-list');
+  listElement.innerHTML = '';
+  
+  let totalPrestamos = 0;
+  
+  if (prestamosSocio.length > 0) {
+    prestamosSocio.forEach(loan => {
+      totalPrestamos += loan.saldo;
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.justifyContent = 'space-between';
+      row.innerHTML = `<span>Préstamo ${loan.numero}:</span> <strong style="font-variant-numeric: tabular-nums;">Q${loan.saldo.toLocaleString('es-GT', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>`;
+      listElement.appendChild(row);
+    });
+    if (sidePrestamosCard) sidePrestamosCard.style.display = '';
+  } else {
+    listElement.innerHTML = '<div style="color:#9ca3af; text-align:center; padding:4px 0;">No tiene préstamos vigentes.</div>';
+    if (sidePrestamosCard) sidePrestamosCard.style.display = '';
+  }
+  
+  document.getElementById('side-sug-ahorro').textContent = fmt(saldoAhorro);
+  document.getElementById('side-sug-prestamos').textContent = totalPrestamos > 0 ? '- ' + fmt(totalPrestamos) : fmt(0);
+  
+  const sugerencia = Math.max(0, saldoAhorro - totalPrestamos);
+  document.getElementById('side-sug-total').textContent = fmt(sugerencia);
+  
+  if (sideSugerenciaCard) sideSugerenciaCard.style.display = '';
+}
 function actualizarCuenta() {
   const option = selectCuenta.options[selectCuenta.selectedIndex];
   if (!option || !option.value) {
@@ -336,6 +486,7 @@ function actualizarCuenta() {
     document.getElementById('inp-banco-nombre').value = '';
     document.getElementById('inp-banco-tipo-cuenta').value = '';
     document.getElementById('inp-banco-numero-cuenta').value = '';
+    actualizarInformacionLateral();
     renderPrestamosCuenta(); return;
   }
   const saldo = parseFloat(option.dataset.saldo || '0');
@@ -346,6 +497,7 @@ function actualizarCuenta() {
   document.getElementById('inp-banco-nombre').value = option.dataset.banco || '';
   document.getElementById('inp-banco-tipo-cuenta').value = option.dataset.bancoTipo || '';
   document.getElementById('inp-banco-numero-cuenta').value = option.dataset.bancoNumero || '';
+  actualizarInformacionLateral();
   renderPrestamosCuenta();
 }
 function renderPrestamosCuenta() {

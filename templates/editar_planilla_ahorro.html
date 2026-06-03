@@ -1,62 +1,379 @@
 {% extends "base.html" %}
 {% block title %}Modificar Planilla de Ahorro{% endblock %}
 {% block content %}
-<div class="container mt-4">
-  <div class="card shadow">
-    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-      <h4 class="mb-0">Modificar Planilla de Ahorro</h4>
-      <a href="{{ url_for('ahorro.planillas_ahorro_pendientes') }}" class="btn btn-light btn-sm">Volver</a>
+<style>
+  /* Variables e impecable diseño premium soberbio y corporativo */
+  :root {
+    --neutral-dark: #1e293b;
+    --neutral-muted: #475569;
+    --neutral-light: #f8fafc;
+    --border-color: #cbd5e1;
+    --border-light: #e2e8f0;
+    --accent-slate: #334155;
+    --accent-teal: #0d9488;
+    --accent-teal-pale: #f0fdfa;
+    --accent-teal-border: #99f6e4;
+    --accent-amber: #b45309;
+    --accent-amber-pale: #fffbeb;
+    --accent-amber-border: #fde68a;
+    --card-shadow-corporate: 0 1px 3px rgba(0, 0, 0, 0.05), 0 10px 20px -5px rgba(0, 0, 0, 0.03);
+    --transition-smooth: all 0.2s ease-in-out;
+  }
+
+  .premium-header {
+    background: #ffffff;
+    padding: 22px 28px;
+    border-radius: 14px;
+    color: var(--neutral-dark);
+    border: 1px solid var(--border-light);
+    border-bottom: 2px solid var(--border-color);
+    box-shadow: var(--card-shadow-corporate);
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .premium-title {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--neutral-dark);
+    margin: 0;
+  }
+
+  .premium-subtitle {
+    font-size: 13.5px;
+    color: var(--neutral-muted);
+    margin-top: 4px;
+  }
+
+  .premium-card {
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1px solid var(--border-light);
+    box-shadow: var(--card-shadow-corporate);
+    margin-bottom: 24px;
+    overflow: hidden;
+    transition: var(--transition-smooth);
+  }
+
+  .premium-card-header {
+    padding: 16px 24px;
+    background: #fdfdfd;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .premium-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--neutral-dark);
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .premium-card-body {
+    padding: 24px;
+  }
+
+  .btn-back-premium {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--neutral-muted);
+    background: #ffffff;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    border: 1px solid var(--border-color);
+    transition: var(--transition-smooth);
+  }
+
+  .btn-back-premium:hover {
+    background: var(--neutral-light);
+    color: var(--neutral-dark);
+    border-color: var(--neutral-muted);
+    transform: translateX(-2px);
+  }
+
+  /* Form Elements */
+  .premium-label {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--neutral-muted);
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .premium-input {
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 14px;
+    color: var(--neutral-dark);
+    background-color: var(--neutral-light);
+    transition: var(--transition-smooth);
+  }
+
+  .premium-input:focus {
+    outline: none;
+    border-color: var(--neutral-dark);
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(30, 41, 59, 0.08);
+  }
+
+  /* Sutil alert designs */
+  .premium-alert-warning {
+    background-color: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #b45309;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    margin-bottom: 12px;
+  }
+
+  .premium-alert-info {
+    background-color: #f0f9ff;
+    border: 1px solid #bae6fd;
+    color: #0369a1;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+
+  /* Premium Table inside edit */
+  .premium-table-wrap {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid var(--border-light);
+    background: #ffffff;
+    margin-bottom: 24px;
+  }
+
+  .premium-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .premium-table th {
+    background: var(--neutral-light);
+    padding: 14px 18px;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--neutral-muted);
+    border-bottom: 2px solid var(--border-light);
+  }
+
+  .premium-table td {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border-light);
+    color: var(--neutral-dark);
+    font-size: 13.5px;
+    transition: var(--transition-smooth);
+    vertical-align: middle;
+  }
+
+  .premium-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  /* In table inputs styling */
+  .table-input-group {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--neutral-light);
+    transition: var(--transition-smooth);
+  }
+
+  .table-input-group:focus-within {
+    border-color: var(--neutral-dark);
+    box-shadow: 0 0 0 3px rgba(30, 41, 59, 0.08);
+    background: #ffffff;
+  }
+
+  .table-input-addon {
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--neutral-muted);
+    background: #f1f5f9;
+    border-right: 1px solid var(--border-light);
+  }
+
+  .table-input-field {
+    border: none;
+    background: transparent;
+    padding: 6px 10px;
+    width: 110px;
+    text-align: right;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--neutral-dark);
+  }
+
+  .table-input-field:focus {
+    outline: none;
+  }
+
+  .table-input-field[readonly] {
+    background: #f1f5f9;
+    color: #94a3b8;
+    cursor: not-allowed;
+  }
+
+  /* Badges */
+  .badge-capsule {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .badge-capsule.pendiente {
+    background-color: var(--neutral-light);
+    color: var(--neutral-muted);
+    border: 1px solid var(--border-color);
+  }
+
+  .badge-capsule.aplicado {
+    background-color: var(--accent-teal-pale);
+    color: var(--accent-teal);
+    border: 1px solid var(--accent-teal-border);
+  }
+
+  /* Button Actions */
+  .btn-action-premium {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: var(--transition-smooth);
+    text-decoration: none;
+  }
+
+  .btn-action-premium.primary {
+    background: var(--neutral-dark);
+    color: #ffffff;
+  }
+
+  .btn-action-premium.primary:hover {
+    background: #0f172a;
+    transform: translateY(-1px);
+  }
+
+  .btn-action-premium.secondary {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    color: var(--neutral-muted);
+  }
+
+  .btn-action-premium.secondary:hover {
+    background: var(--neutral-light);
+    color: var(--neutral-dark);
+    border-color: var(--neutral-muted);
+  }
+</style>
+
+<div class="container-fluid mt-4">
+  <div class="premium-header">
+    <div>
+      <h1 class="premium-title">Modificar Planilla de Ahorro</h1>
+      <p class="premium-subtitle">Actualice el nombre, fecha, o los montos individuales de cada asociado antes de aplicarla.</p>
     </div>
-    <div class="card-body">
+    <a href="{{ url_for('ahorro.planillas_ahorro_pendientes') }}" class="btn-back-premium">
+      <i class="fas fa-arrow-left"></i> Volver a Planillas
+    </a>
+  </div>
+
+  <div class="premium-card">
+    <div class="premium-card-header">
+      <h3 class="premium-card-title"><i class="fas fa-edit me-2"></i> Datos Generales y Detalles</h3>
+    </div>
+    <div class="premium-card-body">
       <form method="POST" action="{{ url_for('ahorro.editar_planilla_ahorro', planilla_id=planilla.id) }}">
-        <div class="row">
-          <div class="col-md-4 mb-3">
-            <label class="form-label">Nombre de la Planilla</label>
-            <input type="text" class="form-control" name="nombre_planilla" value="{{ planilla.nombre }}" required>
+        <div class="row mb-4">
+          <div class="col-md-5 mb-3">
+            <label class="premium-label">Nombre de la Planilla</label>
+            <input type="text" class="premium-input" name="nombre_planilla" value="{{ planilla.nombre }}" required>
           </div>
           <div class="col-md-4 mb-3">
-            <label class="form-label">Fecha de Pago</label>
-            <input type="date" class="form-control" name="fecha_pago" value="{{ planilla.fecha_pago }}" required>
+            <label class="premium-label">Fecha de Pago</label>
+            <input type="date" class="premium-input" name="fecha_pago" value="{{ planilla.fecha_pago }}" required>
           </div>
-          <div class="col-md-4 mb-3">
-            <label class="form-label">Frecuencia</label>
-            <select class="form-select" name="frecuencia" required>
+          <div class="col-md-3 mb-3">
+            <label class="premium-label">Frecuencia</label>
+            <select class="premium-input" name="frecuencia" required>
               <option value="Quincenal" {% if planilla.frecuencia == 'Quincenal' %}selected{% endif %}>Quincenal</option>
               <option value="Catorcenal" {% if planilla.frecuencia == 'Catorcenal' %}selected{% endif %}>Catorcenal</option>
             </select>
           </div>
         </div>
-        <div class="alert alert-warning mt-2">
-          Puede actualizar datos generales y la cuota programada por asociado. Los registros ya aplicados no se alteran.
+
+        <div class="premium-alert-warning">
+          <i class="fas fa-exclamation-triangle me-1"></i> Puede actualizar los datos generales y la cuota programada por asociado. Los registros ya aplicados no se alteran.
         </div>
-        <div class="alert alert-info mt-2">
-          Si usa Recalcular cuotas, se tomara la cuota de ahorro actual de cada asociado para los registros pendientes.
+        <div class="premium-alert-info">
+          <i class="fas fa-info-circle me-1"></i> Si usa <strong>Recalcular cuotas</strong>, se tomará la cuota de ahorro actual registrada de cada asociado para los registros pendientes.
         </div>
 
-        <div class="table-responsive mt-3">
-          <table class="table table-striped table-hover align-middle">
+        <div class="premium-table-wrap">
+          <table class="premium-table">
             <thead>
               <tr>
                 <th>Asociado</th>
-                <th>Cuenta</th>
-                <th style="width:180px;" class="text-end">Cuota Programada</th>
-                <th>Estado</th>
+                <th>Número de Cuenta</th>
+                <th style="width: 200px; text-align: right;">Cuota Programada</th>
+                <th style="text-align: center;">Estado</th>
               </tr>
             </thead>
             <tbody>
               {% for d in detalles %}
               <tr>
                 <td>
-                  <strong>{{ d.socio_codigo }}</strong> - {{ d.socio_nombre }}
+                  <span style="font-weight: 700; color: var(--neutral-dark);">{{ d.socio_codigo }}</span>
+                  <span style="color: var(--neutral-muted); margin-left: 6px;">— {{ d.socio_nombre }}</span>
                   <input type="hidden" name="detalle_id[]" value="{{ d.id }}">
                 </td>
-                <td>{{ d.numero_referencia }}</td>
-                <td class="text-end">
-                  <div class="input-group input-group-sm justify-content-end" style="max-width:160px;margin-left:auto;">
-                    <span class="input-group-text">Q</span>
+                <td style="font-family: monospace; font-size: 14px; font-weight: 500;">{{ d.numero_referencia }}</td>
+                <td style="text-align: right;">
+                  <div class="table-input-group">
+                    <span class="table-input-addon">Q</span>
                     <input
                       type="number"
-                      class="form-control text-end"
+                      class="table-input-field"
                       name="detalle_monto[]"
                       value="{{ '%.2f'|format(d.monto or 0) }}"
                       step="0.01"
@@ -66,22 +383,30 @@
                     >
                   </div>
                 </td>
-                <td>
-                  <span class="badge {% if d.estado == 'aplicado' %}bg-success{% else %}bg-secondary{% endif %}">{{ d.estado.title() }}</span>
+                <td style="text-align: center;">
+                  <span class="badge-capsule {% if d.estado == 'aplicado' %}aplicado{% else %}pendiente{% endif %}">
+                    {{ d.estado.title() }}
+                  </span>
                 </td>
               </tr>
               {% else %}
               <tr>
-                <td colspan="4" class="text-center text-muted py-3">No hay registros en esta planilla.</td>
+                <td colspan="4" style="text-align:center;color:#94a3b8;padding:24px;font-style:italic;">
+                  No hay registros en esta planilla.
+                </td>
               </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
 
-        <div class="text-end mt-3">
-          <button type="submit" name="accion" value="recalcular" class="btn btn-outline-primary">Recalcular cuotas</button>
-          <button type="submit" name="accion" value="guardar" class="btn btn-success">Guardar Cambios</button>
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button type="submit" name="accion" value="recalcular" class="btn-action-premium secondary">
+            <i class="fas fa-sync-alt"></i> Recalcular cuotas
+          </button>
+          <button type="submit" name="accion" value="guardar" class="btn-action-premium primary">
+            <i class="fas fa-save"></i> Guardar Cambios
+          </button>
         </div>
       </form>
     </div>

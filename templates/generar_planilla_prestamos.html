@@ -1,49 +1,311 @@
 {% extends "base.html" %}
-{% block title %}Generar Planilla de Prestamos{% endblock %}
+{% block title %}Generar Planilla de Préstamos — {{ cooperativa_nombre }}{% endblock %}
 {% block content %}
-<div class="container mt-4">
-    <div class="page-header mb-3">
-        <div>
-            <div class="page-title">Nueva Planilla de Prestamos</div>
-            <div class="page-subtitle">Genere una planilla masiva con prestamos activos segun frecuencia.</div>
-        </div>
-        <a href="{{ url_for('prestamos.planillas_prestamos_pendientes') }}" class="btn btn-outline">Regresar</a>
-    </div>
+<style>
+  /* Variables e impecable diseño premium soberbio y corporativo */
+  :root {
+    --neutral-dark: #1e293b;
+    --neutral-muted: #475569;
+    --neutral-light: #f8fafc;
+    --border-color: #cbd5e1;
+    --border-light: #e2e8f0;
+    --accent-slate: #334155;
+    --card-shadow-corporate: 0 1px 3px rgba(0, 0, 0, 0.05), 0 10px 20px -5px rgba(0, 0, 0, 0.03);
+    --transition-smooth: all 0.2s ease-in-out;
+  }
 
-    <div class="card shadow">
-        <div class="card-header">
-            <h4 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i>Formulario de Planilla</h4>
-        </div>
-        <div class="card-body">
-            <form action="{{ url_for('prestamos.generar_planilla_prestamos') }}" method="POST">
-                <div class="row">
-                    <div class="col-md-5 mb-3">
-                        <label for="nombre_planilla" class="form-label">Nombre de la Planilla</label>
-                        <input type="text" class="form-control" id="nombre_planilla" name="nombre_planilla"
-                               placeholder="Ej: Cuotas Quincena 1 - Abril 2026" value="{{ form_data.nombre_planilla }}" required>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label for="frecuencia" class="form-label">Frecuencia</label>
-                        <select class="form-select" id="frecuencia" name="frecuencia" required>
-                            <option value="Quincenal" {% if form_data.frecuencia == 'Quincenal' %}selected{% endif %}>Quincenal</option>
-                            <option value="Catorcenal" {% if form_data.frecuencia == 'Catorcenal' %}selected{% endif %}>Catorcenal</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label for="fecha_pago" class="form-label">Fecha de Pago</label>
-                        <input type="date" class="form-control" id="fecha_pago" name="fecha_pago" value="{{ form_data.fecha_pago }}" required>
-                    </div>
-                </div>
-                <div class="alert alert-info py-2 mt-2">
-                    <i class="fas fa-info-circle me-2"></i>
-                    Se incluiran unicamente prestamos aprobados y con saldo pendiente de asociados activos en la frecuencia seleccionada.
-                </div>
-                <div class="text-end mt-3 d-flex justify-content-end gap-2 flex-wrap">
-                    <a href="{{ url_for('prestamos.planillas_prestamos_pendientes') }}" class="btn btn-outline-secondary">Ver Planillas Guardadas</a>
-                    <button type="submit" class="btn btn-warning btn-lg">Generar Planilla</button>
-                </div>
-            </form>
-        </div>
+  .premium-header {
+    background: #ffffff;
+    padding: 22px 28px;
+    border-radius: 14px;
+    color: var(--neutral-dark);
+    border: 1px solid var(--border-light);
+    border-bottom: 2px solid var(--border-color);
+    box-shadow: var(--card-shadow-corporate);
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .premium-title {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--neutral-dark);
+    margin: 0;
+  }
+
+  .premium-subtitle {
+    font-size: 13.5px;
+    color: var(--neutral-muted);
+    margin-top: 4px;
+  }
+
+  .btn-back-premium {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--neutral-muted);
+    background: #ffffff;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    border: 1px solid var(--border-color);
+    transition: var(--transition-smooth);
+  }
+
+  .btn-back-premium:hover {
+    background: var(--neutral-light);
+    color: var(--neutral-dark);
+    border-color: var(--neutral-muted);
+    transform: translateX(-2px);
+  }
+
+  .premium-form-card {
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1px solid var(--border-light);
+    box-shadow: var(--card-shadow-corporate);
+    overflow: hidden;
+    max-width: 720px;
+    margin: 0 auto 24px;
+    transition: var(--transition-smooth);
+  }
+
+  .premium-form-card:hover {
+    box-shadow: 0 12px 25px -5px rgba(0, 0, 0, 0.05);
+  }
+
+  .premium-card-header {
+    background: var(--neutral-light);
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border-light);
+    border-top: 4px solid var(--neutral-muted);
+  }
+
+  .premium-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--neutral-dark);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .premium-card-body {
+    padding: 24px;
+  }
+
+  /* Form Elements */
+  .premium-label {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--neutral-muted);
+    display: block;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .premium-input {
+    width: 100%;
+    min-height: 40px;
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 13.5px;
+    color: var(--neutral-dark);
+    background: var(--neutral-light);
+    transition: var(--transition-smooth);
+  }
+
+  .premium-input:focus {
+    outline: none;
+    border-color: var(--neutral-muted);
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(71, 85, 105, 0.08);
+  }
+
+  .premium-input::placeholder {
+    color: #94a3b8;
+  }
+
+  /* Alert Box */
+  .premium-info-alert {
+    background: var(--neutral-light);
+    border-left: 4px solid var(--neutral-muted);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-size: 13px;
+    color: var(--neutral-dark);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    border-top: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--border-light);
+    border-right: 1px solid var(--border-light);
+  }
+
+  .premium-info-alert svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: var(--neutral-muted);
+  }
+
+  /* Buttons */
+  .btn-premium {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 22px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: var(--transition-smooth);
+    text-decoration: none;
+  }
+
+  .btn-premium.secondary {
+    background: #ffffff;
+    border-color: var(--border-color);
+    color: var(--neutral-muted);
+  }
+
+  .btn-premium.secondary:hover {
+    background: var(--neutral-light);
+    border-color: var(--neutral-muted);
+    color: var(--neutral-dark);
+  }
+
+  .btn-premium.gold {
+    background: var(--neutral-dark);
+    color: #ffffff;
+  }
+
+  .btn-premium.gold:hover {
+    background: #0f172a;
+  }
+
+  .btn-premium:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+</style>
+
+<div class="container mt-4">
+  <!-- Cabecera Premium -->
+  <div class="premium-header">
+    <div>
+      <h1 class="premium-title">Nueva Planilla de Préstamos</h1>
+      <p class="premium-subtitle">Genere una nueva nómina masiva con préstamos activos según la frecuencia seleccionada</p>
     </div>
+    <a href="{{ url_for('prestamos.planillas_prestamos_pendientes') }}" class="btn-back-premium">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12,19 5,12 12,5"></polyline>
+      </svg>
+      Regresar
+    </a>
+  </div>
+
+  <!-- Formulario Rediseñado -->
+  <div class="premium-form-card">
+    <div class="premium-card-header">
+      <h3 class="premium-card-title">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M12 20h9"></path>
+          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+        </svg>
+        Formulario de Creación
+      </h3>
+    </div>
+    <div class="premium-card-body">
+      <form id="formGenerarPlanilla" action="{{ url_for('prestamos.generar_planilla_prestamos') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="row">
+          <div class="col-md-12 mb-4">
+            <label for="nombre_planilla" class="premium-label">Nombre de la Planilla</label>
+            <input type="text" class="premium-input" id="nombre_planilla" name="nombre_planilla"
+                   placeholder="Ej: Cuotas Quincena 1 - Abril 2026" value="{{ form_data.nombre_planilla }}" required>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-6 mb-4">
+            <label for="frecuencia" class="premium-label">Frecuencia de Pago de Asociados</label>
+            <select class="premium-input" id="frecuencia" name="frecuencia" required>
+              <option value="Quincenal" {% if form_data.frecuencia == 'Quincenal' %}selected{% endif %}>Quincenal</option>
+              <option value="Catorcenal" {% if form_data.frecuencia == 'Catorcenal' %}selected{% endif %}>Catorcenal</option>
+            </select>
+          </div>
+          <div class="col-md-6 mb-4">
+            <label for="fecha_pago" class="premium-label">Fecha de Pago Programada</label>
+            <input type="date" class="premium-input" id="fecha_pago" name="fecha_pago" value="{{ form_data.fecha_pago }}" required>
+          </div>
+        </div>
+
+        <div class="premium-info-alert">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          <div>
+            <strong>Reglas de generación:</strong> Se incluirán únicamente préstamos que tengan estado **Aprobado** y **Saldo Pendiente mayor a cero**, cuyos asociados titulares tengan estado **Activo** y coincidan con la frecuencia seleccionada.
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 flex-wrap" style="border-top: 1px solid var(--border-light); padding-top: 20px;">
+          <a href="{{ url_for('prestamos.planillas_prestamos_pendientes') }}" class="btn-premium secondary">
+            Ver Planillas Guardadas
+          </a>
+          <button type="submit" id="btnSubmitPlanilla" class="btn-premium gold">
+            Generar Planilla
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
+
+<script>
+  const form = document.getElementById('formGenerarPlanilla');
+  const submitBtn = document.getElementById('btnSubmitPlanilla');
+
+  if (form && submitBtn) {
+    form.addEventListener('submit', function() {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `
+        <svg class="spinner" width="16" height="16" viewBox="0 0 50 50" style="animation: rotate 1s linear infinite; margin-right: 6px;">
+          <circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" style="stroke-dasharray: 1, 150; stroke-dashoffset: 0; animation: dash 1.5s ease-in-out infinite;"></circle>
+        </svg>
+        Generando Planilla...
+      `;
+    });
+  }
+
+  const styleSheet = document.createElement("style");
+  styleSheet.innerText = `
+    @keyframes rotate {
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes dash {
+      0% { stroke-dasharray: 1, 150; stroke-dashoffset: 0; }
+      50% { stroke-dasharray: 90, 150; stroke-dashoffset: -35; }
+      100% { stroke-dasharray: 90, 150; stroke-dashoffset: -124; }
+    }
+  `;
+  document.head.appendChild(styleSheet);
+</script>
 {% endblock %}
