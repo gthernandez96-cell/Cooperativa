@@ -901,6 +901,10 @@ def init_db():
     c.execute("UPDATE cuentas SET tasa_interes = 5.0 WHERE tipo = 'ahorro' AND tasa_interes IN (3.5, 2.5, 3.0)")
     c.execute("UPDATE ajustes_sistema SET valor = '5.0' WHERE clave = 'ahorro_tasa_interes_default'")
  
+    # Corrección de préstamos con saldos insignificantes (cancelados por errores de redondeo de flotante)
+    c.execute("UPDATE prestamos SET saldo_pendiente = 0.0, estado = 'pagado' WHERE estado = 'aprobado' AND saldo_pendiente <= 0.01")
+    c.execute("UPDATE prestamo_calendario_pagos SET estado = 'pagado' WHERE prestamo_id IN (SELECT id FROM prestamos WHERE estado = 'pagado') AND estado = 'pendiente'")
+ 
     conn.commit()
     conn.close()
 
