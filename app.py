@@ -1,7 +1,8 @@
 import os
 import uuid
 import logging
-from datetime import datetime, UTC
+from datetime import datetime, timezone
+UTC = timezone.utc
 from flask import Flask, request, session, g
 from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv
