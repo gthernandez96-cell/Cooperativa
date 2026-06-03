@@ -25,7 +25,7 @@
               <div>Solicitado: <strong>Q{{ "{:,.2f}".format(prestamo.monto_solicitado) }}</strong></div>
               <div>Pendiente: <strong style="color:#dc2626;">Q{{ "{:,.2f}".format(prestamo.saldo_pendiente) }}</strong></div>
             </div>
-            <div style="font-size:12px;color:#9ca3af;margin-top:6px;">Solicitado: {{ prestamo.fecha_solicitud }}</div>
+            <div style="font-size:12px;color:#9ca3af;margin-top:6px;">Solicitado: {{ prestamo.fecha_solicitud|fecha_dmy }}</div>
           </div>
           {% endfor %}
         </div>

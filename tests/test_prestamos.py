@@ -291,7 +291,7 @@ def test_detalle_prestamo_muestra_amortizacion_con_fecha_y_prestamo_pagador(clie
 
     assert resp.status_code == 200
     assert 'Pagado con préstamo PRE-PAG-001' in html
-    assert '2026-04-04' in html
+    assert '04/04/2026' in html
 
 
 def test_solicitud_retiro_amortiza_prestamo_vigente_al_aprobar(client):

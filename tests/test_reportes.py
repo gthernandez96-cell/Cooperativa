@@ -123,3 +123,29 @@ def test_reportes_dashboard_y_vistas(client):
     assert 'saldo ahorro' in csv_socios_data or 'saldo' in csv_socios_data
 
 
+def test_generar_reporte_prestamos_endpoints(client):
+    login_as_admin(client)
+
+    # Test POST /generar_reporte_prestamos
+    resp = client.post('/generar_reporte_prestamos', json={
+        'tipo_reporte': 'cartera_activa',
+        'fecha_inicio': '2026-01-01',
+        'fecha_fin': '2026-12-31'
+    })
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data['success'] is True
+    assert 'resultados' in data
+    assert 'estadisticas' in data
+    assert 'morosidad' in data
+
+    # Test export endpoints (Excel)
+    resp_export_excel = client.get('/reporte_prestamos/export?tipo_reporte=cartera_activa&formato=excel')
+    assert resp_export_excel.status_code in (200, 302)
+    if resp_export_excel.status_code == 200:
+        assert resp_export_excel.mimetype == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+
+    # Test export endpoints (CSV)
+    resp_export_csv = client.get('/reporte_prestamos/export?tipo_reporte=cartera_activa&formato=csv')
+    assert resp_export_csv.status_code == 200
+    assert resp_export_csv.mimetype == 'text/csv'

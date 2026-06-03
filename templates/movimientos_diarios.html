@@ -307,11 +307,7 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if 'T' in m.fecha %}
-                            {{ m.fecha.split('T')[0] }} <span class="text-muted" style="font-size: 12px;">{{ m.fecha.split('T')[1][:5] }}</span>
-                            {% else %}
-                            {{ m.fecha }}
-                            {% endif %}
+                            {{ m.fecha | fecha_dmy }}
                         </td>
                         <td>
                             <strong>{{ m.socio_codigo }}</strong><br>
@@ -353,7 +349,7 @@
                         <td>
                             {% if m.jornalizado == 1 %}
                             <span class="badge badge-green">Jornalizado</span><br>
-                            <small class="text-muted" style="font-size: 11px;">{{ m.fecha_jornalizado }} ({{ m.boleta_jornalizado }})</small>
+                            <small class="text-muted" style="font-size: 11px;">{{ m.fecha_jornalizado | fecha_dmy }} ({{ m.boleta_jornalizado }})</small>
                             {% else %}
                             <span class="badge badge-gray">Pendiente</span>
                             {% endif %}
