@@ -23,7 +23,7 @@ PA_DOMAIN    = f"{PA_USER}.pythonanywhere.com"
 BASE_URL     = f"https://www.pythonanywhere.com/api/v0/user/{PA_USER}"
 HEADERS      = {"Authorization": f"Token {PA_API_TOKEN}"}
 ZIP_NAME     = "coop_deploy.zip"
-ZIP_PATH     = f"/tmp/{ZIP_NAME}"
+ZIP_PATH     = ZIP_NAME
 # ─────────────────────────────────────────────────────────────────────────────
 
 def pa_request(method, endpoint, data=None, expect_json=True):
@@ -50,10 +50,10 @@ def pack_project():
     if os.path.exists(ZIP_PATH):
         os.remove(ZIP_PATH)
     
-    # Comprimir ignorando carpetas pesadas/innecesarias
+    # Comprimir ignorando carpetas pesadas/innecesarias y el propio zip
     cmd = [
         "zip", "-q", "-r", ZIP_PATH, ".", 
-        "-x", "*.git*", "*.venv*", "*__pycache__*", "*.pytest_cache*", "*instance*"
+        "-x", "*.git*", "*.venv*", "*__pycache__*", "*.pytest_cache*", "*instance*", f"*{ZIP_NAME}*"
     ]
     r = subprocess.run(cmd)
     if r.returncode == 0:
@@ -145,11 +145,16 @@ def main():
     print("║    CoopAhorro — Deploy Automático a Producción       ║")
     print("╚══════════════════════════════════════════════════════╝")
     
-    if pack_project() and upload_zip() and extract_and_install() and reload_webapp():
-        print(f"\n✅ ¡Deploy completado con éxito!")
-        print(f"   → https://{PA_DOMAIN}")
-    else:
-        print(f"\n❌ El deploy falló. Revisa los errores arriba.")
+    try:
+        if pack_project() and upload_zip() and extract_and_install() and reload_webapp():
+            print(f"\n✅ ¡Deploy completado con éxito!")
+            print(f"   → https://{PA_DOMAIN}")
+        else:
+            print(f"\n❌ El deploy falló. Revisa los errores arriba.")
+    finally:
+        if os.path.exists(ZIP_PATH):
+            print(f"\n🧹 Limpiando archivo temporal local {ZIP_PATH}...")
+            os.remove(ZIP_PATH)
 
 if __name__ == "__main__":
     main()
