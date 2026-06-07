@@ -14,6 +14,7 @@ import urllib.request
 import urllib.parse
 import json
 import os
+import ssl
 
 # ── Configuración ─────────────────────────────────────────────────────────────
 PA_USER      = "gthernandez96"
@@ -29,13 +30,19 @@ def pa_request(method, endpoint, data=None, expect_json=True):
     url = f"{BASE_URL}{endpoint}"
     body = urllib.parse.urlencode(data).encode() if data else None
     req = urllib.request.Request(url, data=body, headers=HEADERS, method=method)
+    context = ssl._create_unverified_context()
     try:
-        with urllib.request.urlopen(req, timeout=45) as r:
+        with urllib.request.urlopen(req, timeout=45, context=context) as r:
             raw = r.read()
             if not raw or not expect_json: return True
             return json.loads(raw)
     except Exception as e:
         print(f"  ✗ Error en API PythonAnywhere: {e}")
+        if hasattr(e, 'read'):
+            try:
+                print(f"    Detalles del error: {e.read().decode()}")
+            except:
+                pass
         return None
 
 def pack_project():
@@ -77,9 +84,10 @@ def upload_zip():
         },
         method="POST"
     )
+    context = ssl._create_unverified_context()
 
     try:
-        with urllib.request.urlopen(req) as r:
+        with urllib.request.urlopen(req, context=context) as r:
             print("  ✓ Archivo subido exitosamente")
             return True
     except Exception as e:

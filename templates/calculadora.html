@@ -1,0 +1,446 @@
+{% extends "base.html" %}
+{% block title %}Calculadora de Préstamo — {{ cooperativa_nombre }}{% endblock %}
+
+{% block extra_head %}
+<style>
+.calc-wrap {
+  max-width: 900px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+/* Panel izquierdo: formulario */
+.calc-panel {
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(14px);
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,0.95);
+  box-shadow: 0 12px 40px rgba(0,32,68,0.08);
+  padding: 32px;
+}
+
+.calc-panel h2 {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  color: #002a50;
+  margin-bottom: 6px;
+}
+
+.calc-panel p.sub {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 28px;
+}
+
+.calc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.calc-field label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #475569;
+}
+
+.calc-field input,
+.calc-field select {
+  height: 50px;
+  padding: 12px 16px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 16px;
+  font-family: inherit;
+  background: #fff;
+  color: #0f172a;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.calc-field input:focus,
+.calc-field select:focus {
+  outline: none;
+  border-color: #0057a3;
+  box-shadow: 0 0 0 3px rgba(0,87,163,0.1);
+}
+
+/* Panel derecho: resultados */
+.calc-results {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.result-hero {
+  background: linear-gradient(135deg, #003b74 0%, #0057a3 100%);
+  border-radius: 24px;
+  padding: 28px 32px;
+  color: white;
+  box-shadow: 0 12px 32px rgba(0,59,116,0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.result-hero::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 200px; height: 200px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 50%;
+}
+
+.result-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  opacity: 0.7;
+  margin-bottom: 6px;
+}
+
+.result-cuota {
+  font-family: 'Fraunces', serif;
+  font-size: 46px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 20px;
+}
+
+.result-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  border-top: 1px solid rgba(255,255,255,0.15);
+  padding-top: 18px;
+}
+
+.result-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.result-meta-item small {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.6;
+}
+
+.result-meta-item strong {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* Tabla de amortización */
+.amort-card {
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(14px);
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.95);
+  box-shadow: 0 8px 24px rgba(0,32,68,0.06);
+  overflow: hidden;
+}
+
+.amort-title {
+  padding: 16px 20px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: #475569;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.amort-table {
+  width: 100%;
+  font-size: 13px;
+  border-collapse: collapse;
+}
+
+.amort-table th {
+  background: #f8fafc;
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #64748b;
+  font-weight: 700;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.amort-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f8fafc;
+  color: #1e293b;
+}
+
+.amort-table tr:last-child td { border-bottom: none; }
+.amort-table tr:hover td { background: #f8fafc; }
+
+/* Estado vacío */
+.calc-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  color: #94a3b8;
+  text-align: center;
+  gap: 12px;
+}
+
+.calc-empty svg { opacity: 0.3; }
+
+/* Animación de contador */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.result-cuota, .result-meta-item strong {
+  animation: countUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (max-width: 700px) {
+  .calc-wrap { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Calculadora de Préstamo</div>
+    <div class="page-subtitle">Simula cuotas y tabla de amortización antes de solicitar</div>
+  </div>
+</div>
+
+<div class="calc-wrap">
+
+  <!-- Panel: Formulario -->
+  <div class="calc-panel">
+    <h2>Parámetros</h2>
+    <p class="sub">Ingresa los datos del préstamo para calcular la cuota estimada.</p>
+
+    <div class="calc-field">
+      <label for="calc-monto">Monto del Préstamo (Q)</label>
+      <input type="number" id="calc-monto" min="0" step="100" placeholder="Ej. 10,000" value="">
+    </div>
+
+    <div class="calc-field">
+      <label for="calc-tasa">Tasa de Interés Anual (%)</label>
+      <input type="number" id="calc-tasa" min="0" step="0.1" placeholder="Ej. 18" value="{{ tasa_default }}">
+    </div>
+
+    <div class="calc-field">
+      <label for="calc-plazo">Plazo (meses)</label>
+      <input type="number" id="calc-plazo" min="1" max="360" step="1" placeholder="Ej. 24" value="">
+    </div>
+
+    <div class="calc-field">
+      <label for="calc-frecuencia">Frecuencia de Pago</label>
+      <select id="calc-frecuencia">
+        <option value="Quincenal">Quincenal (cada 15 días)</option>
+        <option value="Catorcenal">Catorcenal (cada 14 días)</option>
+        <option value="Mensual">Mensual</option>
+      </select>
+    </div>
+
+    <div style="margin-top: 8px; padding: 12px 16px; background: #f0f7ff; border-radius: 10px; font-size: 12px; color: #1e40af; border: 1px solid #dbeafe;">
+      <strong>ℹ️ Nota:</strong> Este cálculo es una simulación. Los montos finales están sujetos a aprobación.
+    </div>
+  </div>
+
+  <!-- Panel: Resultados -->
+  <div class="calc-results" id="calc-results">
+
+    <div class="calc-empty" id="calc-empty-state">
+      <svg width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+        <path d="M9 7H6a2 2 0 00-2 2v9a2 2 0 002 2h9a2 2 0 002-2v-3"/>
+        <path d="M9 7h8l-1-4H10L9 7z"/>
+        <path d="M15 7V3"/>
+      </svg>
+      <p style="font-size: 15px; font-weight: 600; color: #334155;">Ingresa los parámetros</p>
+      <p style="font-size: 13px;">El resultado aparecerá aquí en tiempo real.</p>
+    </div>
+
+    <div id="calc-result-content" style="display:none; flex-direction:column; gap:18px;">
+
+      <!-- Hero: Cuota -->
+      <div class="result-hero">
+        <div class="result-label">Cuota Estimada</div>
+        <div class="result-cuota" id="res-cuota">Q0.00</div>
+        <div class="result-meta">
+          <div class="result-meta-item">
+            <small>Total a pagar</small>
+            <strong id="res-total">Q0.00</strong>
+          </div>
+          <div class="result-meta-item">
+            <small>Total en intereses</small>
+            <strong id="res-intereses">Q0.00</strong>
+          </div>
+          <div class="result-meta-item">
+            <small>Monto solicitado</small>
+            <strong id="res-monto">Q0.00</strong>
+          </div>
+          <div class="result-meta-item">
+            <small>Número de cuotas</small>
+            <strong id="res-num-cuotas">0</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla de amortización (primeras 6 cuotas) -->
+      <div class="amort-card">
+        <div class="amort-title">
+          Tabla de Amortización
+          <span id="amort-badge" style="background:#eff6ff;color:#1e40af;font-size:11px;padding:2px 10px;border-radius:99px;font-weight:700;"></span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="amort-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Fecha</th>
+                <th>Cuota</th>
+                <th>Capital</th>
+                <th>Interés</th>
+                <th>Saldo</th>
+              </tr>
+            </thead>
+            <tbody id="amort-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function() {
+  const inputMonto     = document.getElementById('calc-monto');
+  const inputTasa      = document.getElementById('calc-tasa');
+  const inputPlazo     = document.getElementById('calc-plazo');
+  const selectFrq      = document.getElementById('calc-frecuencia');
+  const emptyState     = document.getElementById('calc-empty-state');
+  const resultContent  = document.getElementById('calc-result-content');
+
+  const elCuota        = document.getElementById('res-cuota');
+  const elTotal        = document.getElementById('res-total');
+  const elIntereses    = document.getElementById('res-intereses');
+  const elMonto        = document.getElementById('res-monto');
+  const elNumCuotas    = document.getElementById('res-num-cuotas');
+  const amortBody      = document.getElementById('amort-body');
+  const amortBadge     = document.getElementById('amort-badge');
+
+  const FMT = v => 'Q' + parseFloat(v).toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  function calcular() {
+    const monto = parseFloat(inputMonto.value) || 0;
+    const tasa  = parseFloat(inputTasa.value)  || 0;
+    const plazo = parseInt(inputPlazo.value)    || 0;
+    const frq   = selectFrq.value;
+
+    if (monto <= 0 || tasa <= 0 || plazo <= 0) {
+      emptyState.style.display = 'flex';
+      resultContent.style.display = 'none';
+      return;
+    }
+
+    // Cuotas por año según frecuencia
+    const cuotasAnio = frq === 'Quincenal' ? 24 : frq === 'Catorcenal' ? 26 : 12;
+    const totalCuotas = frq === 'Mensual' ? plazo : Math.round(plazo * cuotasAnio / 12);
+    const tasaPeriodo = (tasa / 100) / cuotasAnio;
+
+    // Fórmula de cuota fija (French amortization)
+    let cuota;
+    if (tasaPeriodo === 0) {
+      cuota = monto / totalCuotas;
+    } else {
+      cuota = monto * (tasaPeriodo * Math.pow(1 + tasaPeriodo, totalCuotas)) / (Math.pow(1 + tasaPeriodo, totalCuotas) - 1);
+    }
+
+    const totalPagar = cuota * totalCuotas;
+    const totalIntereses = totalPagar - monto;
+
+    // Actualizar Hero
+    elCuota.textContent = FMT(cuota);
+    elTotal.textContent = FMT(totalPagar);
+    elIntereses.textContent = FMT(totalIntereses);
+    elMonto.textContent = FMT(monto);
+    elNumCuotas.textContent = totalCuotas;
+
+    // Generar tabla de amortización (primeras 8 cuotas + última si hay más)
+    const MAX_SHOW = 8;
+    const filas = [];
+    let saldo = monto;
+    const hoy = new Date();
+
+    for (let i = 1; i <= totalCuotas; i++) {
+      const intPeriodo = saldo * tasaPeriodo;
+      let capitalPeriodo = cuota - intPeriodo;
+      if (i === totalCuotas) capitalPeriodo = saldo; // ajuste última cuota
+      saldo = Math.max(0, saldo - capitalPeriodo);
+
+      // Calcular fecha de la cuota
+      const fechaCuota = new Date(hoy);
+      const diasPeriodo = frq === 'Quincenal' ? 15 : frq === 'Catorcenal' ? 14 : 30;
+      fechaCuota.setDate(fechaCuota.getDate() + diasPeriodo * i);
+      const fechaStr = fechaCuota.toLocaleDateString('es-GT', { day:'2-digit', month:'2-digit', year:'numeric' });
+
+      filas.push({ num: i, fecha: fechaStr, cuota: cuota, capital: capitalPeriodo, interes: intPeriodo, saldo: saldo });
+    }
+
+    // Mostrar primeras MAX_SHOW y la última
+    let rowsToShow = filas.slice(0, MAX_SHOW);
+    const hasMas = filas.length > MAX_SHOW;
+    if (hasMas && filas.length > MAX_SHOW) {
+      rowsToShow.push(null); // separador
+      rowsToShow.push(filas[filas.length - 1]);
+    }
+
+    amortBody.innerHTML = rowsToShow.map(f => {
+      if (!f) return `<tr><td colspan="6" style="text-align:center;padding:6px;color:#94a3b8;font-size:11px;">… ${filas.length - MAX_SHOW - 1} cuotas más …</td></tr>`;
+      return `<tr>
+        <td style="color:#64748b;font-size:12px;">${f.num}</td>
+        <td style="color:#64748b;font-size:12px;">${f.fecha}</td>
+        <td style="font-weight:600;">${FMT(f.cuota)}</td>
+        <td style="color:#059669;">${FMT(f.capital)}</td>
+        <td style="color:#dc2626;">${FMT(f.interes)}</td>
+        <td style="color:#003b74;font-weight:600;">${FMT(f.saldo)}</td>
+      </tr>`;
+    }).join('');
+
+    amortBadge.textContent = `${totalCuotas} cuotas`;
+
+    // Mostrar resultados
+    emptyState.style.display = 'none';
+    resultContent.style.display = 'flex';
+  }
+
+  // Recalcular en tiempo real
+  [inputMonto, inputTasa, inputPlazo, selectFrq].forEach(el => {
+    el.addEventListener('input', calcular);
+    el.addEventListener('change', calcular);
+  });
+
+  // Calcular al cargar si ya hay valores
+  calcular();
+})();
+</script>
+{% endblock %}

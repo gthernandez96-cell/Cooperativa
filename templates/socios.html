@@ -616,14 +616,18 @@
               {% if s.estado == 'activo' %}
               <form method="POST" action="{{ url_for('socios.inactivar_socio', sid=s.id) }}" style="display:inline;">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="soc-act danger" title="Inactivar" id="btn-inactivar-{{ s.id }}" onclick="return confirm('¿Inactivar a {{ s.nombre }} {{ s.apellido }}?')">
+                <button type="submit" class="soc-act danger" title="Inactivar" id="btn-inactivar-{{ s.id }}"
+                  data-confirm="¿Inactivar a {{ s.nombre }} {{ s.apellido }}? Perderá acceso al sistema."
+                  data-confirm-title="Inactivar Asociado">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
                 </button>
               </form>
               {% else %}
               <form method="POST" action="{{ url_for('socios.activar_socio', sid=s.id) }}" style="display:inline;">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="soc-act ok" title="Activar" id="btn-activar-{{ s.id }}" onclick="return confirm('¿Activar a {{ s.nombre }} {{ s.apellido }}?')">
+                <button type="submit" class="soc-act ok" title="Activar" id="btn-activar-{{ s.id }}"
+                  data-confirm="¿Activar a {{ s.nombre }} {{ s.apellido }}? Recuperará acceso al sistema."
+                  data-confirm-title="Activar Asociado">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
                 </button>
               </form>

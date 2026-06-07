@@ -187,7 +187,8 @@ def detalle_cuenta(cid):
     conn = get_db()
     cuenta = db_fetchone(
         conn,
-        '''SELECT c.*, s.nombre||' '||s.apellido as socio
+        '''SELECT c.*, s.nombre||' '||s.apellido as socio,
+                  s.codigo as socio_codigo
            FROM cuentas c JOIN socios s ON c.socio_id=s.id
            WHERE c.id=?''',
         [cid]
@@ -196,9 +197,174 @@ def detalle_cuenta(cid):
         conn.close()
         flash('Cuenta no encontrada.', 'danger')
         return redirect(url_for('ahorro.cuentas'))
-    txns = db_fetchall(conn, "SELECT * FROM transacciones WHERE cuenta_id=? ORDER BY id DESC", [cid])
+
+    per_page = 50
+    page = max(1, int(request.args.get('page', 1) or 1))
+    total_txn = db_fetchone(conn, "SELECT COUNT(*) FROM transacciones WHERE cuenta_id=?", [cid])[0]
+    import math as _math
+    total_pages = max(1, _math.ceil(total_txn / per_page))
+    offset = (page - 1) * per_page
+
+    txns = db_fetchall(
+        conn,
+        "SELECT * FROM transacciones WHERE cuenta_id=? ORDER BY id DESC LIMIT ? OFFSET ?",
+        [cid, per_page, offset]
+    )
     conn.close()
-    return render_template('detalle_cuenta.html', cuenta=cuenta, transacciones=txns)
+    return render_template(
+        'detalle_cuenta.html',
+        cuenta=cuenta,
+        transacciones=txns,
+        total_txn=total_txn,
+        page=page,
+        total_pages=total_pages,
+    )
+
+
+@bp.route('/cuentas/<int:cid>/pdf')
+@login_required()
+def descargar_pdf_cuenta(cid):
+    """Genera y descarga un PDF del estado de cuenta completo."""
+    conn = get_db()
+    cuenta = db_fetchone(
+        conn,
+        '''SELECT c.*, s.nombre, s.apellido, s.codigo as socio_codigo, s.dpi, s.direccion
+           FROM cuentas c
+           JOIN socios s ON c.socio_id = s.id
+           WHERE c.id = ?''',
+        [cid]
+    )
+    if not cuenta:
+        conn.close()
+        flash('Cuenta no encontrada.', 'danger')
+        return redirect(url_for('ahorro.cuentas'))
+
+    txns = db_fetchall(conn, "SELECT * FROM transacciones WHERE cuenta_id=? ORDER BY fecha ASC", [cid])
+    cooperativa_nombre = get_system_setting(conn, 'cooperativa_nombre', 'Cooperativa')
+    conn.close()
+
+    try:
+        from reportlab.lib.pagesizes import letter
+        from reportlab.lib import colors
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import cm
+        import io
+
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(
+            buffer, pagesize=letter,
+            leftMargin=2*cm, rightMargin=2*cm,
+            topMargin=2*cm, bottomMargin=2*cm
+        )
+        styles = getSampleStyleSheet()
+        story = []
+
+        # Encabezado
+        title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=16, textColor=colors.HexColor('#003b74'), spaceAfter=4)
+        subtitle_style = ParagraphStyle('Sub', parent=styles['Normal'], fontSize=10, textColor=colors.HexColor('#475569'), spaceAfter=12)
+        story.append(Paragraph(cooperativa_nombre, title_style))
+        story.append(Paragraph('Estado de Cuenta de Ahorro', subtitle_style))
+        story.append(Spacer(1, 0.3*cm))
+
+        # Datos de la cuenta
+        cuenta_data = [
+            ['Número de Cuenta:', cuenta['numero'], 'Titular:', f"{cuenta['nombre']} {cuenta['apellido']}"],
+            ['Código Socio:', cuenta['socio_codigo'] or '—', 'Saldo Actual:', f"Q{float(cuenta['saldo'] or 0):,.2f}"],
+            ['Tipo de Cuenta:', (cuenta['producto_ahorro'] or cuenta['tipo'] or '').replace('_', ' ').title(), 'Tasa de Interés:', f"{cuenta['tasa_interes']}% Anual"],
+            ['Fecha de Apertura:', cuenta['fecha_apertura'] or '—', 'Estado:', (cuenta['estado'] or '').capitalize()],
+        ]
+        info_table = Table(cuenta_data, colWidths=[4*cm, 5.5*cm, 4*cm, 5.5*cm])
+        info_table.setStyle(TableStyle([
+            ('FONTSIZE', (0,0), (-1,-1), 9),
+            ('TEXTCOLOR', (0,0), (0,-1), colors.HexColor('#475569')),
+            ('TEXTCOLOR', (2,0), (2,-1), colors.HexColor('#475569')),
+            ('FONTNAME', (1,0), (1,-1), 'Helvetica-Bold'),
+            ('FONTNAME', (3,0), (3,-1), 'Helvetica-Bold'),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+            ('TOPPADDING', (0,0), (-1,-1), 5),
+            ('ROWBACKGROUNDS', (0,0), (-1,-1), [colors.HexColor('#f8fafc'), colors.white]),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#e2e8f0')),
+            ('BORDERPADDING', (0,0), (-1,-1), 6),
+        ]))
+        story.append(info_table)
+        story.append(Spacer(1, 0.5*cm))
+
+        # Tabla de movimientos
+        story.append(Paragraph('Historial de Movimientos', ParagraphStyle('H2', parent=styles['Heading2'], fontSize=12, textColor=colors.HexColor('#003b74'), spaceBefore=8, spaceAfter=6)))
+
+        header = ['Fecha', 'Operación', 'Monto (Q)', 'Saldo (Q)', 'Descripción']
+        rows = [header]
+        TIPOS_POSITIVOS = {'deposito', 'interes', 'credito'}
+        for t in txns:
+            tipo_txt = (t['tipo'] or '').capitalize()
+            monto = float(t['monto'] or 0)
+            saldo = float(t['saldo_despues'] or 0)
+            signo = '+' if t['tipo'] in TIPOS_POSITIVOS else '-'
+            rows.append([
+                str(t['fecha'])[:10],
+                tipo_txt,
+                f"{signo}Q{monto:,.2f}",
+                f"Q{saldo:,.2f}",
+                (t['descripcion'] or '—')[:50],
+            ])
+
+        if len(rows) > 1:
+            col_widths = [3*cm, 3*cm, 3.5*cm, 3.5*cm, None]
+            txn_table = Table(rows, colWidths=col_widths, repeatRows=1)
+            txn_table.setStyle(TableStyle([
+                ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#003b74')),
+                ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+                ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0,0), (-1,-1), 8),
+                ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#f8fafc')]),
+                ('GRID', (0,0), (-1,-1), 0.4, colors.HexColor('#e2e8f0')),
+                ('TOPPADDING', (0,0), (-1,-1), 4),
+                ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+                ('ALIGN', (2,1), (3,-1), 'RIGHT'),
+            ]))
+            story.append(txn_table)
+        else:
+            story.append(Paragraph('Sin movimientos registrados.', styles['Normal']))
+
+        # Resumen final
+        story.append(Spacer(1, 0.5*cm))
+        total_dep = sum(float(t['monto'] or 0) for t in txns if t['tipo'] in TIPOS_POSITIVOS)
+        total_ret = sum(float(t['monto'] or 0) for t in txns if t['tipo'] not in TIPOS_POSITIVOS)
+        resumen_data = [
+            ['Total Depósitos / Intereses', f"Q{total_dep:,.2f}"],
+            ['Total Retiros / Cargos', f"Q{total_ret:,.2f}"],
+            ['Saldo Actual', f"Q{float(cuenta['saldo'] or 0):,.2f}"],
+        ]
+        resumen_table = Table(resumen_data, colWidths=[10*cm, 5*cm])
+        resumen_table.setStyle(TableStyle([
+            ('FONTSIZE', (0,0), (-1,-1), 9),
+            ('FONTNAME', (0,2), (-1,2), 'Helvetica-Bold'),
+            ('TEXTCOLOR', (0,2), (-1,2), colors.HexColor('#003b74')),
+            ('ALIGN', (1,0), (1,-1), 'RIGHT'),
+            ('LINEABOVE', (0,2), (-1,2), 1, colors.HexColor('#003b74')),
+            ('TOPPADDING', (0,0), (-1,-1), 4),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ]))
+        story.append(resumen_table)
+
+        doc.build(story)
+        buffer.seek(0)
+        filename = f"estado_cuenta_{cuenta['numero']}_{date.today().isoformat()}.pdf"
+        from flask import send_file
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/pdf'
+        )
+
+    except ImportError:
+        flash('ReportLab no está instalado. Instale con: pip install reportlab', 'danger')
+        return redirect(url_for('ahorro.detalle_cuenta', cid=cid))
+    except Exception as e:
+        flash(f'Error al generar PDF: {e}', 'danger')
+        return redirect(url_for('ahorro.detalle_cuenta', cid=cid))
 
 @bp.route('/cuentas/<int:cid>/imprimir')
 def imprimir_estado_cuenta(cid):

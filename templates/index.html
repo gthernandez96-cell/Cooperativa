@@ -2,6 +2,7 @@
 {% block title %}Dashboard — {{ cooperativa_nombre }}{% endblock %}
 
 {% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <style>
 .dash {
   display: flex;
@@ -292,6 +293,50 @@
     font-size: 36px;
   }
 }
+.dash-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 24px;
+}
+
+.chart-card {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.chart-title {
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+  color: #475569;
+}
+
+.chart-canvas-wrap {
+  position: relative;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chart-no-data {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 220px;
+  font-size: 13px;
+  color: #94a3b8;
+  font-style: italic;
+}
+
 </style>
 {% endblock %}
 
@@ -432,6 +477,35 @@
     </div>
   </div>
 
+  <div class="dash-section-label fade-in-up" style="animation-delay: 0.38s;">Distribución de Cartera</div>
+  <div class="dash-charts fade-in-up" style="animation-delay: 0.42s;">
+
+    <!-- Dona: Ahorro por categoría -->
+    <div class="chart-card">
+      <div class="chart-title">Ahorro por Categoría</div>
+      {% if stats.ahorro_por_categoria %}
+      <div class="chart-canvas-wrap">
+        <canvas id="chart-ahorro-dona" aria-label="Distribución del ahorro por categoría"></canvas>
+      </div>
+      {% else %}
+      <div class="chart-no-data">Sin datos de ahorro disponibles</div>
+      {% endif %}
+    </div>
+
+    <!-- Barras: Préstamos por categoría -->
+    <div class="chart-card">
+      <div class="chart-title">Cartera Préstamos por Categoría</div>
+      {% if stats.prestamos_por_categoria %}
+      <div class="chart-canvas-wrap">
+        <canvas id="chart-prestamos-barras" aria-label="Cartera de préstamos por categoría"></canvas>
+      </div>
+      {% else %}
+      <div class="chart-no-data">Sin préstamos activos disponibles</div>
+      {% endif %}
+    </div>
+
+  </div>
+
   <div class="dash-section-label fade-in-up" style="animation-delay: 0.4s;">Accesos Directos</div>
 
   {% if alertas_cuotas %}
@@ -512,4 +586,119 @@
     </a>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function() {
+  /* ---------- Datos desde Jinja2 ---------- */
+  const ahorroData = {{ stats.ahorro_por_categoria | tojson }};
+  const prestamosData = {{ stats.prestamos_por_categoria | tojson }};
+
+  const PALETTE_DONA = [
+    '#0ea5e9', '#8b5cf6', '#f6c954',
+    '#10b981', '#f43f5e', '#6366f1',
+  ];
+
+  const PALETTE_BARRAS = [
+    'rgba(14, 165, 233, 0.8)',
+    'rgba(139, 92, 246, 0.8)',
+    'rgba(246, 201, 84, 0.8)',
+    'rgba(16, 185, 129, 0.8)',
+    'rgba(244, 63, 94, 0.8)',
+    'rgba(99, 102, 241, 0.8)',
+  ];
+
+  const baseFont = { family: "'DM Sans', sans-serif", size: 12 };
+
+  /* ---------- Dona: Ahorro ---------- */
+  const ctxDona = document.getElementById('chart-ahorro-dona');
+  if (ctxDona && ahorroData.length) {
+    new Chart(ctxDona, {
+      type: 'doughnut',
+      data: {
+        labels: ahorroData.map(d => d.nombre),
+        datasets: [{
+          data: ahorroData.map(d => d.total),
+          backgroundColor: PALETTE_DONA.slice(0, ahorroData.length),
+          borderWidth: 2,
+          borderColor: 'rgba(255,255,255,0.9)',
+          hoverBorderWidth: 0,
+          hoverOffset: 8,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '68%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              font: baseFont,
+              padding: 16,
+              usePointStyle: true,
+              pointStyleWidth: 10,
+            },
+          },
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const val = ctx.parsed;
+                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                const pct = total ? ((val / total) * 100).toFixed(1) : 0;
+                return ` Q${val.toLocaleString('es-GT', {minimumFractionDigits:2})} (${pct}%)`;
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  /* ---------- Barras: Préstamos ---------- */
+  const ctxBarras = document.getElementById('chart-prestamos-barras');
+  if (ctxBarras && prestamosData.length) {
+    new Chart(ctxBarras, {
+      type: 'bar',
+      data: {
+        labels: prestamosData.map(d => d.nombre),
+        datasets: [{
+          label: 'Saldo pendiente (Q)',
+          data: prestamosData.map(d => d.total),
+          backgroundColor: PALETTE_BARRAS.slice(0, prestamosData.length),
+          borderRadius: 8,
+          borderSkipped: false,
+        }],
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => ` Q${ctx.parsed.x.toLocaleString('es-GT', {minimumFractionDigits:2})}`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(0,0,0,0.05)' },
+            ticks: {
+              font: baseFont,
+              callback: v => 'Q' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v),
+            },
+          },
+          y: {
+            grid: { display: false },
+            ticks: { font: baseFont },
+          },
+        },
+      },
+    });
+  }
+})();
+</script>
 {% endblock %}

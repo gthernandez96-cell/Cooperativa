@@ -1012,12 +1012,287 @@ tr:hover td { background: var(--c-cream); }
         border-top: 1px solid #9ca3af !important;
     }
 }
+
+/* ── TopLoader (barra de progreso superior) ────────────────────────────── */
+#top-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0%;
+  background: linear-gradient(90deg, #f6c954 0%, #fbbf24 50%, #f59e0b 100%);
+  z-index: 99999;
+  border-radius: 0 3px 3px 0;
+  transition: width 0.25s ease, opacity 0.4s ease;
+  box-shadow: 0 0 8px rgba(246, 201, 84, 0.6);
+  pointer-events: none;
+}
+
+/* ── Modal de Confirmación Genérico ─────────────────────────────────────── */
+#confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 23, 44, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 99000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+#confirm-overlay.is-open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+#confirm-box {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 32px 36px;
+  max-width: 420px;
+  width: 90%;
+  box-shadow: 0 25px 60px rgba(0, 32, 68, 0.22);
+  transform: scale(0.92) translateY(12px);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#confirm-overlay.is-open #confirm-box {
+  transform: scale(1) translateY(0);
+}
+
+#confirm-icon {
+  width: 52px;
+  height: 52px;
+  background: #fff7ed;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  color: #d97706;
+}
+
+#confirm-title {
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+#confirm-message {
+  font-size: 14px;
+  color: #475569;
+  text-align: center;
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+#confirm-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+#confirm-cancel {
+  padding: 10px 22px;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+#confirm-cancel:hover {
+  background: #e2e8f0;
+}
+
+#confirm-ok {
+  padding: 10px 22px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+#confirm-ok:hover {
+  background: linear-gradient(135deg, #b91c1c, #991b1b);
+  transform: translateY(-1px);
+}
+
 </style>
 {% block extra_head %}{% endblock %}
 <!-- Token CSRF para protección de formularios (Flask-WTF) -->
 <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 <body>
+
+<!-- TopLoader -->
+<div id="top-loader"></div>
+
+<!-- Modal de Confirmación Genérico -->
+<div id="confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+  <div id="confirm-box">
+    <div id="confirm-icon">
+      <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+      </svg>
+    </div>
+    <div id="confirm-title">¿Confirmar acción?</div>
+    <div id="confirm-message"></div>
+    <div id="confirm-actions">
+      <button id="confirm-cancel" type="button">Cancelar</button>
+      <button id="confirm-ok" type="button">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── TopLoader ─────────────────────────────────────────────────────────── */
+(function() {
+  const loader = document.getElementById('top-loader');
+  let _tid = null;
+
+  function startLoader() {
+    if (!loader) return;
+    clearTimeout(_tid);
+    loader.style.opacity = '1';
+    loader.style.width = '30%';
+    _tid = setTimeout(() => { loader.style.width = '70%'; }, 300);
+  }
+
+  function finishLoader() {
+    if (!loader) return;
+    clearTimeout(_tid);
+    loader.style.width = '100%';
+    _tid = setTimeout(() => {
+      loader.style.opacity = '0';
+      _tid = setTimeout(() => { loader.style.width = '0%'; }, 400);
+    }, 250);
+  }
+
+  // Activar en navegación por links (excluyendo los que abren nueva pestaña)
+  document.addEventListener('click', function(e) {
+    const a = e.target.closest('a[href]');
+    if (!a) return;
+    if (a.target === '_blank' || a.href.startsWith('javascript:') || a.href.startsWith('#')) return;
+    if (a.href.startsWith(window.location.origin) || !a.href.startsWith('http')) {
+      startLoader();
+    }
+  }, true);
+
+  // Activar en envio de formularios
+  document.addEventListener('submit', function() {
+    startLoader();
+  }, true);
+
+  // Terminar cuando la página carga
+  window.addEventListener('pageshow', finishLoader);
+  window.addEventListener('load', finishLoader);
+})();
+
+/* ── Modal de Confirmación ─────────────────────────────────────────────── */
+(function() {
+  const overlay = document.getElementById('confirm-overlay');
+  const msgEl = document.getElementById('confirm-message');
+  const titleEl = document.getElementById('confirm-title');
+  const btnOk = document.getElementById('confirm-ok');
+  const btnCancel = document.getElementById('confirm-cancel');
+
+  if (!overlay) return;
+
+  let _pendingTarget = null;
+
+  function openModal(message, title) {
+    msgEl.textContent = message || '¿Estás seguro de realizar esta acción?';
+    if (title) titleEl.textContent = title;
+    else titleEl.textContent = '¿Confirmar acción?';
+    overlay.classList.add('is-open');
+    btnOk.focus();
+  }
+
+  function closeModal() {
+    overlay.classList.remove('is-open');
+    _pendingTarget = null;
+  }
+
+  btnCancel.addEventListener('click', closeModal);
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) closeModal();
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeModal();
+  });
+
+  btnOk.addEventListener('click', function() {
+    overlay.classList.remove('is-open');
+    if (!_pendingTarget) return;
+
+    if (_pendingTarget.tagName === 'FORM') {
+      // Remover el listener de confirm para no entrar en loop
+      _pendingTarget._skipConfirm = true;
+      _pendingTarget.submit();
+    } else if (_pendingTarget.tagName === 'A') {
+      window.location.href = _pendingTarget.href;
+    } else if (_pendingTarget.type === 'submit' || _pendingTarget.type === 'button') {
+      const form = _pendingTarget.closest('form');
+      if (form) {
+        form._skipConfirm = true;
+        // Click en el botón real para respetar el name/value del submit
+        _pendingTarget._skipConfirm = true;
+        _pendingTarget.click();
+      }
+    }
+    _pendingTarget = null;
+  });
+
+  // Interceptar clicks en elementos con data-confirm
+  document.addEventListener('click', function(e) {
+    const el = e.target.closest('[data-confirm]');
+    if (!el) return;
+    if (el._skipConfirm) { el._skipConfirm = false; return; }
+
+    // Si es un botón submit, también verificar si el form tiene data-confirm
+    const form = el.closest('form');
+    if (form && form._skipConfirm) { form._skipConfirm = false; return; }
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    _pendingTarget = el;
+    const msg = el.getAttribute('data-confirm');
+    const title = el.getAttribute('data-confirm-title');
+    openModal(msg, title);
+  }, true);
+
+  // Interceptar envios de formularios con data-confirm
+  document.addEventListener('submit', function(e) {
+    const form = e.target;
+    if (form._skipConfirm) { form._skipConfirm = false; return; }
+    if (!form.hasAttribute('data-confirm')) return;
+
+    e.preventDefault();
+    _pendingTarget = form;
+    const msg = form.getAttribute('data-confirm');
+    const title = form.getAttribute('data-confirm-title');
+    openModal(msg, title);
+  }, true);
+})();
+</script>
 
 <div class="top-brand">
   <div class="top-brand-content">
@@ -1069,6 +1344,10 @@ tr:hover td { background: var(--c-cream); }
       <a href="{{ url_for('reportes.index') }}" class="nav-link {% if 'reportes' in request.endpoint %}active{% endif %}">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
         Reportes
+      </a>
+      <a href="{{ url_for('main.calculadora') }}" class="nav-link {% if request.endpoint == 'main.calculadora' %}active{% endif %}">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="14" y2="14"/><line x1="8" y1="18" x2="12" y2="18"/></svg>
+        Calculadora
       </a>
       <a href="{{ url_for('usuarios.roles') }}" class="nav-link {% if 'usuarios.roles' in request.endpoint %}active{% endif %}">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2a5 5 0 0 1 5 5v3a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5z"/><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/></svg>
@@ -1248,6 +1527,8 @@ window.addEventListener('keydown', function(event) {
 })();
 
 </script>
+
+{% block extra_scripts %}{% endblock %}
 
 </body>
 </html>

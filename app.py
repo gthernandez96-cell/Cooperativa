@@ -1,11 +1,20 @@
 import os
 import uuid
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 UTC = timezone.utc
-from flask import Flask, request, session, g, redirect
+from flask import Flask, request, session, g, redirect, url_for
 from flask_wtf.csrf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
+
+# Rate limiter global (se adjunta al app en create_app)
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=[],
+    storage_uri="memory://",
+)
 
 # Dummy variable for test compatibility
 DB = None
@@ -36,6 +45,13 @@ def create_app():
     
     # Protección CSRF global
     CSRFProtect(app)
+
+    # Rate limiting
+    limiter.init_app(app)
+
+    # Timeout de sesión: 4 horas de inactividad
+    SESSION_TIMEOUT_HOURS = 4
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=SESSION_TIMEOUT_HOURS)
 
     # Configurar ProxyFix para manejar HTTPS detrás de proxies (ej. PythonAnywhere)
     from werkzeug.middleware.proxy_fix import ProxyFix
@@ -101,6 +117,20 @@ def create_app():
     def _set_request_context():
         g.request_id = request.headers.get('X-Request-ID') or str(uuid.uuid4())
         g.request_started_at = datetime.now(UTC)
+
+        # Verificar timeout de sesión por inactividad
+        if 'user_id' in session and not app.testing:
+            last_active_str = session.get('_last_active')
+            if last_active_str:
+                try:
+                    last_active = datetime.fromisoformat(last_active_str)
+                    if (datetime.now() - last_active).total_seconds() > 4 * 3600:
+                        session.clear()
+                        return redirect(url_for('auth.login'))
+                except (ValueError, TypeError):
+                    pass
+            session['_last_active'] = datetime.now().isoformat()
+            session.modified = True
 
     @app.after_request
     def _log_request(response):

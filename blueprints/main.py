@@ -1,6 +1,6 @@
-from flask import Blueprint, render_template, g
+from flask import Blueprint, render_template, g, redirect, url_for
 from datetime import date, timedelta
-from utils.db import get_db, db_fetchone, db_fetchall
+from utils.db import get_db, db_fetchone, db_fetchall, get_system_setting
 from utils.decorators import login_required
 from utils.financial import obtener_dias_frecuencia, calcular_proximo_pago
 
@@ -152,3 +152,21 @@ def index():
         alertas_cuotas=alertas_cuotas,
     )
 
+
+@bp.route('/calculadora')
+@login_required()
+def calculadora():
+    """Calculadora de préstamo: simula cuotas y amortización."""
+    conn = get_db()
+    try:
+        # Obtener la tasa de interés default de la configuración
+        tasa_default = db_fetchone(conn, "SELECT tasa_interes FROM configuraciones WHERE tipo='prestamo_personal' LIMIT 1")
+        if not tasa_default:
+            tasa_default = db_fetchone(conn, "SELECT tasa_interes FROM configuraciones ORDER BY id LIMIT 1")
+        tasa_val = float(tasa_default['tasa_interes']) if tasa_default and tasa_default['tasa_interes'] else 18.0
+    except Exception:
+        tasa_val = 18.0
+    finally:
+        conn.close()
+
+    return render_template('calculadora.html', tasa_default=tasa_val)
