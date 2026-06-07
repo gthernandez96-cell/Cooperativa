@@ -3,7 +3,7 @@ import uuid
 import logging
 from datetime import datetime, timezone
 UTC = timezone.utc
-from flask import Flask, request, session, g
+from flask import Flask, request, session, g, redirect
 from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv
 
@@ -36,6 +36,23 @@ def create_app():
     
     # Protección CSRF global
     CSRFProtect(app)
+
+    # Configurar ProxyFix para manejar HTTPS detrás de proxies (ej. PythonAnywhere)
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+    # Forzar redirección de HTTP a HTTPS si está configurado o si es producción
+    @app.before_request
+    def force_https_redirect():
+        if app.testing:
+            return
+        
+        force_https = os.environ.get('FORCE_HTTPS', 'False').lower() in ('true', '1', 'yes')
+        if not request.is_secure:
+            if app.debug and not force_https:
+                return
+            url = request.url.replace("http://", "https://", 1)
+            return redirect(url, code=301)
 
     # Registro de Blueprints
     from blueprints.auth import bp as auth_bp
@@ -119,4 +136,16 @@ with app.app_context():
     init_db()
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8001, debug=True)
+    # Configuración HTTPS para desarrollo local
+    use_https = os.environ.get('USE_HTTPS', 'False').lower() in ('true', '1', 'yes')
+    ssl_cert = os.environ.get('SSL_CERT_PATH', '').strip()
+    ssl_key = os.environ.get('SSL_KEY_PATH', '').strip()
+    
+    ssl_context = None
+    if use_https:
+        if ssl_cert and ssl_key:
+            ssl_context = (ssl_cert, ssl_key)
+        else:
+            ssl_context = 'adhoc'
+            
+    app.run(host='0.0.0.0', port=8001, debug=True, ssl_context=ssl_context)

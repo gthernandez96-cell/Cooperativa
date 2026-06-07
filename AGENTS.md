@@ -4,7 +4,7 @@
 CoopAhorro is a Flask-based web system for managing credit unions (cooperativas), handling member savings, loans, and financial operations. Built with Python 3.9+, Flask, and SQLite (with PostgreSQL migration support). All UI and data in Spanish.
 
 ## Quick Start
-- **Run locally**: `python app.py` → http://localhost:8001
+- **Run locally**: `python app.py` → http://localhost:8001 (o https://localhost:8001 si `USE_HTTPS=True` en `.env`)
 - **Demo credentials**: username: admin, password: admin123
 - **Tests**: `pytest tests/`
 - See [README.md](README.md) for full setup instructions.
@@ -34,6 +34,7 @@ CoopAhorro is a Flask-based web system for managing credit unions (cooperativas)
 - **Migrations**: Handled in `init_db()`; no separate migration tool.
 - **Tests**: Use `pytest` with fixtures; temp DB per test.
 - **Deployment**: Scripts in `scripts/` for PythonAnywhere.
+- **HTTPS & Proxy**: Configured with `ProxyFix` for reverse proxies (e.g. PythonAnywhere). Local SSL supported via `ssl_context='adhoc'` if `USE_HTTPS=True` in `.env`.
 
 ## Links
 - [README.md](README.md) — Setup and deployment

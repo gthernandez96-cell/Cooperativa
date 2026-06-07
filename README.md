@@ -30,9 +30,17 @@ python app.py
 ```
 
 ### 5. Abrir en el navegador
+Por defecto se ejecuta a través de HTTP:
 ```
 http://localhost:8001
 ```
+
+Si deseas habilitar HTTPS para desarrollo local, edita tu archivo `.env` configurando `USE_HTTPS=True` e instala las dependencias actualizadas (`pip install -r requirements.txt`). Luego podrás acceder desde:
+```
+https://localhost:8001
+```
+*(Nota: El navegador te advertirá sobre un certificado autofirmado "no seguro", lo cual es normal en desarrollo y puedes proceder de forma segura).*
+
 
 ## Sincronizar TODO a PythonAnywhere (SQLite)
 
