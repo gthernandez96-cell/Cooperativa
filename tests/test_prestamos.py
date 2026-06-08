@@ -738,4 +738,103 @@ def test_generar_planilla_prestamos_filtro_fecha(client):
     conn.close()
 
 
+def test_imprimir_finiquito_y_calendario_pdf(client):
+    conn = app_module.get_db()
+    try:
+        conn.execute(
+            '''
+            INSERT INTO socios (codigo, nombre, apellido, dpi, fecha_ingreso, estado, frecuencia)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''',
+            ('SOC-TEST-PDF', 'Carlos', 'Gomez', '2000000000101', '2026-01-01', 'activo', 'Quincenal')
+        )
+        socio_id = conn.execute("SELECT id FROM socios WHERE codigo='SOC-TEST-PDF'").fetchone()['id']
+
+        conn.execute(
+            '''
+            INSERT INTO prestamos (
+                numero, socio_id, monto_solicitado, monto_aprobado, tasa_interes,
+                plazo_meses, cuota_mensual, saldo_pendiente, fecha_solicitud,
+                fecha_aprobacion, estado
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''',
+            ('PRE-PDF-001', socio_id, 3000, 3000, 18, 12, 150, 1200, '2026-02-01', '2026-02-05', 'aprobado')
+        )
+        prestamo_id = conn.execute("SELECT id FROM prestamos WHERE numero='PRE-PDF-001'").fetchone()['id']
+
+        conn.execute(
+            '''
+            INSERT INTO prestamo_calendario_pagos (prestamo_id, numero_cuota, fecha_programada, monto_programado, estado)
+            VALUES (?, ?, ?, ?, ?)
+            ''',
+            (prestamo_id, 1, '2026-02-15', 150.0, 'pendiente')
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    resp_cal = client.get(f'/prestamos/{prestamo_id}/calendario/pdf')
+    assert resp_cal.status_code == 200
+    assert resp_cal.mimetype == 'application/pdf'
+
+    resp_fin = client.get(f'/prestamos/{prestamo_id}/finiquito?formato=pdf')
+    assert resp_fin.status_code == 200
+    assert resp_fin.mimetype == 'application/pdf'
+
+
+def test_pdf_routes_sin_reportlab(client, monkeypatch):
+    import builtins
+    real_import = builtins.__import__
+    def mock_import(name, *args, **kwargs):
+        if 'reportlab' in name:
+            raise ImportError("Mocked import error")
+        return real_import(name, *args, **kwargs)
+    
+    monkeypatch.setattr(builtins, '__import__', mock_import)
+
+    conn = app_module.get_db()
+    try:
+        conn.execute(
+            '''
+            INSERT INTO socios (codigo, nombre, apellido, dpi, fecha_ingreso, estado, frecuencia)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''',
+            ('SOC-TEST-MOCK', 'Carlos', 'Gomez', '2000000000101', '2026-01-01', 'activo', 'Quincenal')
+        )
+        socio_id = conn.execute("SELECT id FROM socios WHERE codigo='SOC-TEST-MOCK'").fetchone()['id']
+
+        conn.execute(
+            '''
+            INSERT INTO prestamos (
+                numero, socio_id, monto_solicitado, monto_aprobado, tasa_interes,
+                plazo_meses, cuota_mensual, saldo_pendiente, fecha_solicitud,
+                fecha_aprobacion, estado
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''',
+            ('PRE-MOCK-001', socio_id, 3000, 3000, 18, 12, 150, 1200, '2026-02-01', '2026-02-05', 'aprobado')
+        )
+        prestamo_id = conn.execute("SELECT id FROM prestamos WHERE numero='PRE-MOCK-001'").fetchone()['id']
+
+        conn.execute(
+            '''
+            INSERT INTO prestamo_calendario_pagos (prestamo_id, numero_cuota, fecha_programada, monto_programado, estado)
+            VALUES (?, ?, ?, ?, ?)
+            ''',
+            (prestamo_id, 1, '2026-02-15', 150.0, 'pendiente')
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    resp_cal = client.get(f'/prestamos/{prestamo_id}/calendario/pdf', follow_redirects=True)
+    assert b'ReportLab no' in resp_cal.data
+
+    resp_fin = client.get(f'/prestamos/{prestamo_id}/finiquito?formato=pdf', follow_redirects=True)
+    assert b'ReportLab no' in resp_fin.data
+
+
+
+
 

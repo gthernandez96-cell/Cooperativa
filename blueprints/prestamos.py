@@ -954,8 +954,12 @@ def calendario_prestamo_pdf(pid):
     prestamo['cooperativa_nombre'] = get_system_setting(conn, 'cooperativa_nombre', DEFAULT_COOPERATIVA_NOMBRE)
     conn.close()
 
-    from reportlab.lib.pagesizes import letter
-    from reportlab.pdfgen import canvas
+    try:
+        from reportlab.lib.pagesizes import letter
+        from reportlab.pdfgen import canvas
+    except ImportError:
+        flash('ReportLab no está instalado. No se puede generar el PDF. Instálelo con: pip install reportlab', 'danger')
+        return redirect(url_for('prestamos.detalle_prestamo', pid=pid))
 
     buffer = BytesIO()
     pdf = canvas.Canvas(buffer, pagesize=letter)
@@ -1019,8 +1023,12 @@ def finiquito_prestamo(pid):
     conn.close()
 
     if formato == 'pdf':
-        from reportlab.lib.pagesizes import letter
-        from reportlab.pdfgen import canvas
+        try:
+            from reportlab.lib.pagesizes import letter
+            from reportlab.pdfgen import canvas
+        except ImportError:
+            flash('ReportLab no está instalado. No se puede generar el PDF. Instálelo con: pip install reportlab', 'danger')
+            return redirect(url_for('prestamos.finiquito_prestamo', pid=pid, formato='html'))
 
         buffer = BytesIO()
         pdf = canvas.Canvas(buffer, pagesize=letter)
@@ -1578,8 +1586,12 @@ def exportar_reporte_prestamos():
     resultados, _, _ = _generar_datos_reporte_prestamos(tipo_reporte, fecha_inicio, fecha_fin)
 
     if formato == 'pdf':
-        from reportlab.lib.pagesizes import letter
-        from reportlab.pdfgen import canvas
+        try:
+            from reportlab.lib.pagesizes import letter
+            from reportlab.pdfgen import canvas
+        except ImportError:
+            flash('ReportLab no está instalado. No se puede generar el PDF. Instálelo con: pip install reportlab', 'danger')
+            return redirect(url_for('prestamos.reportes_prestamos'))
 
         buffer = BytesIO()
         pdf = canvas.Canvas(buffer, pagesize=letter)
