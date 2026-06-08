@@ -108,6 +108,10 @@ def nuevo_socio():
             if not primer_nombre or not primer_apellido or not request.form.get('dpi', '').strip():
                 raise ValueError('Código, primer nombre, primer apellido y DPI son obligatorios.')
 
+            salario = request.form.get('salario', '').strip()
+            salario_val = float(salario) if salario else None
+            fecha_ingreso_laborar = request.form.get('fecha_ingreso_laborar', '').strip() or None
+
             db_execute(
                 conn,
                 '''INSERT INTO socios (
@@ -115,8 +119,9 @@ def nuevo_socio():
                        apellido,primer_apellido,segundo_apellido,estado_civil,apellido_casada,
                        dpi,telefono,email,direccion,rol,fecha_ingreso,nit,beneficiario,
                        banco_nombre,banco_tipo_cuenta,banco_numero_cuenta,
-                       frecuencia,cuota_ahorro,tipo_ahorro,finca
-                   ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+                       frecuencia,cuota_ahorro,tipo_ahorro,finca,
+                       salario,fecha_ingreso_laborar
+                   ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
                 (
                     codigo, nombre, primer_nombre, segundo_nombre, tercer_nombre,
                     apellido, primer_apellido, segundo_apellido, estado_civil, apellido_casada,
@@ -130,6 +135,8 @@ def nuevo_socio():
                     float(request.form.get('cuota_ahorro', 0) or 0),
                     request.form.get('tipo_ahorro', 'ahorro corriente').strip() or 'ahorro corriente',
                     request.form.get('finca', '').strip(),
+                    salario_val,
+                    fecha_ingreso_laborar,
                 )
             )
             socio_insertado = db_fetchone(conn, 'SELECT id FROM socios WHERE codigo=?', (codigo,))
@@ -282,18 +289,24 @@ def editar_socio(sid):
                     return render_template('editar_socio.html', socio=socio_dict, beneficiarios=beneficiarios_existentes)
                 ruta_foto = procesar_foto_socio(foto, sid)
 
+            salario = request.form.get('salario', '').strip()
+            salario_val = float(salario) if salario else None
+            fecha_ingreso_laborar = request.form.get('fecha_ingreso_laborar', '').strip() or None
+
             db_execute(conn, '''
                 UPDATE socios SET codigo=?, nombre=?, primer_nombre=?, segundo_nombre=?, tercer_nombre=?,
                                   apellido=?, primer_apellido=?, segundo_apellido=?, estado_civil=?, apellido_casada=?,
                                   dpi=?, telefono=?, email=?, direccion=?, rol=?, frecuencia=?, cuota_ahorro=?, tipo_ahorro=?,
-                                  nit=?, beneficiario=?, finca=?, banco_nombre=?, banco_tipo_cuenta=?, banco_numero_cuenta=?, foto=?
+                                  nit=?, beneficiario=?, finca=?, banco_nombre=?, banco_tipo_cuenta=?, banco_numero_cuenta=?, foto=?,
+                                  salario=?, fecha_ingreso_laborar=?
                 WHERE id=?
             ''', (
                   codigo, nombre, primer_nombre, segundo_nombre, tercer_nombre,
                   apellido, primer_apellido, segundo_apellido, estado_civil, apellido_casada,
-                                    dpi, telefono, email, direccion, 'Asociado',
-                frecuencia, cuota_ahorro, tipo_ahorro, nit, resumen_beneficiarios(beneficiarios), finca,
-                  banco_nombre, banco_tipo_cuenta, banco_numero_cuenta, ruta_foto, sid))
+                  dpi, telefono, email, direccion, 'Asociado',
+                  frecuencia, cuota_ahorro, tipo_ahorro, nit, resumen_beneficiarios(beneficiarios), finca,
+                  banco_nombre, banco_tipo_cuenta, banco_numero_cuenta, ruta_foto,
+                  salario_val, fecha_ingreso_laborar, sid))
             db_execute(conn, 'DELETE FROM socio_beneficiarios WHERE socio_id=?', [sid])
             if beneficiarios:
                 db_executemany(
@@ -337,6 +350,8 @@ def editar_socio(sid):
                 'banco_tipo_cuenta': banco_tipo_cuenta,
                 'banco_numero_cuenta': banco_numero_cuenta,
                 'beneficiarios': beneficiarios,
+                'salario': salario_val,
+                'fecha_ingreso_laborar': fecha_ingreso_laborar,
                 'foto': ruta_foto
             }
             log_auditoria_socio(sid, session.get('user_id'), 'editar', 
