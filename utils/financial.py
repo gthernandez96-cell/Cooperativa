@@ -72,12 +72,11 @@ def obtener_dias_frecuencia(frecuencia):
 
 
 def calcular_total_cuotas_prestamo(plazo_pagos, frecuencia=None):
-    """Calcula el número total de cuotas del préstamo basado en el plazo en meses y la frecuencia."""
+    """Calcula el número total de cuotas del préstamo basado en el plazo ingresado directamente como número de pagos."""
     plazo_pagos = int(plazo_pagos or 0)
     if plazo_pagos <= 0:
         return 0
-    dias_frecuencia = obtener_dias_frecuencia(frecuencia)
-    return math.ceil((plazo_pagos * 30) / dias_frecuencia)
+    return plazo_pagos
 
 
 

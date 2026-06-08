@@ -409,7 +409,7 @@
               <td class="text-right">Q{{ "{:,.2f}".format(p.monto_aprobado or 0) }}</td>
               <td class="text-right" style="color:#dc2626;font-weight:700">Q{{ "{:,.2f}".format(p.saldo_pendiente or 0) }}</td>
               <td class="text-right">Q{{ "{:,.2f}".format(p.cuota_mensual or 0) }}</td>
-              <td>{{ p.tasa_interes }}% / {{ p.plazo_meses }}m</td>
+              <td>{{ p.tasa_interes }}% / {{ p.plazo_meses }} pagos</td>
               <td>
                 {% if p.estado=='aprobado' %}<span class="status-badge status-activo">Activo</span>
                 {% elif p.estado=='pendiente' %}<span class="status-badge status-pendiente">Pendiente</span>

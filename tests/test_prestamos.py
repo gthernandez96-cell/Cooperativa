@@ -36,12 +36,12 @@ class TestObtenerDiasFrecuencia:
 
 class TestCalcularTotalCuotas:
     def test_12_meses_quincenal(self):
-        # 12 meses * 30 días / 15 = 24 cuotas
-        assert calcular_total_cuotas_prestamo(12, 'Quincenal') == 24
+        # 12 pagos directamente
+        assert calcular_total_cuotas_prestamo(12, 'Quincenal') == 12
 
     def test_12_meses_catorcenal(self):
-        # 12 * 30 / 14 = 25.71 → ceil = 26
-        assert calcular_total_cuotas_prestamo(12, 'Catorcenal') == 26
+        # 12 pagos directamente
+        assert calcular_total_cuotas_prestamo(12, 'Catorcenal') == 12
 
     def test_plazo_0_retorna_0(self):
         assert calcular_total_cuotas_prestamo(0, 'Quincenal') == 0
@@ -58,8 +58,8 @@ class TestCalcularResumenPrestamo:
 
     def test_sin_interes_cuota_igual_capital_dividido_cuotas(self):
         result = calcular_resumen_prestamo(12000, 0, 12, 'Quincenal')
-        # 24 cuotas sin interés = 500 cada una
-        assert result['cuota'] == 500.0
+        # 12 cuotas sin interés = 1000 cada una
+        assert result['cuota'] == 1000.0
         assert result['intereses'] == 0.0
 
     def test_con_interes_cuota_mayor_que_sin_interes(self):
