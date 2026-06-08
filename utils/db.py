@@ -288,6 +288,8 @@ def init_db():
         telefono TEXT,
         email TEXT,
         direccion TEXT,
+        departamento TEXT,
+        municipio TEXT,
         rol TEXT DEFAULT 'Asociado',
         fecha_ingreso TEXT NOT NULL,
         estado TEXT DEFAULT "activo",
@@ -517,7 +519,11 @@ def init_db():
         'apellido_casada': "TEXT",
         'banco_nombre': "TEXT",
         'banco_tipo_cuenta': "TEXT",
-        'banco_numero_cuenta': "TEXT"
+        'banco_numero_cuenta': "TEXT",
+        'departamento': "TEXT",
+        'municipio': "TEXT",
+        'salario': "REAL",
+        'fecha_ingreso_laborar': "TEXT"
     }
 
     for columna, definicion in columnas_nuevas.items():

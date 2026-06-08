@@ -111,23 +111,26 @@ def nuevo_socio():
             salario = request.form.get('salario', '').strip()
             salario_val = float(salario) if salario else None
             fecha_ingreso_laborar = request.form.get('fecha_ingreso_laborar', '').strip() or None
+            departamento = request.form.get('departamento', '').strip()
+            municipio = request.form.get('municipio', '').strip()
+            fecha_ingreso_cooperativa = request.form.get('fecha_ingreso_cooperativa', '').strip() or date.today().isoformat()
 
             db_execute(
                 conn,
                 '''INSERT INTO socios (
                        codigo,nombre,primer_nombre,segundo_nombre,tercer_nombre,
                        apellido,primer_apellido,segundo_apellido,estado_civil,apellido_casada,
-                       dpi,telefono,email,direccion,rol,fecha_ingreso,nit,beneficiario,
+                       dpi,telefono,email,direccion,departamento,municipio,rol,fecha_ingreso,nit,beneficiario,
                        banco_nombre,banco_tipo_cuenta,banco_numero_cuenta,
                        frecuencia,cuota_ahorro,tipo_ahorro,finca,
                        salario,fecha_ingreso_laborar
-                   ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+                   ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
                 (
                     codigo, nombre, primer_nombre, segundo_nombre, tercer_nombre,
                     apellido, primer_apellido, segundo_apellido, estado_civil, apellido_casada,
                     request.form.get('dpi', '').strip(), request.form.get('telefono', '').strip(),
                     request.form.get('email', '').strip(), request.form.get('direccion', '').strip(),
-                    'Asociado', date.today().isoformat(),
+                    departamento, municipio, 'Asociado', fecha_ingreso_cooperativa,
                     request.form.get('nit', '').strip(), resumen_beneficiarios(beneficiarios),
                     request.form.get('banco_nombre', '').strip(), request.form.get('banco_tipo_cuenta', '').strip(),
                     request.form.get('banco_numero_cuenta', '').strip(),
@@ -292,19 +295,24 @@ def editar_socio(sid):
             salario = request.form.get('salario', '').strip()
             salario_val = float(salario) if salario else None
             fecha_ingreso_laborar = request.form.get('fecha_ingreso_laborar', '').strip() or None
+            departamento = request.form.get('departamento', '').strip()
+            municipio = request.form.get('municipio', '').strip()
+            fecha_ingreso_cooperativa = request.form.get('fecha_ingreso_cooperativa', '').strip() or date.today().isoformat()
 
             db_execute(conn, '''
                 UPDATE socios SET codigo=?, nombre=?, primer_nombre=?, segundo_nombre=?, tercer_nombre=?,
                                   apellido=?, primer_apellido=?, segundo_apellido=?, estado_civil=?, apellido_casada=?,
-                                  dpi=?, telefono=?, email=?, direccion=?, rol=?, frecuencia=?, cuota_ahorro=?, tipo_ahorro=?,
+                                  dpi=?, telefono=?, email=?, direccion=?, departamento=?, municipio=?,
+                                  rol=?, fecha_ingreso=?, frecuencia=?, cuota_ahorro=?, tipo_ahorro=?,
                                   nit=?, beneficiario=?, finca=?, banco_nombre=?, banco_tipo_cuenta=?, banco_numero_cuenta=?, foto=?,
                                   salario=?, fecha_ingreso_laborar=?
                 WHERE id=?
             ''', (
                   codigo, nombre, primer_nombre, segundo_nombre, tercer_nombre,
                   apellido, primer_apellido, segundo_apellido, estado_civil, apellido_casada,
-                  dpi, telefono, email, direccion, 'Asociado',
-                  frecuencia, cuota_ahorro, tipo_ahorro, nit, resumen_beneficiarios(beneficiarios), finca,
+                  dpi, telefono, email, direccion, departamento, municipio,
+                  'Asociado', fecha_ingreso_cooperativa, frecuencia, cuota_ahorro, tipo_ahorro,
+                  nit, resumen_beneficiarios(beneficiarios), finca,
                   banco_nombre, banco_tipo_cuenta, banco_numero_cuenta, ruta_foto,
                   salario_val, fecha_ingreso_laborar, sid))
             db_execute(conn, 'DELETE FROM socio_beneficiarios WHERE socio_id=?', [sid])
@@ -339,7 +347,10 @@ def editar_socio(sid):
                 'telefono': telefono,
                 'email': email,
                 'direccion': direccion,
+                'departamento': departamento,
+                'municipio': municipio,
                 'rol': 'Asociado',
+                'fecha_ingreso': fecha_ingreso_cooperativa,
                 'frecuencia': frecuencia,
                 'cuota_ahorro': cuota_ahorro,
                 'tipo_ahorro': tipo_ahorro,
