@@ -223,6 +223,16 @@
             </div>
 
             <div class="nr-field">
+              <label for="inp-boleta-numero">Número de Boleta</label>
+              <input name="boleta_numero" id="inp-boleta-numero" type="text" placeholder="Ej: BOL-12345">
+            </div>
+
+            <div class="nr-field">
+              <label for="inp-boleta-fecha">Fecha de Boleta</label>
+              <input name="boleta_fecha" id="inp-boleta-fecha" type="date">
+            </div>
+
+            <div class="nr-field">
               <label for="inp-metodo-retiro">Forma de retiro *</label>
               <select name="metodo_retiro" id="inp-metodo-retiro" required onchange="actualizarMetodoRetiro()">
                 <option value="cheque">Cheque</option>

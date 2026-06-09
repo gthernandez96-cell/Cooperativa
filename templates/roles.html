@@ -64,10 +64,13 @@
         <span class="perm-count">
           Acceso Completo
         </span>
-        <div style="display:flex; gap:8px;">
-          <a href="#" class="btn btn-sm btn-outline" style="padding:4px 8px; min-height:32px;">Editar</a>
+        <div style="display:flex; gap:8px; align-items: center;">
+          <a href="{{ url_for('usuarios.editar_rol', rid=r.id) }}" class="btn btn-sm btn-outline" style="padding:4px 8px; min-height:32px; display: inline-flex; align-items: center; justify-content: center;">Editar</a>
           {% if r.nombre != 'Administrador' %}
-          <a href="#" class="btn btn-sm btn-danger" style="padding:4px 8px; min-height:32px; background:transparent; border:1px solid #fee2e2;">Eliminar</a>
+          <form action="{{ url_for('usuarios.eliminar_rol', rid=r.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('¿Está seguro de que desea eliminar este rol? Esta acción no se puede deshacer.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-danger" style="padding:4px 8px; min-height:32px; background:transparent; border:1px solid #fee2e2; color: var(--c-danger); display: inline-flex; align-items: center; justify-content: center;">Eliminar</button>
+          </form>
           {% endif %}
         </div>
       </div>

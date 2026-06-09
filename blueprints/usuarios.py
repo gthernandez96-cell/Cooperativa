@@ -102,6 +102,77 @@ def nuevo_rol():
             conn.close()
     return render_template('nuevo_rol.html')
 
+
+@bp.route('/roles/<int:rid>/editar', methods=['GET','POST'])
+@login_required(role='Administrador')
+def editar_rol(rid):
+    conn = get_db()
+    rol = db_fetchone(conn, "SELECT * FROM roles WHERE id=?", [rid])
+    if not rol:
+        conn.close()
+        flash('Rol no encontrado.', 'danger')
+        return redirect(url_for('usuarios.roles'))
+
+    if request.method == 'POST':
+        nombre = request.form.get('nombre', '').strip()
+        descripcion = request.form.get('descripcion', '').strip()
+        estado = request.form.get('estado', 'activo').strip()
+
+        if not nombre:
+            flash('El nombre del rol es obligatorio.', 'danger')
+        else:
+            try:
+                if rol['nombre'] == 'Administrador' and (nombre != 'Administrador' or estado != 'activo'):
+                    flash('No se permite modificar el nombre o estado del rol Administrador.', 'danger')
+                else:
+                    db_execute(
+                        conn,
+                        "UPDATE roles SET nombre=?, descripcion=?, estado=? WHERE id=?",
+                        (nombre, descripcion, estado, rid)
+                    )
+                    conn.commit()
+                    flash('Rol actualizado exitosamente.', 'success')
+                    return redirect(url_for('usuarios.roles'))
+            except Exception as e:
+                flash(f'Error al actualizar el rol: {e}', 'danger')
+            finally:
+                conn.close()
+                conn = get_db()  # Reabrir para el render_template en caso de error
+    
+    conn.close()
+    return render_template('editar_rol.html', rol=rol)
+
+
+@bp.route('/roles/<int:rid>/eliminar', methods=['POST'])
+@login_required(role='Administrador')
+def eliminar_rol(rid):
+    conn = get_db()
+    try:
+        rol = db_fetchone(conn, "SELECT * FROM roles WHERE id=?", [rid])
+        if not rol:
+            flash('Rol no encontrado.', 'danger')
+            return redirect(url_for('usuarios.roles'))
+
+        if rol['nombre'] == 'Administrador':
+            flash('No se puede eliminar el rol Administrador.', 'danger')
+            return redirect(url_for('usuarios.roles'))
+
+        # Verificar si hay usuarios asociados a este rol
+        usuarios_asociados = db_fetchone(conn, "SELECT 1 FROM usuarios WHERE rol_id=? LIMIT 1", [rid])
+        if usuarios_asociados:
+            flash('No se puede eliminar el rol porque tiene usuarios asociados.', 'danger')
+            return redirect(url_for('usuarios.roles'))
+
+        db_execute(conn, "DELETE FROM roles WHERE id=?", [rid])
+        conn.commit()
+        flash('Rol eliminado exitosamente.', 'success')
+    except Exception as e:
+        flash(f'Error al eliminar el rol: {e}', 'danger')
+    finally:
+        conn.close()
+    return redirect(url_for('usuarios.roles'))
+
+
 @bp.route('/usuarios/nuevo', methods=['GET','POST'])
 @login_required(role='Administrador')
 def nuevo_usuario():

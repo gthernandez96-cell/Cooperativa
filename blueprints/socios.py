@@ -11,6 +11,33 @@ from utils.images import allowed_image as allowed_socio_image, procesar_foto_soc
 from utils.financial import calcular_total_cuotas_prestamo
 from utils.helpers import obtener_beneficiarios_socio, parsear_beneficiarios_form, log_auditoria_socio
 
+def asegurar_cuentas_socio(conn, socio_id):
+    productos = ['ahorro_corriente', 'ahorro_aportacion', 'ahorro_inscripcion']
+    prefijos = {
+        'ahorro_aportacion': 'APR',
+        'ahorro_corriente': 'COR',
+        'ahorro_inscripcion': 'INS',
+    }
+    for prod in productos:
+        cuenta_existente = db_fetchone(
+            conn,
+            "SELECT id FROM cuentas WHERE socio_id=? AND tipo='ahorro' AND COALESCE(producto_ahorro, 'ahorro_corriente')=?",
+            [socio_id, prod]
+        )
+        if not cuenta_existente:
+            count = db_fetchone(conn, "SELECT COUNT(*) FROM cuentas")[0] or 0
+            numero = f"{prefijos[prod]}-{count+1:04d}"
+            tasa = db_fetchone(conn, "SELECT tasa_interes FROM configuraciones WHERE tipo=?", [prod])
+            tasa_val = float(tasa['tasa_interes']) if tasa else 0.0
+            db_execute(
+                conn,
+                """
+                INSERT INTO cuentas (numero, socio_id, tipo, producto_ahorro, saldo, tasa_interes, fecha_apertura)
+                VALUES (?, ?, 'ahorro', ?, 0, ?, ?)
+                """,
+                (numero, socio_id, prod, tasa_val, date.today().isoformat())
+            )
+
 bp = Blueprint('socios', __name__)
 
 @bp.route('/socios')
@@ -122,9 +149,9 @@ def nuevo_socio():
                        apellido,primer_apellido,segundo_apellido,estado_civil,apellido_casada,
                        dpi,telefono,email,direccion,departamento,municipio,rol,fecha_ingreso,nit,beneficiario,
                        banco_nombre,banco_tipo_cuenta,banco_numero_cuenta,
-                       frecuencia,cuota_ahorro,tipo_ahorro,finca,
+                       frecuencia,cuota_ahorro,cuota_aportacion,cuota_inscripcion,tipo_ahorro,finca,
                        salario,fecha_ingreso_laborar
-                   ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+                   ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
                 (
                     codigo, nombre, primer_nombre, segundo_nombre, tercer_nombre,
                     apellido, primer_apellido, segundo_apellido, estado_civil, apellido_casada,
@@ -136,6 +163,8 @@ def nuevo_socio():
                     request.form.get('banco_numero_cuenta', '').strip(),
                     request.form.get('frecuencia', 'Quincenal').strip() or 'Quincenal',
                     float(request.form.get('cuota_ahorro', 0) or 0),
+                    float(request.form.get('cuota_aportacion', 0) or 0),
+                    float(request.form.get('cuota_inscripcion', 0) or 0),
                     request.form.get('tipo_ahorro', 'ahorro corriente').strip() or 'ahorro corriente',
                     request.form.get('finca', '').strip(),
                     salario_val,
@@ -144,6 +173,11 @@ def nuevo_socio():
             )
             socio_insertado = db_fetchone(conn, 'SELECT id FROM socios WHERE codigo=?', (codigo,))
             socio_id = socio_insertado['id'] if socio_insertado else None
+            
+            # Apertura automática de cuentas
+            if socio_id:
+                asegurar_cuentas_socio(conn, socio_id)
+
             if beneficiarios:
                 db_executemany(
                     conn,
@@ -255,6 +289,8 @@ def editar_socio(sid):
         apellido_casada = request.form.get('apellido_casada', '').strip() if estado_civil == 'Casado' else ''
         frecuencia = request.form.get('frecuencia', socio_dict.get('frecuencia') or 'Quincenal')
         cuota_ahorro = float(request.form.get('cuota_ahorro', socio_dict.get('cuota_ahorro') or 0) or 0)
+        cuota_aportacion = float(request.form.get('cuota_aportacion', socio_dict.get('cuota_aportacion') or 0) or 0)
+        cuota_inscripcion = float(request.form.get('cuota_inscripcion', socio_dict.get('cuota_inscripcion') or 0) or 0)
         tipo_ahorro = request.form.get('tipo_ahorro', socio_dict.get('tipo_ahorro') or 'ahorro corriente')
         nit = request.form.get('nit', '').strip()
         finca = request.form.get('finca', '').strip()
@@ -303,7 +339,7 @@ def editar_socio(sid):
                 UPDATE socios SET codigo=?, nombre=?, primer_nombre=?, segundo_nombre=?, tercer_nombre=?,
                                   apellido=?, primer_apellido=?, segundo_apellido=?, estado_civil=?, apellido_casada=?,
                                   dpi=?, telefono=?, email=?, direccion=?, departamento=?, municipio=?,
-                                  rol=?, fecha_ingreso=?, frecuencia=?, cuota_ahorro=?, tipo_ahorro=?,
+                                  rol=?, fecha_ingreso=?, frecuencia=?, cuota_ahorro=?, cuota_aportacion=?, cuota_inscripcion=?, tipo_ahorro=?,
                                   nit=?, beneficiario=?, finca=?, banco_nombre=?, banco_tipo_cuenta=?, banco_numero_cuenta=?, foto=?,
                                   salario=?, fecha_ingreso_laborar=?
                 WHERE id=?
@@ -311,10 +347,14 @@ def editar_socio(sid):
                   codigo, nombre, primer_nombre, segundo_nombre, tercer_nombre,
                   apellido, primer_apellido, segundo_apellido, estado_civil, apellido_casada,
                   dpi, telefono, email, direccion, departamento, municipio,
-                  'Asociado', fecha_ingreso_cooperativa, frecuencia, cuota_ahorro, tipo_ahorro,
+                  'Asociado', fecha_ingreso_cooperativa, frecuencia, cuota_ahorro, cuota_aportacion, cuota_inscripcion, tipo_ahorro,
                   nit, resumen_beneficiarios(beneficiarios), finca,
                   banco_nombre, banco_tipo_cuenta, banco_numero_cuenta, ruta_foto,
                   salario_val, fecha_ingreso_laborar, sid))
+            
+            # Apertura automática de cuentas si no existen
+            asegurar_cuentas_socio(conn, sid)
+
             db_execute(conn, 'DELETE FROM socio_beneficiarios WHERE socio_id=?', [sid])
             if beneficiarios:
                 db_executemany(
@@ -353,6 +393,8 @@ def editar_socio(sid):
                 'fecha_ingreso': fecha_ingreso_cooperativa,
                 'frecuencia': frecuencia,
                 'cuota_ahorro': cuota_ahorro,
+                'cuota_aportacion': cuota_aportacion,
+                'cuota_inscripcion': cuota_inscripcion,
                 'tipo_ahorro': tipo_ahorro,
                 'nit': nit,
                 'beneficiario': resumen_beneficiarios(beneficiarios),

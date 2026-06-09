@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Editar Rol — {{ cooperativa_nombre }}{% endblock %}
+
+{% block content %}
+<style>
+  .nr-container {
+    max-width: 540px;
+    margin: 40px auto;
+  }
+  
+  .nr-card {
+    background: #fff;
+    border-radius: 20px;
+    border: 1px solid var(--c-border);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+  }
+  
+  .nr-head {
+    background: linear-gradient(135deg, var(--c-blue-mid) 0%, #0891b2 100%);
+    padding: 32px;
+    color: #fff;
+    text-align: center;
+  }
+  .nr-head h2 { font-family: 'Fraunces', serif; font-size: 24px; margin-bottom: 8px; }
+  .nr-head p { font-size: 14px; opacity: 0.8; }
+  
+  .nr-body { padding: 32px; }
+  
+  .nr-form { display: flex; flex-direction: column; gap: 20px; }
+  
+  .nr-group { display: flex; flex-direction: column; gap: 8px; }
+  .nr-group label { font-size: 13px; font-weight: 600; color: var(--c-dark); }
+  
+  .nr-input {
+    padding: 12px 16px;
+    border: 1px solid var(--c-border);
+    border-radius: 12px;
+    font-size: 15px;
+    background: var(--c-gray-light);
+    transition: all 0.2s;
+  }
+  .nr-input:focus {
+    background: #fff;
+    border-color: var(--c-blue);
+    box-shadow: 0 0 0 4px rgba(0, 59, 116, 0.05);
+    outline: none;
+  }
+  
+  .nr-actions { margin-top: 12px; display: flex; flex-direction: column; gap: 12px; }
+</style>
+
+<div class="nr-container">
+  <div class="nr-card">
+    <div class="nr-head">
+      <h2>Editar Rol</h2>
+      <p>Modifica el perfil de acceso del rol: {{ rol.nombre }}</p>
+    </div>
+    
+    <div class="nr-body">
+      <form method="post" class="nr-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
+        <div class="nr-group">
+          <label for="nombre">Nombre del rol</label>
+          <input type="text" id="nombre" name="nombre" class="nr-input" value="{{ request.form.get('nombre', rol.nombre) }}" required {% if rol.nombre == 'Administrador' %}readonly{% else %}autofocus{% endif %}>
+        </div>
+        
+        <div class="nr-group">
+          <label for="descripcion">Descripción</label>
+          <textarea id="descripcion" name="descripcion" class="nr-input" rows="3" required>{{ request.form.get('descripcion', rol.descripcion or '') }}</textarea>
+        </div>
+
+        <div class="nr-group">
+          <label for="estado">Estado</label>
+          <select id="estado" name="estado" class="nr-input" {% if rol.nombre == 'Administrador' %}disabled{% endif %}>
+            <option value="activo" {% if request.form.get('estado', rol.estado) == 'activo' %}selected{% endif %}>Activo</option>
+            <option value="inactivo" {% if request.form.get('estado', rol.estado) == 'inactivo' %}selected{% endif %}>Inactivo</option>
+          </select>
+          {% if rol.nombre == 'Administrador' %}
+            <input type="hidden" name="estado" value="activo">
+          {% endif %}
+        </div>
+        
+        <div class="nr-actions">
+          <button type="submit" class="btn btn-primary" style="width: 100%; min-height: 48px;">
+            Guardar Cambios
+          </button>
+          <a href="{{ url_for('usuarios.roles') }}" class="btn btn-outline" style="width: 100%; min-height: 48px;">
+            Cancelar
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -40,11 +40,12 @@ def nueva_cuenta():
         """
         SELECT tipo, tasa_interes
         FROM configuraciones
-        WHERE tipo IN ('ahorro_aportacion', 'ahorro_corriente', 'ahorro_plazo_fijo')
+        WHERE tipo IN ('ahorro_aportacion', 'ahorro_corriente', 'ahorro_plazo_fijo', 'ahorro_inscripcion')
         ORDER BY CASE tipo
             WHEN 'ahorro_aportacion' THEN 1
             WHEN 'ahorro_corriente' THEN 2
             WHEN 'ahorro_plazo_fijo' THEN 3
+            WHEN 'ahorro_inscripcion' THEN 4
             ELSE 99
         END
         """
@@ -67,7 +68,7 @@ def nueva_cuenta():
             if not socio or (socio['estado'] or '').lower() != 'activo':
                 raise ValueError('Solo se permite abrir cuentas a asociados activos.')
 
-            productos_validos = {'ahorro_aportacion', 'ahorro_corriente', 'ahorro_plazo_fijo'}
+            productos_validos = {'ahorro_aportacion', 'ahorro_corriente', 'ahorro_plazo_fijo', 'ahorro_inscripcion'}
             if selected_producto not in productos_validos:
                 raise ValueError('Debe seleccionar un tipo de cuenta válido.')
 
@@ -91,6 +92,7 @@ def nueva_cuenta():
                 'ahorro_aportacion': 'APR',
                 'ahorro_corriente': 'COR',
                 'ahorro_plazo_fijo': 'PLF',
+                'ahorro_inscripcion': 'INS',
             }
             numero = f"{prefijos[selected_producto]}-{count+1:04d}"
             tasa = tasas_por_tipo.get(selected_producto, 0)
@@ -219,6 +221,61 @@ def detalle_cuenta(cid):
         page=page,
         total_pages=total_pages,
     )
+
+
+@bp.route('/cuentas/<int:cid>/cancelar', methods=['GET', 'POST'])
+@login_required(role=('Administrador', 'Operador'))
+def cancelar_cuenta(cid):
+    conn = get_db()
+    try:
+        cuenta = db_fetchone(
+            conn,
+            '''SELECT c.*, s.nombre||' '||s.apellido as socio_nombre, s.codigo as socio_codigo
+               FROM cuentas c JOIN socios s ON c.socio_id=s.id
+               WHERE c.id=?''',
+            [cid]
+        )
+        if not cuenta:
+            flash('Cuenta no encontrada.', 'danger')
+            return redirect(url_for('ahorro.cuentas'))
+
+        # Validar si el socio tiene préstamos activos
+        prestamo_activo = db_fetchone(
+            conn,
+            "SELECT 1 FROM prestamos WHERE socio_id=? AND estado='aprobado' AND saldo_pendiente > 0 LIMIT 1",
+            [cuenta['socio_id']]
+        )
+        if prestamo_activo:
+            flash('No se puede cancelar la cuenta porque el asociado tiene un préstamo vigente con saldo pendiente.', 'danger')
+            return redirect(url_for('ahorro.detalle_cuenta', cid=cid))
+
+        if cuenta['estado'] != 'activa':
+            flash('Solo se pueden cancelar cuentas en estado activa.', 'warning')
+            return redirect(url_for('ahorro.detalle_cuenta', cid=cid))
+
+        if request.method == 'POST':
+            descripcion = request.form.get('descripcion', 'Cancelación de cuenta').strip()
+            count = db_fetchone(conn, "SELECT COUNT(*) FROM solicitudes_retiro")[0] or 0
+            numero = f"CAN-{count + 1:05d}"
+            
+            db_execute(
+                conn,
+                '''
+                INSERT INTO solicitudes_retiro
+                (numero, cuenta_id, socio_id, monto, descripcion, metodo_retiro, destino, fecha_solicitud, estado)
+                VALUES (?, ?, ?, ?, ?, 'cheque', 'cancelacion_cuenta', ?, 'pendiente')
+                ''',
+                (numero, cid, cuenta['socio_id'], cuenta['saldo'], descripcion, date.today().isoformat())
+            )
+            conn.commit()
+            flash('Solicitud de cancelación enviada a Gestiones para su aprobación.', 'success')
+            return redirect(url_for('ahorro.detalle_cuenta', cid=cid))
+
+    except Exception as e:
+        flash(f'Error al procesar la cancelación: {e}', 'danger')
+    finally:
+        conn.close()
+    return render_template('cancelar_cuenta.html', cuenta=cuenta)
 
 
 @bp.route('/cuentas/<int:cid>/pdf')
@@ -518,6 +575,8 @@ def nueva_solicitud_retiro():
     metodo_retiro = (request.form.get('metodo_retiro') or '').strip().lower()
     destino = (request.form.get('destino') or 'retiro').strip().lower()
     prestamo_id_raw = (request.form.get('prestamo_id') or '').strip()
+    boleta_numero = (request.form.get('boleta_numero') or '').strip()
+    boleta_fecha = (request.form.get('boleta_fecha') or '').strip()
     banco_tipo_cuenta = ''
     banco_numero_cuenta = ''
     prestamo_id = None
@@ -618,8 +677,8 @@ def nueva_solicitud_retiro():
             conn,
             '''
             INSERT INTO solicitudes_retiro
-            (numero, cuenta_id, socio_id, monto, descripcion, metodo_retiro, banco_tipo_cuenta, banco_numero_cuenta, destino, prestamo_id, fecha_solicitud, estado)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendiente')
+            (numero, cuenta_id, socio_id, monto, descripcion, metodo_retiro, banco_tipo_cuenta, banco_numero_cuenta, destino, prestamo_id, boleta_numero, boleta_fecha, fecha_solicitud, estado)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendiente')
             ''',
             (
                 numero,
@@ -632,6 +691,8 @@ def nueva_solicitud_retiro():
                 banco_numero_cuenta,
                 destino,
                 prestamo_id,
+                boleta_numero,
+                boleta_fecha,
                 date.today().isoformat(),
             ),
         )
@@ -643,6 +704,102 @@ def nueva_solicitud_retiro():
         return render_template('nuevo_retiro.html', cuentas=cuentas)
     finally:
         conn.close()
+
+
+@bp.route('/gestiones/deposito')
+@login_required(role=('Administrador', 'Operador'))
+def gestion_deposito():
+    conn = get_db()
+    cuentas = db_fetchall(
+        conn,
+        '''
+        SELECT c.id,
+               c.numero,
+               c.saldo,
+               c.socio_id,
+               c.producto_ahorro,
+               s.codigo AS socio_codigo,
+               s.nombre || ' ' || s.apellido AS socio_nombre
+        FROM cuentas c
+        JOIN socios s ON s.id = c.socio_id
+        WHERE c.tipo='ahorro' AND c.estado='activa' AND s.estado='activo'
+        ORDER BY s.codigo, c.numero
+        '''
+    )
+    conn.close()
+    return render_template('nuevo_deposito.html', cuentas=cuentas)
+
+
+@bp.route('/gestiones/deposito/nuevo', methods=['POST'])
+@login_required(role=('Administrador', 'Operador'))
+def nueva_solicitud_deposito():
+    conn = get_db()
+    cuenta_id = (request.form.get('cuenta_id') or '').strip()
+    monto_raw = (request.form.get('monto') or '').strip()
+    descripcion = (request.form.get('descripcion') or 'Depósito solicitado desde modulo gestiones').strip()
+    metodo_pago = (request.form.get('metodo_pago') or 'deposito').strip().lower()
+    boleta_numero = (request.form.get('boleta_numero') or '').strip()
+    boleta_fecha = (request.form.get('boleta_fecha') or '').strip()
+
+    cuentas = db_fetchall(
+        conn,
+        '''
+        SELECT c.id,
+               c.numero,
+               c.saldo,
+               c.socio_id,
+               s.codigo AS socio_codigo,
+               s.nombre || ' ' || s.apellido AS socio_nombre
+        FROM cuentas c
+        JOIN socios s ON s.id = c.socio_id
+        WHERE c.tipo='ahorro' AND c.estado='activa' AND s.estado='activo'
+        ORDER BY s.codigo, c.numero
+        '''
+    )
+
+    try:
+        if not cuenta_id or not monto_raw:
+            raise ValueError('La cuenta y el monto son obligatorios.')
+
+        monto = float(monto_raw)
+        if monto <= 0:
+            raise ValueError('El monto debe ser mayor a cero.')
+
+        cuenta = db_fetchone(conn, "SELECT id, socio_id FROM cuentas WHERE id=?", [cuenta_id])
+        if not cuenta:
+            raise ValueError('La cuenta seleccionada no existe.')
+
+        count = db_fetchone(conn, "SELECT COUNT(*) FROM solicitudes_retiro")[0] or 0
+        numero = f'DEP-{count + 1:05d}'
+
+        db_execute(
+            conn,
+            '''
+            INSERT INTO solicitudes_retiro
+            (numero, cuenta_id, socio_id, monto, descripcion, metodo_retiro, destino, boleta_numero, boleta_fecha, fecha_solicitud, estado)
+            VALUES (?, ?, ?, ?, ?, ?, 'deposito', ?, ?, ?, 'pendiente')
+            ''',
+            (
+                numero,
+                cuenta['id'],
+                cuenta['socio_id'],
+                monto,
+                descripcion,
+                metodo_pago,
+                boleta_numero,
+                boleta_fecha,
+                date.today().isoformat(),
+            ),
+        )
+        conn.commit()
+        flash('Solicitud de depósito enviada correctamente.', 'success')
+        return redirect(url_for('prestamos.gestiones', tipo='retiro', estado='pendiente'))
+    except Exception as e:
+        flash(f'Error: {e}', 'danger')
+        return render_template('nuevo_deposito.html', cuentas=cuentas)
+    finally:
+        conn.close()
+
 
 @bp.route('/gestiones/retiro/<int:rid>/aprobar', methods=['POST'])
 @login_required(role=('Administrador', 'Operador'))
@@ -676,7 +833,8 @@ def aprobar_solicitud_retiro(rid):
     monto = float(solicitud['monto'] or 0)
     saldo_actual = float(solicitud['saldo'] or 0)
     destino = (solicitud['destino'] or 'retiro').lower()
-    if monto > saldo_actual:
+
+    if destino != 'deposito' and monto > saldo_actual:
         conn.close()
         flash('La solicitud no se puede aprobar porque el saldo actual es insuficiente.', 'danger')
         return redirect(url_for('prestamos.gestiones', tipo='retiro', estado='pendiente'))
@@ -699,54 +857,112 @@ def aprobar_solicitud_retiro(rid):
             flash('El monto solicitado supera el saldo pendiente actual del préstamo asociado.', 'danger')
             return redirect(url_for('prestamos.gestiones', tipo='retiro', estado='pendiente'))
 
-    nuevo_saldo = saldo_actual - monto
-    db_execute(conn, "UPDATE cuentas SET saldo=? WHERE id=?", [nuevo_saldo, solicitud['cuenta_id']])
-    db_execute(
-        conn,
-        '''
-        INSERT INTO transacciones
-        (cuenta_id, tipo, monto, saldo_despues, descripcion, fecha, metodo_pago)
-        VALUES (?, 'retiro', ?, ?, ?, ?, ?)
-        ''',
-        (
-            solicitud['cuenta_id'],
-            monto,
-            nuevo_saldo,
-            solicitud['descripcion'] or 'Retiro aprobado desde modulo gestiones',
-            datetime.now().isoformat(),
-            solicitud['metodo_retiro'] or 'cheque'
-        ),
-    )
+    if destino == 'cancelacion_cuenta':
+        # Re-validar que el socio no posea préstamos vigentes
+        prestamo_activo = db_fetchone(
+            conn,
+            "SELECT 1 FROM prestamos WHERE socio_id=? AND estado='aprobado' AND saldo_pendiente > 0 LIMIT 1",
+            [solicitud['socio_id']]
+        )
+        if prestamo_activo:
+            conn.close()
+            flash('No se puede aprobar la cancelación porque el asociado tiene un préstamo vigente con saldo pendiente.', 'danger')
+            return redirect(url_for('prestamos.gestiones', tipo='retiro', estado='pendiente'))
 
-    if destino == 'amortizacion_prestamo':
-        prestamo_saldo_actual = float(solicitud['prestamo_saldo_pendiente'] or 0)
-        nuevo_saldo_prestamo = round(max(0, prestamo_saldo_actual - monto), 2)
-        estado_prestamo = 'pagado' if nuevo_saldo_prestamo == 0 else 'aprobado'
-        numero_comprobante = generar_numero_comprobante(conn)
+        monto = saldo_actual
+        nuevo_saldo = 0.0
+        db_execute(conn, "UPDATE cuentas SET saldo=?, estado='cancelada' WHERE id=?", [nuevo_saldo, solicitud['cuenta_id']])
         db_execute(
             conn,
             '''
-            INSERT INTO pagos_prestamo
-            (prestamo_id, monto, capital, interes, saldo_restante, descripcion, boleta_deposito, fecha, numero_comprobante)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO transacciones
+            (cuenta_id, tipo, monto, saldo_despues, descripcion, fecha, metodo_pago, boleta_numero, boleta_fecha)
+            VALUES (?, 'retiro', ?, ?, ?, ?, ?, ?, ?)
             ''',
             (
-                solicitud['prestamo_id'],
+                solicitud['cuenta_id'],
                 monto,
-                monto,
-                0,
-                nuevo_saldo_prestamo,
-                f"Amortización desde solicitud de retiro {solicitud['numero']}",
-                solicitud['numero'],
-                date.today().isoformat(),
-                numero_comprobante,
-            ),
+                nuevo_saldo,
+                f"Liquidación por cancelación: {solicitud['descripcion'] or 'Cancelación de cuenta'}",
+                datetime.now().isoformat(),
+                solicitud['metodo_retiro'] or 'cheque',
+                solicitud['boleta_numero'],
+                solicitud['boleta_fecha']
+            )
         )
+    elif destino == 'deposito':
+        nuevo_saldo = saldo_actual + monto
+        db_execute(conn, "UPDATE cuentas SET saldo=? WHERE id=?", [nuevo_saldo, solicitud['cuenta_id']])
         db_execute(
             conn,
-            "UPDATE prestamos SET saldo_pendiente=?, estado=? WHERE id=?",
-            [nuevo_saldo_prestamo, estado_prestamo, solicitud['prestamo_id']]
+            '''
+            INSERT INTO transacciones
+            (cuenta_id, tipo, monto, saldo_despues, descripcion, fecha, metodo_pago, boleta_numero, boleta_fecha)
+            VALUES (?, 'deposito', ?, ?, ?, ?, ?, ?, ?)
+            ''',
+            (
+                solicitud['cuenta_id'],
+                monto,
+                nuevo_saldo,
+                solicitud['descripcion'] or 'Depósito aprobado desde modulo gestiones',
+                datetime.now().isoformat(),
+                solicitud['metodo_retiro'] or 'deposito',
+                solicitud['boleta_numero'],
+                solicitud['boleta_fecha']
+            )
         )
+    else:
+        # Retiro normal u amortización
+        nuevo_saldo = saldo_actual - monto
+        db_execute(conn, "UPDATE cuentas SET saldo=? WHERE id=?", [nuevo_saldo, solicitud['cuenta_id']])
+        db_execute(
+            conn,
+            '''
+            INSERT INTO transacciones
+            (cuenta_id, tipo, monto, saldo_despues, descripcion, fecha, metodo_pago, boleta_numero, boleta_fecha)
+            VALUES (?, 'retiro', ?, ?, ?, ?, ?, ?, ?)
+            ''',
+            (
+                solicitud['cuenta_id'],
+                monto,
+                nuevo_saldo,
+                solicitud['descripcion'] or 'Retiro aprobado desde modulo gestiones',
+                datetime.now().isoformat(),
+                solicitud['metodo_retiro'] or 'cheque',
+                solicitud['boleta_numero'],
+                solicitud['boleta_fecha']
+            )
+        )
+
+        if destino == 'amortizacion_prestamo':
+            prestamo_saldo_actual = float(solicitud['prestamo_saldo_pendiente'] or 0)
+            nuevo_saldo_prestamo = round(max(0, prestamo_saldo_actual - monto), 2)
+            estado_prestamo = 'pagado' if nuevo_saldo_prestamo == 0 else 'aprobado'
+            numero_comprobante = generar_numero_comprobante(conn)
+            db_execute(
+                conn,
+                '''
+                INSERT INTO pagos_prestamo
+                (prestamo_id, monto, capital, interes, saldo_restante, descripcion, boleta_deposito, fecha, numero_comprobante)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''',
+                (
+                    solicitud['prestamo_id'],
+                    monto,
+                    monto,
+                    0,
+                    nuevo_saldo_prestamo,
+                    f"Amortización desde solicitud de retiro {solicitud['numero']}",
+                    solicitud['numero'],
+                    date.today().isoformat(),
+                    numero_comprobante,
+                ),
+            )
+            db_execute(
+                conn,
+                "UPDATE prestamos SET saldo_pendiente=?, estado=? WHERE id=?",
+                [nuevo_saldo_prestamo, estado_prestamo, solicitud['prestamo_id']]
+            )
 
     db_execute(
         conn,
@@ -756,7 +972,12 @@ def aprobar_solicitud_retiro(rid):
     conn.commit()
     conn.close()
 
-    flash('Retiro realizado con exito.', 'success')
+    if destino == 'deposito':
+        flash('Depósito realizado con éxito.', 'success')
+    elif destino == 'cancelacion_cuenta':
+        flash('Cuenta cancelada y saldo liquidado con éxito.', 'success')
+    else:
+        flash('Retiro realizado con éxito.', 'success')
     return redirect(url_for('ahorro.comprobante_retiro', rid=rid, auto_print='1'))
 
 @bp.route('/gestiones/retiro/<int:rid>/comprobante')
@@ -1675,28 +1896,36 @@ def generar_planilla_cuotas_ahorro():
             flash('Frecuencia no valida.', 'danger')
             return render_template('generar_planilla_cuotas_ahorro.html', form_data=form_data)
 
-        tipos_validos = {'ahorro_aportacion', 'ahorro_corriente', 'ahorro_plazo_fijo'}
+        tipos_validos = {'ahorro_aportacion', 'ahorro_corriente', 'ahorro_plazo_fijo', 'ahorro_inscripcion'}
         if tipo_cuenta not in tipos_validos:
             flash('Tipo de cuenta no valido.', 'danger')
             return render_template('generar_planilla_cuotas_ahorro.html', form_data=form_data)
+
+        columnas_cuota = {
+            'ahorro_corriente': 'cuota_ahorro',
+            'ahorro_aportacion': 'cuota_aportacion',
+            'ahorro_inscripcion': 'cuota_inscripcion',
+            'ahorro_plazo_fijo': 'cuota_ahorro'
+        }
+        columna_cuota = columnas_cuota.get(tipo_cuenta, 'cuota_ahorro')
 
         conn = get_db()
 
         filtro_tipo = "AND COALESCE(c.producto_ahorro, 'ahorro_corriente') = ?"
         params = [frecuencia, tipo_cuenta]
 
-        # Obtener socios con cuota de ahorro > 1, frecuencia y tipo de cuenta configurados
+        # Obtener socios con cuota > 0, frecuencia y tipo de cuenta configurados
         cuentas = db_fetchall(
             conn,
             f'''
             SELECT c.id, c.numero, c.saldo, s.nombre, s.apellido, s.codigo,
-                   s.cuota_ahorro, s.frecuencia
+                   s.{columna_cuota} AS cuota_monto, s.frecuencia
             FROM cuentas c
             JOIN socios s ON c.socio_id = s.id
             WHERE c.estado = 'activa'
               AND c.tipo = 'ahorro'
               AND s.estado = 'activo'
-              AND s.cuota_ahorro > 1
+              AND s.{columna_cuota} > 0
               AND s.frecuencia = ?
               {filtro_tipo}
             ORDER BY s.apellido, s.nombre
@@ -1705,7 +1934,7 @@ def generar_planilla_cuotas_ahorro():
         )
 
         # Calcular total de cuotas
-        total_cuotas = sum(cuenta['cuota_ahorro'] for cuenta in cuentas)
+        total_cuotas = sum(cuenta['cuota_monto'] for cuenta in cuentas)
 
         if not cuentas:
             conn.close()
@@ -1716,6 +1945,7 @@ def generar_planilla_cuotas_ahorro():
             'ahorro_aportacion': 'Aportacion',
             'ahorro_corriente': 'Ahorro corriente',
             'ahorro_plazo_fijo': 'Plazo fijo',
+            'ahorro_inscripcion': 'Inscripcion',
         }.get(tipo_cuenta, tipo_cuenta)
 
         nombre_planilla_guardado = f"{nombre_planilla} [{tipo_label}]"
@@ -1747,7 +1977,7 @@ def generar_planilla_cuotas_ahorro():
                     cuenta['numero'],
                     cuenta['codigo'],
                     f"{cuenta['nombre']} {cuenta['apellido']}",
-                    cuenta['cuota_ahorro']
+                    cuenta['cuota_monto']
                 )
             )
 

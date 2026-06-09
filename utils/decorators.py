@@ -10,10 +10,16 @@ from config import ROLE_PERMISSION_DEFAULTS
 def usuario_tiene_permiso(conn, user_id, user_role, permiso):
     if not user_id:
         return False
-    if user_role == 'Administrador':
+    u_role_lower = (user_role or '').strip().lower()
+    if u_role_lower == 'administrador':
         return True
 
-    role_defaults = ROLE_PERMISSION_DEFAULTS.get(user_role or '', set())
+    role_defaults = set()
+    for key, val in ROLE_PERMISSION_DEFAULTS.items():
+        if key.strip().lower() == u_role_lower:
+            role_defaults = val
+            break
+
     if '*' in role_defaults or permiso in role_defaults:
         return True
 
@@ -78,11 +84,12 @@ def login_required(role=None):
                 return redirect(url_for('auth.login'))
 
             if role:
-                user_role = session.get('user_role')
+                user_role = (session.get('user_role') or '').strip().lower()
                 allowed_roles = role
                 if isinstance(role, str):
                     allowed_roles = [role]
-                if user_role != 'Administrador' and user_role not in allowed_roles:
+                allowed_roles_lower = [r.strip().lower() for r in allowed_roles]
+                if user_role != 'administrador' and user_role not in allowed_roles_lower:
                     flash('Acceso denegado para su rol', 'danger')
                     return redirect(url_for('main.index'))
 

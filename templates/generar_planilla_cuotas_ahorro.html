@@ -210,13 +210,14 @@
               <option value="ahorro_aportacion" {% if form_data.tipo_cuenta == 'ahorro_aportacion' %}selected{% endif %}>Aportación</option>
               <option value="ahorro_corriente" {% if form_data.tipo_cuenta == 'ahorro_corriente' %}selected{% endif %}>Ahorro corriente</option>
               <option value="ahorro_plazo_fijo" {% if form_data.tipo_cuenta == 'ahorro_plazo_fijo' %}selected{% endif %}>Plazo fijo</option>
+              <option value="ahorro_inscripcion" {% if form_data.tipo_cuenta == 'ahorro_inscripcion' %}selected{% endif %}>Inscripción</option>
             </select>
           </div>
         </div>
 
         <div class="premium-alert-info">
           <i class="fas fa-info-circle" style="font-size: 16px;"></i>
-          <span>Esta planilla incluirá a todos los asociados activos con cuota de ahorro configurada mayor a Q1.00 según el tipo de cuenta seleccionado.</span>
+          <span>Esta planilla incluirá a todos los asociados activos con la cuota correspondiente configurada mayor a Q0.00 según el tipo de cuenta seleccionado.</span>
         </div>
 
         <div class="text-end mt-4">

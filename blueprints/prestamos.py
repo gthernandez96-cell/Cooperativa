@@ -1189,7 +1189,7 @@ def gestiones():
     estado_filtro = (request.args.get('estado') or 'pendiente').strip().lower()
     if estado_filtro not in estados_validos:
         estado_filtro = 'pendiente'
-    if destino_filtro not in {'todos', 'retiro', 'amortizacion'}:
+    if destino_filtro not in {'todos', 'retiro', 'amortizacion', 'cancelacion', 'deposito'}:
         destino_filtro = 'todos'
 
     categorias_prestamo = db_fetchall(
@@ -1208,7 +1208,11 @@ def gestiones():
         if destino_filtro == 'amortizacion':
             filtros_retiro.append("COALESCE(sr.destino, 'retiro') = 'amortizacion_prestamo'")
         elif destino_filtro == 'retiro':
-            filtros_retiro.append("COALESCE(sr.destino, 'retiro') <> 'amortizacion_prestamo'")
+            filtros_retiro.append("COALESCE(sr.destino, 'retiro') = 'retiro'")
+        elif destino_filtro == 'cancelacion':
+            filtros_retiro.append("COALESCE(sr.destino, 'retiro') = 'cancelacion_cuenta'")
+        elif destino_filtro == 'deposito':
+            filtros_retiro.append("COALESCE(sr.destino, 'retiro') = 'deposito'")
         where_retiro = f"WHERE {' AND '.join(filtros_retiro)}" if filtros_retiro else ''
         retiros = db_fetchall(
             conn,
@@ -1219,19 +1223,21 @@ def gestiones():
                    sr.estado,
                    sr.monto,
                    sr.descripcion,
-                                     sr.metodo_retiro,
-                                     sr.banco_tipo_cuenta,
-                                     sr.banco_numero_cuenta,
-                                     COALESCE(sr.destino, 'retiro') AS destino,
-                                     sr.prestamo_id,
-                                     p.numero AS prestamo_numero,
+                   sr.metodo_retiro,
+                   sr.banco_tipo_cuenta,
+                   sr.banco_numero_cuenta,
+                   COALESCE(sr.destino, 'retiro') AS destino,
+                   sr.prestamo_id,
+                   p.numero AS prestamo_numero,
                    s.codigo AS socio_codigo,
                    s.nombre || ' ' || s.apellido AS socio_nombre,
-                   c.numero AS cuenta_numero
+                   c.numero AS cuenta_numero,
+                   sr.boleta_numero,
+                   sr.boleta_fecha
             FROM solicitudes_retiro sr
             JOIN socios s ON s.id = sr.socio_id
             JOIN cuentas c ON c.id = sr.cuenta_id
-                        LEFT JOIN prestamos p ON p.id = sr.prestamo_id
+            LEFT JOIN prestamos p ON p.id = sr.prestamo_id
             {where_retiro}
             ORDER BY sr.fecha_solicitud DESC, sr.id DESC
             ''',
@@ -1262,16 +1268,18 @@ def gestiones():
                    p.estado,
                    p.monto_solicitado AS monto,
                    '' AS descripcion,
-                                     '' AS metodo_retiro,
-                                     '' AS banco_tipo_cuenta,
-                                     '' AS banco_numero_cuenta,
-                                     '' AS destino,
-                                     NULL AS prestamo_id,
-                                     '' AS prestamo_numero,
+                   '' AS metodo_retiro,
+                   '' AS banco_tipo_cuenta,
+                   '' AS banco_numero_cuenta,
+                   '' AS destino,
+                   NULL AS prestamo_id,
+                   '' AS prestamo_numero,
                    s.codigo AS socio_codigo,
                    s.nombre || ' ' || s.apellido AS socio_nombre,
                    '' AS cuenta_numero,
-                   COALESCE(pc.nombre, 'General') AS categoria_prestamo
+                   COALESCE(pc.nombre, 'General') AS categoria_prestamo,
+                   '' AS boleta_numero,
+                   '' AS boleta_fecha
             FROM prestamos p
             JOIN socios s ON s.id = p.socio_id
             LEFT JOIN prestamo_categorias pc ON pc.id = p.categoria_id

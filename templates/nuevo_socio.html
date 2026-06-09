@@ -396,6 +396,14 @@
           <input name="cuota_ahorro" type="number" step="0.01" min="0" value="{{ request.form.get('cuota_ahorro', '0') }}">
         </div>
         <div class="form-group">
+          <label>Cuota de aportación</label>
+          <input name="cuota_aportacion" type="number" step="0.01" min="0" value="{{ request.form.get('cuota_aportacion', '0') }}">
+        </div>
+        <div class="form-group">
+          <label>Cuota de inscripción</label>
+          <input name="cuota_inscripcion" type="number" step="0.01" min="0" value="{{ request.form.get('cuota_inscripcion', '0') }}">
+        </div>
+        <div class="form-group">
           <label>Tipo de ahorro</label>
           <select name="tipo_ahorro">
             <option value="ahorro corriente" {% if request.form.get('tipo_ahorro', 'ahorro corriente') == 'ahorro corriente' %}selected{% endif %}>Ahorro Corriente</option>

@@ -342,6 +342,7 @@
       <div class="g-header-subtitle">Solicitudes de retiro y préstamo — vista consolidada</div>
     </div>
     <div class="g-header-actions">
+      <a href="{{ url_for('ahorro.gestion_deposito') }}" class="btn btn-primary btn-sm">+ Nuevo depósito</a>
       <a href="{{ url_for('ahorro.gestion_retiro') }}" class="btn btn-primary btn-sm">+ Nuevo retiro</a>
       <a href="{{ url_for('prestamos.gestion_solicitud_prestamo') }}" class="btn btn-outline btn-sm">+ Nuevo préstamo</a>
     </div>
@@ -396,11 +397,13 @@
       </select>
     </div>
     <div class="g-toolbar-field">
-      <label for="ft-destino">Destino retiro</label>
+      <label for="ft-destino">Destino retiro/depósito</label>
       <select id="ft-destino" name="destino">
         <option value="todos"        {% if destino_filtro == 'todos'        %}selected{% endif %}>Todos los destinos</option>
         <option value="retiro"       {% if destino_filtro == 'retiro'       %}selected{% endif %}>Retiro normal</option>
         <option value="amortizacion" {% if destino_filtro == 'amortizacion' %}selected{% endif %}>Amortización</option>
+        <option value="cancelacion"  {% if destino_filtro == 'cancelacion'  %}selected{% endif %}>Cancelación de cuenta</option>
+        <option value="deposito"     {% if destino_filtro == 'deposito'     %}selected{% endif %}>Depósito</option>
       </select>
     </div>
     <div class="g-toolbar-field">
@@ -424,7 +427,17 @@
     <span class="g-pill"><span class="g-pill-label">Tipo:</span> <strong>{{ 'Todos' if tipo_filtro == 'todos' else ('Retiros' if tipo_filtro == 'retiro' else 'Préstamos') }}</strong></span>
     <span class="g-pill"><span class="g-pill-label">Estado:</span> <strong>{{ estado_filtro|replace('_',' ')|capitalize }}</strong></span>
     {% if destino_filtro != 'todos' %}
-    <span class="g-pill"><span class="g-pill-label">Destino:</span> <strong>{% if destino_filtro == 'amortizacion' %}Amortización{% else %}Retiro normal{% endif %}</strong></span>
+    <span class="g-pill"><span class="g-pill-label">Destino:</span> <strong>
+      {% if destino_filtro == 'amortizacion' %}
+        Amortización
+      {% elif destino_filtro == 'cancelacion' %}
+        Cancelación de cuenta
+      {% elif destino_filtro == 'deposito' %}
+        Depósito
+      {% else %}
+        Retiro normal
+      {% endif %}
+    </strong></span>
     {% endif %}
     {% if categoria_id_filtro %}
     <span class="g-pill"><span class="g-pill-label">Categoría:</span> <strong>Filtrada</strong></span>
@@ -456,9 +469,17 @@
           <tr>
             <td>
               <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start;">
-                <span class="g-type-badge {% if item.tipo_solicitud == 'retiro' %}g-type-retiro{% else %}g-type-prestamo{% endif %}">
-                  {{ 'Retiro' if item.tipo_solicitud == 'retiro' else 'Préstamo' }}
-                </span>
+                {% if item.tipo_solicitud == 'retiro' %}
+                  {% if item.destino == 'deposito' %}
+                    <span class="g-type-badge" style="background:#d1fae5; color:#065f46;">Depósito</span>
+                  {% elif item.destino == 'cancelacion_cuenta' %}
+                    <span class="g-type-badge" style="background:#fee2e2; color:#991b1b;">Cancelación</span>
+                  {% else %}
+                    <span class="g-type-badge g-type-retiro">Retiro</span>
+                  {% endif %}
+                {% else %}
+                  <span class="g-type-badge g-type-prestamo">Préstamo</span>
+                {% endif %}
                 {% if item.tipo_solicitud == 'retiro' and item.destino == 'amortizacion_prestamo' %}
                 <span class="g-amort-badge">Amortización</span>
                 {% endif %}
@@ -485,19 +506,31 @@
             </td>
             <td>
               {% if item.tipo_solicitud == 'retiro' %}
-                {% if item.destino == 'amortizacion_prestamo' %}
-                <div>Amortización de préstamo</div>
+                {% if item.destino == 'deposito' %}
+                  <div>Abono a Cuenta</div>
+                  <div class="g-sub">Método: {{ (item.metodo_retiro or 'deposito')|capitalize }}</div>
+                {% elif item.destino == 'cancelacion_cuenta' %}
+                  <div>Cancelación de Cuenta</div>
+                  <div class="g-sub" style="max-width: 250px; white-space: normal;">Justificación: {{ item.descripcion }}</div>
+                {% elif item.destino == 'amortizacion_prestamo' %}
+                  <div>Amortización de préstamo</div>
                 {% elif item.metodo_retiro == 'deposito' %}
-                <div>Depósito bancario</div>
-                <div class="g-sub">{{ item.banco_tipo_cuenta or '' }}{% if item.banco_numero_cuenta %} · {{ item.banco_numero_cuenta }}{% endif %}</div>
+                  <div>Depósito bancario</div>
+                  <div class="g-sub">{{ item.banco_tipo_cuenta or '' }}{% if item.banco_numero_cuenta %} · {{ item.banco_numero_cuenta }}{% endif %}</div>
                 {% elif item.metodo_retiro == 'cheque' %}
-                <div>Cheque</div>
+                  <div>Cheque</div>
                 {% else %}
-                <div style="color:#9ca3af;">Sin detalle</div>
+                  <div style="color:#9ca3af;">Sin detalle</div>
+                {% endif %}
+                
+                {% if item.boleta_numero or item.boleta_fecha %}
+                <div class="g-sub" style="margin-top: 4px; color: #0f172a; font-weight: 500;">
+                  <span style="color:#475569;">Boleta:</span> {{ item.boleta_numero or '—' }} {% if item.boleta_fecha %}({{ item.boleta_fecha }}){% endif %}
+                </div>
                 {% endif %}
               {% else %}
-              <div>Solicitud de crédito</div>
-              <div class="g-sub">{{ item.categoria_prestamo or '—' }}</div>
+                <div>Solicitud de crédito</div>
+                <div class="g-sub">{{ item.categoria_prestamo or '—' }}</div>
               {% endif %}
             </td>
             <td>
@@ -510,13 +543,23 @@
               <div class="g-actions">
                 {% if item.tipo_solicitud == 'retiro' and item.estado == 'pendiente' %}
                 <form method="post" action="{{ url_for('ahorro.aprobar_solicitud_retiro', rid=item.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  {% if item.destino == 'cancelacion_cuenta' %}
+                  <button type="submit" class="btn btn-sm btn-primary" style="background:#b91c1c; border-color:#b91c1c; color:#fff;" onclick="return confirm('¿Aprobar la cancelación de esta cuenta y liquidar su saldo?')">Aprobar Cancelación</button>
+                  {% elif item.destino == 'deposito' %}
+                  <button type="submit" class="btn btn-sm btn-primary" style="background:#059669; border-color:#059669; color:#fff;" onclick="return confirm('¿Aprobar este depósito y abonar a la cuenta?')">Aprobar Depósito</button>
+                  {% else %}
                   <button type="submit" class="btn btn-sm btn-primary" onclick="return confirm('¿Aprobar esta solicitud de retiro?')">Aprobar</button>
+                  {% endif %}
                 </form>
                 <form method="post" action="{{ url_for('ahorro.marcar_solicitud_retiro_no_procede', rid=item.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button type="submit" class="btn btn-sm btn-outline" onclick="return confirm('¿Marcar como no procede?')">No procede</button>
                 </form>
                 {% elif item.tipo_solicitud == 'prestamo' and item.estado == 'pendiente' %}
                 <a href="{{ url_for('prestamos.aprobar_prestamo', pid=item.id) }}" class="btn btn-sm btn-primary">Revisar</a>
+                {% elif item.tipo_solicitud == 'retiro' and item.estado == 'aprobado' %}
+                <a href="{{ url_for('ahorro.comprobante_retiro', rid=item.id) }}" class="btn btn-sm btn-outline">Ver Comprobante</a>
                 {% else %}
                 <span style="font-size:12px;color:#d1d5db;">—</span>
                 {% endif %}

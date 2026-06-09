@@ -295,6 +295,8 @@ def init_db():
         estado TEXT DEFAULT "activo",
         frecuencia TEXT DEFAULT 'Quincenal',
         cuota_ahorro REAL DEFAULT 0,
+        cuota_aportacion REAL DEFAULT 0,
+        cuota_inscripcion REAL DEFAULT 0,
         tipo_ahorro TEXT DEFAULT 'ahorro corriente',
         nit TEXT,
         beneficiario TEXT,
@@ -416,6 +418,8 @@ def init_db():
         fecha_jornalizado TEXT,
         boleta_jornalizado TEXT,
         metodo_pago TEXT DEFAULT 'deposito',
+        boleta_numero TEXT,
+        boleta_fecha TEXT,
         FOREIGN KEY (cuenta_id) REFERENCES cuentas(id)
     )''')
 
@@ -433,6 +437,10 @@ def init_db():
         estado TEXT DEFAULT 'pendiente',
         fecha_aprobacion TEXT,
         aprobado_por TEXT,
+        destino TEXT DEFAULT 'retiro',
+        prestamo_id INTEGER,
+        boleta_numero TEXT,
+        boleta_fecha TEXT,
         FOREIGN KEY (cuenta_id) REFERENCES cuentas(id),
         FOREIGN KEY (socio_id) REFERENCES socios(id)
     )''')
@@ -505,6 +513,8 @@ def init_db():
     columnas_nuevas = {
         'frecuencia': "TEXT DEFAULT 'Quincenal'",
         'cuota_ahorro': "REAL DEFAULT 0",
+        'cuota_aportacion': "REAL DEFAULT 0",
+        'cuota_inscripcion': "REAL DEFAULT 0",
         'tipo_ahorro': "TEXT DEFAULT 'ahorro corriente'",
         'nit': "TEXT",
         'beneficiario': "TEXT",
@@ -732,7 +742,7 @@ def init_db():
 
     c.execute("PRAGMA table_info(transacciones)")
     transacciones_cols = [row[1] for row in c.fetchall()]
-    for col, defn in [('jornalizado', 'INTEGER DEFAULT 0'), ('fecha_jornalizado', 'TEXT'), ('boleta_jornalizado', 'TEXT'), ('metodo_pago', "TEXT DEFAULT 'deposito'")]:
+    for col, defn in [('jornalizado', 'INTEGER DEFAULT 0'), ('fecha_jornalizado', 'TEXT'), ('boleta_jornalizado', 'TEXT'), ('metodo_pago', "TEXT DEFAULT 'deposito'"), ('boleta_numero', 'TEXT'), ('boleta_fecha', 'TEXT')]:
         if col not in transacciones_cols:
             try:
                 c.execute(f"ALTER TABLE transacciones ADD COLUMN {col} {defn}")
@@ -782,6 +792,12 @@ def init_db():
             c.execute("ALTER TABLE solicitudes_retiro ADD COLUMN prestamo_id INTEGER")
         except Exception:
             pass
+    for col, defn in [('boleta_numero', 'TEXT'), ('boleta_fecha', 'TEXT')]:
+        if col not in solicitudes_retiro_cols:
+            try:
+                c.execute(f"ALTER TABLE solicitudes_retiro ADD COLUMN {col} {defn}")
+            except Exception:
+                pass
 
     c.execute("PRAGMA table_info(planillas_masivas)")
     planillas_cols = [row[1] for row in c.fetchall()]

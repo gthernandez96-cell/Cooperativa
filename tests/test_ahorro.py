@@ -376,3 +376,149 @@ def test_planillas_prestamos_paginacion(client):
     """La lista de planillas de préstamos debe responder a los parámetros de paginación."""
     resp = client.get('/planillas_prestamos_pendientes?page=1&per_page=10')
     assert resp.status_code == 200
+
+
+def test_cancelar_cuenta_con_prestamo_activo_falla(client):
+    conn = app_module.get_db()
+    conn.execute(
+        "INSERT INTO socios (codigo, nombre, apellido, dpi, fecha_ingreso, estado, frecuencia) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        ('SOC-CANC-F', 'Socio', 'Préstamo', '2000000000188', '2026-01-01', 'activo', 'Quincenal')
+    )
+    socio = conn.execute("SELECT id FROM socios WHERE codigo='SOC-CANC-F'").fetchone()
+
+    conn.execute(
+        "INSERT INTO cuentas (numero, socio_id, tipo, saldo, tasa_interes, fecha_apertura, estado) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        ('AHO-CANC-F', socio['id'], 'ahorro', 100.0, 5.0, '2026-01-01', 'activa')
+    )
+    cuenta = conn.execute("SELECT id FROM cuentas WHERE numero='AHO-CANC-F'").fetchone()
+
+    conn.execute(
+        "INSERT INTO prestamos (numero, socio_id, monto_solicitado, monto_aprobado, saldo_pendiente, tasa_interes, plazo_meses, estado, fecha_solicitud) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        ('PR-CANC-F', socio['id'], 1000.0, 1000.0, 1000.0, 18.0, 12, 'aprobado', '2026-01-01')
+    )
+    conn.commit()
+    conn.close()
+
+    resp = client.post(f'/cuentas/{cuenta["id"]}/cancelar', follow_redirects=True)
+    assert resp.status_code == 200
+    assert b'No se puede cancelar la cuenta porque el asociado tiene un pr' in resp.data
+
+    conn = app_module.get_db()
+    estado = conn.execute("SELECT estado FROM cuentas WHERE id=?", (cuenta['id'],)).fetchone()['estado']
+    conn.close()
+    assert estado == 'activa'
+
+
+def test_cancelar_cuenta_sin_prestamo_activo_exito(client):
+    conn = app_module.get_db()
+    conn.execute(
+        "INSERT INTO socios (codigo, nombre, apellido, dpi, fecha_ingreso, estado, frecuencia) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        ('SOC-CANC-S', 'Socio', 'Limpio', '2000000000189', '2026-01-01', 'activo', 'Quincenal')
+    )
+    socio = conn.execute("SELECT id FROM socios WHERE codigo='SOC-CANC-S'").fetchone()
+
+    conn.execute(
+        "INSERT INTO cuentas (numero, socio_id, tipo, saldo, tasa_interes, fecha_apertura, estado) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        ('AHO-CANC-S', socio['id'], 'ahorro', 100.0, 5.0, '2026-01-01', 'activa')
+    )
+    cuenta = conn.execute("SELECT id FROM cuentas WHERE numero='AHO-CANC-S'").fetchone()
+    conn.commit()
+    conn.close()
+
+    resp = client.post(f'/cuentas/{cuenta["id"]}/cancelar', data={'descripcion': 'Test de cancelación'}, follow_redirects=True)
+    assert resp.status_code == 200
+    assert b'Solicitud de cancelaci\xc3\xb3n enviada' in resp.data
+
+    # Verify that the account is still active, but there is a pending request in solicitudes_retiro
+    conn = app_module.get_db()
+    estado = conn.execute("SELECT estado FROM cuentas WHERE id=?", (cuenta['id'],)).fetchone()['estado']
+    solicitud = conn.execute(
+        "SELECT id, estado, destino FROM solicitudes_retiro WHERE cuenta_id=? AND destino='cancelacion_cuenta'",
+        (cuenta['id'],)
+    ).fetchone()
+    conn.close()
+    
+    assert estado == 'activa'
+    assert solicitud is not None
+    assert solicitud['estado'] == 'pendiente'
+
+    # Approve the cancellation request in Gestiones
+    resp_approve = client.post(f'/gestiones/retiro/{solicitud["id"]}/aprobar', follow_redirects=True)
+    assert resp_approve.status_code == 200
+    assert b'cancelada y saldo liquidado' in resp_approve.data or b'Comprobante' in resp_approve.data
+
+    # Now verify the account is indeed cancelled and balance is zero
+    conn = app_module.get_db()
+    cuenta_row = conn.execute("SELECT estado, saldo FROM cuentas WHERE id=?", (cuenta['id'],)).fetchone()
+    conn.close()
+    assert cuenta_row['estado'] == 'cancelada'
+    assert cuenta_row['saldo'] == 0.0
+
+
+def test_deposito_gestion_crear_y_aprobar(client):
+    conn = app_module.get_db()
+    # Create active socio and cuenta
+    conn.execute(
+        "INSERT INTO socios (codigo, nombre, apellido, dpi, fecha_ingreso, estado, frecuencia) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        ('SOC-DEP-T', 'Socio', 'Dep', '2000000000190', '2026-01-01', 'activo', 'Quincenal')
+    )
+    socio = conn.execute("SELECT id FROM socios WHERE codigo='SOC-DEP-T'").fetchone()
+
+    conn.execute(
+        "INSERT INTO cuentas (numero, socio_id, tipo, saldo, tasa_interes, fecha_apertura, estado) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        ('AHO-DEP-T', socio['id'], 'ahorro', 100.0, 5.0, '2026-01-01', 'activa')
+    )
+    cuenta = conn.execute("SELECT id FROM cuentas WHERE numero='AHO-DEP-T'").fetchone()
+    conn.commit()
+    conn.close()
+
+    # Create pending deposit request
+    resp = client.post('/gestiones/deposito/nuevo', data={
+        'cuenta_id': str(cuenta['id']),
+        'monto': '250.50',
+        'descripcion': 'Abono extraordinario',
+        'metodo_pago': 'deposito',
+        'boleta_numero': 'BOL-DEP-998',
+        'boleta_fecha': '2026-06-08'
+    }, follow_redirects=True)
+    assert resp.status_code == 200
+    assert b'Solicitud de dep\xc3\xb3sito enviada' in resp.data
+
+    # Verify pending request exists
+    conn = app_module.get_db()
+    solicitud = conn.execute(
+        "SELECT id, estado, destino, boleta_numero, boleta_fecha FROM solicitudes_retiro WHERE cuenta_id=? AND destino='deposito'",
+        (cuenta['id'],)
+    ).fetchone()
+    conn.close()
+    assert solicitud is not None
+    assert solicitud['estado'] == 'pendiente'
+    assert solicitud['boleta_numero'] == 'BOL-DEP-998'
+    assert solicitud['boleta_fecha'] == '2026-06-08'
+
+    # Approve request
+    resp_approve = client.post(f'/gestiones/retiro/{solicitud["id"]}/aprobar', follow_redirects=True)
+    assert resp_approve.status_code == 200
+
+    # Verify account balance increased and transaction is logged with boleta details
+    conn = app_module.get_db()
+    cuenta_row = conn.execute("SELECT saldo FROM cuentas WHERE id=?", (cuenta['id'],)).fetchone()
+    transaccion = conn.execute(
+        "SELECT * FROM transacciones WHERE cuenta_id=? ORDER BY id DESC LIMIT 1",
+        (cuenta['id'],)
+    ).fetchone()
+    conn.close()
+    assert cuenta_row['saldo'] == 350.50
+    assert transaccion is not None
+    assert transaccion['tipo'] == 'deposito'
+    assert transaccion['monto'] == 250.50
+    assert transaccion['saldo_despues'] == 350.50
+    assert transaccion['boleta_numero'] == 'BOL-DEP-998'
+    assert transaccion['boleta_fecha'] == '2026-06-08'

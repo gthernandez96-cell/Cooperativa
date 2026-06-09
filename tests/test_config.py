@@ -10,7 +10,7 @@ def test_db_path_es_string():
 
 
 def test_config_labels_contiene_tipos_esperados():
-    tipos = {'ahorro_corriente', 'ahorro_plazo_fijo', 'ahorro_aportacion', 'prestamo'}
+    tipos = {'ahorro_corriente', 'ahorro_plazo_fijo', 'ahorro_aportacion', 'ahorro_inscripcion', 'prestamo'}
     assert set(config.CONFIG_LABELS.keys()) == tipos
 
 
@@ -23,13 +23,13 @@ def test_transacciones_positivas_es_set():
     assert 'deposito' in config.TRANSACCIONES_POSITIVAS
 
 
-def test_required_configuraciones_son_4():
-    assert len(config.REQUIRED_CONFIGURACIONES) == 4
+def test_required_configuraciones_son_5():
+    assert len(config.REQUIRED_CONFIGURACIONES) == 5
 
 
-def test_tasas_default_son_positivas():
+def test_tasas_default_son_no_negativas():
     for tipo, tasa, desc in config.REQUIRED_CONFIGURACIONES:
-        assert tasa > 0, f"Tasa de {tipo} debe ser positiva"
+        assert tasa >= 0, f"Tasa de {tipo} debe ser no negativa"
 
 
 def test_ahorro_settings_defaults_contiene_claves_criticas():

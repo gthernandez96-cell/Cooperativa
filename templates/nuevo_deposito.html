@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+{% block title %}Nueva Solicitud de Depósito — {{ cooperativa_nombre }}{% endblock %}
+{% block content %}
+<style>
+/* ── Nueva Solicitud Depósito ── */
+.nr-shell { display:flex;flex-direction:column;gap:20px; }
+
+.nr-header {
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+  padding-bottom:18px;border-bottom:2px solid var(--c-border,#e5e7eb);
+}
+.nr-header-eyebrow {
+  font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--c-blue,#003b74);margin-bottom:4px;
+}
+.nr-header-title {
+  font-family:'Fraunces',serif;font-size:24px;font-weight:700;
+  color:#0f1f32;line-height:1.2;letter-spacing:-.02em;
+}
+.nr-header-sub { font-size:13px;color:#6b7280;margin-top:3px; }
+.nr-header-actions { display:flex;gap:10px;flex-shrink:0; }
+
+.nr-mode-bar {
+  display:flex;align-items:center;gap:12px;padding:12px 18px;
+  border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0;font-size:13px;
+  box-shadow:0 2px 4px rgba(0,0,0,0.01);
+}
+.nr-mode-bar .nr-mode-label { color:#6b7280; }
+.nr-mode-bar strong { color:#0f1f32; }
+.nr-mode-pill {
+  margin-left:auto;display:inline-flex;align-items:center;
+  padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;
+  letter-spacing:.05em;text-transform:uppercase;background:#d1fae5;color:#065f46;
+}
+
+.nr-main { display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start; }
+
+.nr-card {
+  background:#fff;border:1px solid rgba(229, 231, 235, 0.9);
+  border-radius:16px;overflow:hidden;
+  box-shadow:0 4px 12px rgba(0, 32, 68, 0.02);
+}
+.nr-card-head {
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:16px 20px;background:#f8fafb;border-bottom:1px solid #e5e7eb;
+}
+.nr-card-head-title { font-size:13px;font-weight:700;color:#001f3d; }
+.nr-card-body { padding:24px; }
+
+.nr-grid { display:grid;grid-template-columns:1fr 1fr;gap:16px; }
+.nr-field { display:flex;flex-direction:column;gap:6px; }
+.nr-field-full { grid-column:span 2; }
+.nr-field label {
+  font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#4b5563;
+}
+.nr-field input, .nr-field select {
+  width:100%;box-sizing:border-box;padding:10px 12px;
+  border:1px solid var(--c-border,#e5e7eb);border-radius:10px;
+  font-size:13px;background:#ffffff;color:#0f1f32;
+  transition:border-color .15s ease,box-shadow .15s ease,background .15s ease;
+  box-shadow:inset 0 1px 2px rgba(0,0,0,0.02);
+}
+.nr-field input:focus, .nr-field select:focus {
+  outline:none;border-color:var(--c-blue,#003b74);background:#fff;
+  box-shadow:0 0 0 3px rgba(0, 59, 116, 0.08);
+}
+.nr-field input[readonly] { background:#f3f4f6;color:#4b5563;cursor:default;border-color:#e5e7eb; }
+.nr-hint { font-size:11px;color:#9ca3af;margin-top:4px;line-height:1.4; }
+.nr-actions { display:flex;gap:10px;margin-top:20px; }
+
+.nr-side { display:flex;flex-direction:column;gap:16px; }
+.nr-summary-card {
+  background:#fff;border:1px solid rgba(229, 231, 235, 0.9);
+  border-radius:16px;overflow:hidden;
+  box-shadow:0 4px 12px rgba(0, 32, 68, 0.02);
+}
+.nr-summary-head {
+  background:linear-gradient(135deg, #022c22, #064e3b);
+  padding:20px;color:#fff;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+}
+.nr-summary-head .sh-label { font-size:10px;opacity:.75;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;font-weight:700; }
+.nr-summary-head .sh-value {
+  font-family:'Fraunces',serif;font-size:36px;font-weight:700;line-height:1;color:#34d399;
+  text-shadow:0 2px 4px rgba(0,0,0,0.15);
+}
+.nr-summary-body { padding:10px 20px; }
+.nr-row {
+  display:flex;justify-content:space-between;align-items:center;
+  padding:12px 0;border-bottom:1px solid #f1f5f9;font-size:13px;
+}
+.nr-row:last-child { border-bottom:none; }
+.nr-row .r-label { color:#4b5563; }
+.nr-row .r-value { font-weight:600;color:#064e3b; }
+.nr-row.success .r-value { color:#059669; }
+
+.nr-tips { background:#fff;border:1px solid rgba(229, 231, 235, 0.9);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px;box-shadow:0 4px 12px rgba(0, 32, 68, 0.02); }
+.nr-tip-item { display:flex;flex-direction:column;gap:3px; }
+.nr-tip-item strong { font-size:12px;font-weight:700;color:#374151; }
+.nr-tip-item span { font-size:12px;color:#6b7280;line-height:1.5; }
+@media(max-width:900px){ .nr-main{ grid-template-columns:1fr; } .nr-side{ order:-1; } }
+@media(max-width:640px){ .nr-grid{ grid-template-columns:1fr; } .nr-field-full{ grid-column:span 1; } }
+</style>
+
+<div class="nr-shell">
+
+  <header class="nr-header">
+    <div>
+      <div class="nr-header-eyebrow">Depósitos / Ahorro</div>
+      <div class="nr-header-title">Nueva solicitud de depósito</div>
+      <div class="nr-header-sub">Solicitar un abono de ahorro bajo control de aprobación</div>
+    </div>
+    <div class="nr-header-actions">
+      <a href="{{ url_for('prestamos.gestiones') }}" class="btn btn-outline btn-sm">&#8592; Gestiones</a>
+    </div>
+  </header>
+
+  <div class="nr-mode-bar">
+    <span class="nr-mode-label">Modo:</span>
+    <strong>Depósito en cuenta</strong>
+    <span style="color:#9ca3af;font-size:12px; margin-left: 8px;">La solicitud queda pendiente de aprobación en Gestiones.</span>
+    <span class="nr-mode-pill">Depósito</span>
+  </div>
+
+  <div class="nr-main">
+    <div class="nr-card">
+      <div class="nr-card-head">
+        <span class="nr-card-head-title">Formulario de solicitud</span>
+      </div>
+      <div class="nr-card-body">
+        <form method="post" action="{{ url_for('ahorro.nueva_solicitud_deposito') }}" id="form-deposito">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="nr-grid">
+
+            <div class="nr-field nr-field-full">
+              <label for="busqueda-cuenta">Buscar cuenta</label>
+              <input type="text" id="busqueda-cuenta" placeholder="Buscar por socio, código o número" autocomplete="off">
+            </div>
+
+            <div class="nr-field nr-field-full">
+              <label for="inp-cuenta">Cuenta de ahorro *</label>
+              <select name="cuenta_id" id="inp-cuenta" required onchange="actualizarCuenta(); calcularDeposito()">
+                <option value="">Seleccionar cuenta&hellip;</option>
+                {% for c in cuentas %}
+                <option value="{{ c.id }}"
+                  data-saldo="{{ c.saldo }}"
+                  data-numero="{{ c.numero }}"
+                  data-socio="{{ c.socio_nombre }}"
+                  data-codigo="{{ c.socio_codigo }}">
+                  {{ c.numero }} &mdash; {{ c.socio_codigo }} &mdash; {{ c.socio_nombre }} &mdash; Saldo Q{{ "{:,.2f}".format(c.saldo) }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="nr-field">
+              <label for="out-socio">Asociado</label>
+              <input id="out-socio" type="text" readonly placeholder="Se asigna automáticamente">
+            </div>
+
+            <div class="nr-field">
+              <label for="out-saldo">Saldo actual</label>
+              <input id="out-saldo" type="text" readonly placeholder="Q0.00">
+            </div>
+
+            <div class="nr-field nr-field-full">
+              <label for="inp-monto">Monto a depositar (Q) *</label>
+              <input name="monto" id="inp-monto" type="number" step="0.01" min="1" required placeholder="Ej: 500.00" oninput="calcularDeposito()">
+            </div>
+
+            <div class="nr-field">
+              <label for="inp-boleta-numero">Número de Boleta</label>
+              <input name="boleta_numero" id="inp-boleta-numero" type="text" placeholder="Ej: DEP-10023">
+            </div>
+
+            <div class="nr-field">
+              <label for="inp-boleta-fecha">Fecha de Boleta</label>
+              <input name="boleta_fecha" id="inp-boleta-fecha" type="date">
+            </div>
+
+            <div class="nr-field nr-field-full">
+              <label for="inp-metodo-pago">Método de Pago *</label>
+              <select name="metodo_pago" id="inp-metodo-pago" required>
+                <option value="deposito">Depósito Bancario</option>
+                <option value="transferencia">Transferencia Electrónica</option>
+                <option value="efectivo">Efectivo</option>
+                <option value="cheque">Cheque</option>
+              </select>
+            </div>
+
+            <div class="nr-field nr-field-full">
+              <label for="inp-descripcion">Descripción *</label>
+              <input id="inp-descripcion" name="descripcion" required maxlength="180" placeholder="Ej: Depósito quincenal de ahorro">
+            </div>
+
+          </div>
+          <div class="nr-actions">
+            <button type="submit" class="btn btn-primary">Enviar solicitud</button>
+            <a href="{{ url_for('prestamos.gestiones') }}" class="btn btn-outline">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <aside class="nr-side">
+      <div class="nr-summary-card">
+        <div class="nr-summary-head">
+          <div class="sh-label">Monto a depositar</div>
+          <div class="sh-value" id="out-monto">&mdash;</div>
+        </div>
+        <div class="nr-summary-body">
+          <div class="nr-row">
+            <span class="r-label">Cuenta</span>
+            <strong class="r-value" id="out-numero">&mdash;</strong>
+          </div>
+          <div class="nr-row">
+            <span class="r-label">Saldo actual</span>
+            <strong class="r-value" id="out-saldo-card">&mdash;</strong>
+          </div>
+          <div class="nr-row success">
+            <span class="r-label">Saldo estimado</span>
+            <strong class="r-value" id="out-saldo-estimado">&mdash;</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="nr-tips">
+        <div class="nr-tip-item">
+          <strong>Aprobación centralizada</strong>
+          <span>El depósito no se aplica de inmediato. Requiere aprobación en la pantalla de Gestiones.</span>
+        </div>
+        <div class="nr-tip-item">
+          <strong>Información de Boleta</strong>
+          <span>Ingrese el número y fecha del comprobante del banco para facilitar la auditoría y conciliación.</span>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+function fmt(n) {
+  return 'Q' + n.toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+const inputBusquedaCuenta = document.getElementById('busqueda-cuenta');
+const selectCuenta = document.getElementById('inp-cuenta');
+const opcionesCuenta = Array.from(selectCuenta.options).slice(1).map(option => ({
+  value: option.value, text: option.textContent,
+  saldo: parseFloat(option.dataset.saldo || '0'),
+  numero: option.dataset.numero || '', socio: option.dataset.socio || '',
+  codigo: option.dataset.codigo || ''
+}));
+
+function renderOpcionesCuenta(filtro) {
+  const actual = selectCuenta.value;
+  const texto = (filtro || '').trim().toLowerCase();
+  const filtradas = !texto ? opcionesCuenta : opcionesCuenta.filter(item =>
+    item.numero.toLowerCase().includes(texto) ||
+    item.socio.toLowerCase().includes(texto) ||
+    item.codigo.toLowerCase().includes(texto)
+  );
+  selectCuenta.innerHTML = '<option value="">Seleccionar cuenta\u2026</option>';
+  filtradas.forEach(item => {
+    const option = document.createElement('option');
+    option.value = item.value; option.textContent = item.text;
+    option.dataset.saldo = item.saldo; option.dataset.numero = item.numero;
+    option.dataset.socio = item.socio; option.dataset.codigo = item.codigo;
+    if (item.value === actual) option.selected = true;
+    selectCuenta.appendChild(option);
+  });
+  actualizarCuenta(); calcularDeposito();
+}
+
+function actualizarCuenta() {
+  const option = selectCuenta.options[selectCuenta.selectedIndex];
+  if (!option || !option.value) {
+    document.getElementById('out-socio').value = '';
+    document.getElementById('out-saldo').value = '';
+    document.getElementById('out-numero').textContent = '\u2014';
+    document.getElementById('out-saldo-card').textContent = '\u2014';
+    return;
+  }
+  const saldo = parseFloat(option.dataset.saldo || '0');
+  document.getElementById('out-socio').value = option.dataset.codigo + ' \u2014 ' + option.dataset.socio;
+  document.getElementById('out-saldo').value = fmt(saldo);
+  document.getElementById('out-numero').textContent = option.dataset.numero || '\u2014';
+  document.getElementById('out-saldo-card').textContent = fmt(saldo);
+}
+
+function calcularDeposito() {
+  const option = selectCuenta.options[selectCuenta.selectedIndex];
+  const monto = parseFloat(document.getElementById('inp-monto').value || '0');
+  if (!option || !option.value || monto <= 0) {
+    document.getElementById('out-monto').textContent = '\u2014';
+    document.getElementById('out-saldo-estimado').textContent = '\u2014'; return;
+  }
+  const saldo = parseFloat(option.dataset.saldo || '0');
+  document.getElementById('out-monto').textContent = fmt(monto);
+  document.getElementById('out-saldo-estimado').textContent = fmt(saldo + monto);
+}
+
+inputBusquedaCuenta.addEventListener('input', event => renderOpcionesCuenta(event.target.value));
+actualizarCuenta();
+</script>
+{% endblock %}

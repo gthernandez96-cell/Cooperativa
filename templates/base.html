@@ -1349,6 +1349,7 @@ tr:hover td { background: var(--c-cream); }
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="14" y2="14"/><line x1="8" y1="18" x2="12" y2="18"/></svg>
         Calculadora
       </a>
+      {% if session.get('user_role') == 'Administrador' %}
       <a href="{{ url_for('usuarios.roles') }}" class="nav-link {% if 'usuarios.roles' in request.endpoint %}active{% endif %}">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2a5 5 0 0 1 5 5v3a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5z"/><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/></svg>
         Roles
@@ -1361,7 +1362,6 @@ tr:hover td { background: var(--c-cream); }
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 1 2.73.73l.15.08a2 2 0 0 0 2 0l.43-.25a2 2 0 0 1 1-1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 0 2 0l.15.08a2 2 0 0 1 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 1-2.73-.73l-.15-.08a2 2 0 0 0-2 0l-.43.25a2 2 0 0 1-1 1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
         Configuración
       </a>
-      {% if session.get('user_role') == 'Administrador' %}
       <a href="{{ url_for('configuraciones.auditoria_eventos') }}" class="nav-link {% if request.endpoint=='auditoria_eventos' %}active{% endif %}">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 3h18v18H3z"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>
         Bitácora
@@ -1400,10 +1400,10 @@ tr:hover td { background: var(--c-cream); }
     <a href="{{ url_for('prestamos.transacciones_masivas') }}" class="mobile-nav-link {% if 'prestamos.transacciones_masivas' in request.endpoint %}active{% endif %}">Transacciones Masivas</a>
     <a href="{{ url_for('movimientos.diarios') }}" class="mobile-nav-link {% if 'movimientos' in request.endpoint %}active{% endif %}">Movimientos del día</a>
     <a href="{{ url_for('reportes.index') }}" class="mobile-nav-link {% if 'reportes' in request.endpoint %}active{% endif %}">Reportes</a>
+    {% if session.get('user_role') == 'Administrador' %}
     <a href="{{ url_for('usuarios.roles') }}" class="mobile-nav-link {% if 'usuarios.roles' in request.endpoint %}active{% endif %}">Roles</a>
     <a href="{{ url_for('usuarios.usuarios') }}" class="mobile-nav-link {% if 'usuarios.usuarios' in request.endpoint %}active{% endif %}">Usuarios</a>
     <a href="{{ url_for('configuraciones.configuraciones') }}" class="mobile-nav-link {% if 'configuraciones.configuraciones' in request.endpoint %}active{% endif %}">Configuración</a>
-    {% if session.get('user_role') == 'Administrador' %}
     <a href="{{ url_for('configuraciones.auditoria_eventos') }}" class="mobile-nav-link {% if request.endpoint=='auditoria_eventos' %}active{% endif %}">Bitácora</a>
     {% endif %}
   </div>

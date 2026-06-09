@@ -24,6 +24,7 @@ CONFIG_LABELS = {
     'ahorro_corriente': 'Ahorro',
     'ahorro_plazo_fijo': 'Plazo Fijo',
     'ahorro_aportacion': 'Aportacion',
+    'ahorro_inscripcion': 'Inscripcion',
     'prestamo': 'Prestamos',
 }
 
@@ -43,6 +44,7 @@ REQUIRED_CONFIGURACIONES = [
     ('ahorro_corriente', 5.0, 'Tasa de interes para Ahorro'),
     ('ahorro_plazo_fijo', 4.0, 'Tasa de interes para Plazo Fijo'),
     ('ahorro_aportacion', 5.0, 'Tasa de interes para Aportacion'),
+    ('ahorro_inscripcion', 0.0, 'Tasa de interes para Inscripcion'),
     ('prestamo', 18.0, 'Tasa de interes para Prestamos'),
 ]
 

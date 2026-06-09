@@ -31,6 +31,8 @@ CREATE TABLE IF NOT EXISTS socios (
     estado              TEXT    DEFAULT 'activo',
     frecuencia          TEXT    DEFAULT 'Quincenal',
     cuota_ahorro        REAL    DEFAULT 0,
+    cuota_aportacion    REAL    DEFAULT 0,
+    cuota_inscripcion   REAL    DEFAULT 0,
     tipo_ahorro         TEXT    DEFAULT 'ahorro corriente',
     nit                 TEXT,
     beneficiario        TEXT,
@@ -38,7 +40,7 @@ CREATE TABLE IF NOT EXISTS socios (
     foto                TEXT,
     banco_nombre        TEXT,
     banco_tipo_cuenta   TEXT,
-    banco_numero_cuenta TEXT
+    banco_numero_cuenta TEXT,
     salario REAL,
     fecha_ingreso_laborar TEXT
 );
@@ -125,6 +127,12 @@ CREATE TABLE IF NOT EXISTS transacciones (
     saldo_despues   REAL    NOT NULL,
     descripcion     TEXT,
     fecha           TEXT    NOT NULL,
+    jornalizado     INTEGER DEFAULT 0,
+    fecha_jornalizado TEXT,
+    boleta_jornalizado TEXT,
+    metodo_pago     TEXT DEFAULT 'deposito',
+    boleta_numero   TEXT,
+    boleta_fecha    TEXT,
     FOREIGN KEY (cuenta_id) REFERENCES cuentas(id)
 );
 
@@ -265,4 +273,27 @@ CREATE TABLE IF NOT EXISTS cierres_periodo (
     observaciones   TEXT,
     usuario         TEXT,
     fecha_creacion  TEXT    NOT NULL
+);
+
+-- ── Solicitudes de Retiro / Gestiones ──────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS solicitudes_retiro (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    numero              TEXT    UNIQUE NOT NULL,
+    cuenta_id           INTEGER NOT NULL,
+    socio_id            INTEGER NOT NULL,
+    monto               REAL    NOT NULL,
+    descripcion         TEXT,
+    metodo_retiro       TEXT    DEFAULT 'cheque',
+    banco_tipo_cuenta   TEXT,
+    banco_numero_cuenta TEXT,
+    fecha_solicitud     TEXT    NOT NULL,
+    estado              TEXT    DEFAULT 'pendiente',
+    fecha_aprobacion    TEXT,
+    aprobado_por        TEXT,
+    destino             TEXT    DEFAULT 'retiro',
+    prestamo_id         INTEGER,
+    boleta_numero       TEXT,
+    boleta_fecha        TEXT,
+    FOREIGN KEY (cuenta_id) REFERENCES cuentas(id),
+    FOREIGN KEY (socio_id) REFERENCES socios(id)
 );

@@ -95,6 +95,44 @@ class TestRoles:
         r = admin_client.get('/calculadora')
         assert r.status_code == 200
 
+    def test_admin_puede_crear_editar_y_eliminar_rol(self, admin_client):
+        r = admin_client.post('/roles/nuevo', data={
+            'nombre': 'Rol Temporal',
+            'descripcion': 'Descripción temporal del rol'
+        }, follow_redirects=True)
+        assert r.status_code == 200
+        assert b'Rol creado exitosamente' in r.data
+
+        import app as app_module
+        conn = app_module.get_db()
+        rol = conn.execute("SELECT id FROM roles WHERE nombre='Rol Temporal'").fetchone()
+        conn.close()
+        assert rol is not None
+        rol_id = rol['id']
+
+        r_edit = admin_client.post(f'/roles/{rol_id}/editar', data={
+            'nombre': 'Rol Editado',
+            'descripcion': 'Descripción editada del rol',
+            'estado': 'activo'
+        }, follow_redirects=True)
+        assert r_edit.status_code == 200
+        assert b'Rol actualizado exitosamente' in r_edit.data
+
+        r_delete = admin_client.post(f'/roles/{rol_id}/eliminar', follow_redirects=True)
+        assert r_delete.status_code == 200
+        assert b'Rol eliminado exitosamente' in r_delete.data
+
+    def test_admin_no_puede_eliminar_rol_administrador(self, admin_client):
+        import app as app_module
+        conn = app_module.get_db()
+        rol_admin = conn.execute("SELECT id FROM roles WHERE nombre='Administrador'").fetchone()
+        conn.close()
+        assert rol_admin is not None
+
+        r = admin_client.post(f'/roles/{rol_admin["id"]}/eliminar', follow_redirects=True)
+        assert r.status_code == 200
+        assert b'No se puede eliminar el rol Administrador' in r.data
+
 
 class TestCalculadora:
     """Tests de la calculadora de préstamos."""

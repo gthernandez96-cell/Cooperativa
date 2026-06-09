@@ -129,6 +129,15 @@
             <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
             <input type="text" id="accountSearch" class="search-input" placeholder="Buscar por nombre de socio o número de cuenta...">
         </div>
+        <div style="min-width: 200px;">
+            <select id="productFilter" class="search-input" style="padding-left: 12px;">
+                <option value="todos">Todos los productos</option>
+                <option value="ahorro_corriente">Ahorro Corriente</option>
+                <option value="ahorro_aportacion">Aportación</option>
+                <option value="ahorro_plazo_fijo">Plazo Fijo</option>
+                <option value="ahorro_inscripcion">Inscripción</option>
+            </select>
+        </div>
         <div class="filter-count">
             <span id="visibleCount" class="badge-pill badge-gray">{{ cuentas|length }}</span> cuentas visibles
         </div>
@@ -151,7 +160,7 @@
                 </thead>
                 <tbody>
                     {% for c in cuentas %}
-                    <tr class="account-row">
+                    <tr class="account-row" data-product="{{ c.producto_ahorro or 'ahorro_corriente' }}">
                         <td>
                             <span class="account-number">{{ c.numero }}</span>
                         </td>
@@ -165,6 +174,8 @@
                                     Aportación
                                 {% elif c.producto_ahorro == 'ahorro_plazo_fijo' %}
                                     Plazo Fijo
+                                {% elif c.producto_ahorro == 'ahorro_inscripcion' %}
+                                    Inscripción
                                 {% else %}
                                     Ahorro Corriente
                                 {% endif %}
@@ -204,17 +215,24 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('accountSearch');
+    const productFilter = document.getElementById('productFilter');
     const tableRows = document.querySelectorAll('.account-row');
     const noResults = document.getElementById('noResults');
     const visibleCount = document.getElementById('visibleCount');
 
-    searchInput.addEventListener('input', function() {
-        const query = this.value.toLowerCase();
+    function filterTable() {
+        const query = searchInput.value.toLowerCase();
+        const product = productFilter.value;
         let count = 0;
 
         tableRows.forEach(row => {
-            const text = row.textContent.toLowerCase();
-            if (text.includes(query)) {
+            const rowText = row.textContent.toLowerCase();
+            const rowProduct = row.getAttribute('data-product') || 'ahorro_corriente';
+            
+            const matchesSearch = rowText.includes(query);
+            const matchesProduct = (product === 'todos' || rowProduct === product);
+
+            if (matchesSearch && matchesProduct) {
                 row.style.display = '';
                 count++;
             } else {
@@ -225,7 +243,10 @@ document.addEventListener('DOMContentLoaded', function() {
         visibleCount.textContent = count;
         noResults.style.display = count === 0 ? 'block' : 'none';
         document.querySelector('thead').style.display = count === 0 ? 'none' : '';
-    });
+    }
+
+    searchInput.addEventListener('input', filterTable);
+    productFilter.addEventListener('change', filterTable);
 });
 </script>
 {% endblock %}

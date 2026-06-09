@@ -19,6 +19,7 @@ def obtener_tipo_cuenta_desde_planilla(nombre_planilla):
             'aportacion': 'Aportacion',
             'ahorro corriente': 'Ahorro corriente',
             'plazo fijo': 'Plazo fijo',
+            'inscripcion': 'Inscripcion',
         }
         return mapa.get(tipo, tipo.title() if tipo else 'Ahorro corriente')
     return 'Ahorro corriente'
