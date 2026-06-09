@@ -97,11 +97,23 @@ def upload_zip():
 def extract_and_install():
     print("\n⚙️ [3/4] Descomprimiendo y actualizando el servidor...")
     
-    console = pa_request("POST", "/consoles/", {"executable": "bash"})
+    # Intentar buscar una consola existente primero para evitar errores de precondición (HTTP 412)
+    consoles = pa_request("GET", "/consoles/")
+    console = None
+    if consoles:
+        for c in consoles:
+            if c.get("executable") == "bash":
+                console = c
+                print(f"  → Reutilizando consola bash existente ID: {console['id']}")
+                break
+                
     if not console:
-        consoles = pa_request("GET", "/consoles/")
-        if consoles: console = consoles[0]
-        else: return False
+        print("  → No se encontró consola activa. Creando nueva consola bash...")
+        console = pa_request("POST", "/consoles/", {"executable": "bash"})
+        
+    if not console:
+        print("  ✗ No se pudo obtener ninguna consola bash.")
+        return False
 
     cid = console["id"]
     time.sleep(2)
