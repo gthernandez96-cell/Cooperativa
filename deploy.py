@@ -95,55 +95,82 @@ def upload_zip():
         return False
 
 def extract_and_install():
-    print("\n⚙️ [3/4] Descomprimiendo y actualizando el servidor...")
+    print("\n⚙️ [3/4] Configurando auto-extractor en archivo WSGI...")
     
-    # Intentar buscar una consola existente primero para evitar errores de precondición (HTTP 412)
-    consoles = pa_request("GET", "/consoles/")
-    console = None
-    if consoles:
-        for c in consoles:
-            if c.get("executable") == "bash":
-                console = c
-                print(f"  → Reutilizando consola bash existente ID: {console['id']}")
-                break
-                
-    if not console:
-        print("  → No se encontró consola activa. Creando nueva consola bash...")
-        console = pa_request("POST", "/consoles/", {"executable": "bash"})
+    wsgi_path = f"/var/www/{PA_USER}_pythonanywhere_com_wsgi.py"
+    url = f"{BASE_URL}/files/path{wsgi_path}"
+    
+    # 1. Leer archivo WSGI existente
+    req = urllib.request.Request(url, headers=HEADERS, method="GET")
+    context = ssl._create_unverified_context()
+    try:
+        with urllib.request.urlopen(req, context=context) as r:
+            current_content = r.read().decode('utf-8')
+    except Exception as e:
+        print(f"  ✗ Error al leer WSGI: {e}")
+        return False
         
-    if not console:
-        print("  ✗ No se pudo obtener ninguna consola bash.")
+    # 2. Validar si el auto-extractor ya está configurado
+    AUTO_EXTRACT_MARKER = "# === DEPLOYMENT AUTO-EXTRACTOR ==="
+    if AUTO_EXTRACT_MARKER in current_content:
+        print("  ✓ Auto-extractor ya está configurado en el archivo WSGI")
+        return True
+        
+    # 3. Insertar el auto-extractor en la parte superior del archivo WSGI
+    auto_extract_code = f"""{AUTO_EXTRACT_MARKER}
+import os
+import zipfile
+import subprocess
+
+zip_path = '/home/{PA_USER}/{ZIP_NAME}'
+dest_dir = '/home/{PA_USER}/Cooperativa'
+
+if os.path.exists(zip_path):
+    try:
+        print("Detectado archivo de despliegue. Descomprimiendo...")
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(dest_dir)
+            
+        venv_pip = os.path.join(dest_dir, '.venv', 'bin', 'pip')
+        req_txt = os.path.join(dest_dir, 'requirements.txt')
+        if os.path.exists(venv_pip) and os.path.exists(req_txt):
+            subprocess.run([venv_pip, 'install', '-r', req_txt], capture_output=True)
+            
+        os.remove(zip_path)
+        print("Despliegue completado exitosamente.")
+    except Exception as e:
+        print("Error en auto-extractor:", e)
+# =================================
+
+"""
+    new_content = auto_extract_code + current_content
+    
+    # 4. Subir archivo WSGI modificado mediante POST
+    boundary = b"----boundary"
+    body  = b"--" + boundary + b"\r\n"
+    body += b'Content-Disposition: form-data; name="content"; filename="wsgi.py"\r\n'
+    body += b"Content-Type: text/plain\r\n\r\n"
+    body += new_content.encode('utf-8') + b"\r\n"
+    body += b"--" + boundary + b"--\r\n"
+    
+    req_upload = urllib.request.Request(
+        url,
+        data=body,
+        headers={
+            "Authorization": f"Token {PA_API_TOKEN}",
+            "Content-Type": "multipart/form-data; boundary=----boundary",
+        },
+        method="POST"
+    )
+    
+    try:
+        with urllib.request.urlopen(req_upload, context=context) as r:
+            print("  ✓ Auto-extractor inyectado exitosamente en archivo WSGI")
+            return True
+    except Exception as e:
+        print(f"  ✗ Error al guardar WSGI: {e}")
         return False
 
-    cid = console["id"]
-    time.sleep(2)
-    
-    script = f"""
-    cd /home/{PA_USER}
-    mkdir -p Cooperativa
-    cd Cooperativa
-    unzip -q -o ../{ZIP_NAME}
-    if [ ! -d ".venv" ]; then python3.12 -m venv .venv; fi
-    .venv/bin/pip install -q -r requirements.txt
-    rm ../{ZIP_NAME}
-    echo "=== DONE ==="
-    """
-    
-    pa_request("POST", f"/consoles/{cid}/send_input/", {"input": script + "\n"})
-    
-    print("  ⏳ Procesando (esto toma unos 15 segundos)", end="")
-    success = False
-    for _ in range(8):
-        time.sleep(4)
-        print(".", end="", flush=True)
-        out = pa_request("GET", f"/consoles/{cid}/get_latest_output/")
-        if out and "output" in out and "=== DONE ===" in out["output"]:
-            success = True
-            break
-            
-    print("\n  ✓ Servidor actualizado" if success else "\n  ⚠ El proceso sigue en segundo plano")
-    pa_request("DELETE", f"/consoles/{cid}/")
-    return True
 
 def reload_webapp():
     print("\n🔄 [4/4] Recargando aplicación web...")
