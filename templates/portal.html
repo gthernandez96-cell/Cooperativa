@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+{% block title %}Seleccionar Módulo — {{ cooperativa_nombre }}{% endblock %}
+
+{% block content %}
+<style>
+/* Forzar que el fondo ocupe todo el alto disponible, ocultando elementos del header/footer si están en la vista del portal (opcional, pero ayuda al look) */
+.main {
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+.portal-wrap {
+  min-height: calc(100vh - var(--header-stack-height) - var(--footer-height));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 60px 24px;
+  background: linear-gradient(135deg, #eeeaf3 0%, #dcd8e4 100%);
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  width: 100%;
+}
+
+.portal-greeting {
+  text-align: center;
+  margin-bottom: 50px;
+}
+.portal-greeting h1 {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: #334155;
+  letter-spacing: -0.5px;
+  margin-bottom: 4px;
+}
+.portal-greeting p {
+  font-size: 15px;
+  color: #64748b;
+}
+
+.portal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 120px));
+  justify-content: center;
+  gap: 32px 24px;
+  max-width: 800px;
+  width: 100%;
+}
+
+.portal-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  cursor: pointer;
+  group: hover;
+}
+
+.portal-card-icon {
+  width: 84px; 
+  height: 84px;
+  background: #ffffff;
+  border-radius: 20px;
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+  margin-bottom: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.portal-card:hover .portal-card-icon {
+  transform: translateY(-6px) scale(1.03);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06);
+}
+
+.portal-card-icon svg { 
+  width: 42px; 
+  height: 42px; 
+}
+
+/* Colores de íconos según el módulo */
+.mod-ahorro .portal-card-icon svg { color: #0284c7; }
+.mod-pos .portal-card-icon svg { color: #059669; }
+.mod-cont .portal-card-icon svg { color: #d97706; }
+.mod-ajustes .portal-card-icon svg { color: #475569; }
+
+/* Decoraciones sutiles dentro del ícono (estilo odoo vectors) */
+.portal-card-icon::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.8), rgba(255,255,255,0));
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.portal-card-title {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13.5px; 
+  font-weight: 500;
+  color: #475569;
+  text-align: center;
+  line-height: 1.2;
+  transition: color 0.2s;
+}
+
+.portal-card:hover .portal-card-title {
+  color: #1e293b;
+}
+
+/* Ocultar header original en el portal para dar efecto full-screen inmersivo */
+header.header, .top-brand {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .portal-grid { 
+    grid-template-columns: repeat(3, 1fr); 
+    gap: 24px 12px; 
+  }
+  .portal-card-icon { 
+    width: 72px; 
+    height: 72px; 
+    border-radius: 16px;
+  }
+  .portal-card-icon svg { 
+    width: 34px; 
+    height: 34px; 
+  }
+  .portal-card-title { font-size: 12px; }
+}
+@media (max-width: 480px) {
+  .portal-grid { 
+    grid-template-columns: repeat(2, 1fr); 
+  }
+}
+</style>
+
+<div class="portal-wrap">
+  <div class="portal-greeting">
+    <h1>Bienvenido, {{ session.get('username', 'Usuario') }}</h1>
+    <p>Seleccione el módulo con el que desea trabajar hoy.</p>
+  </div>
+
+  <div class="portal-grid">
+
+    <!-- Ahorros y Créditos -->
+    <a href="{{ url_for('main.seleccionar_modulo', modulo='ahorro_credito') }}" class="portal-card mod-ahorro">
+      <div class="portal-card-icon">
+        <svg fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-4H9l3-6 3 6h-2v4z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17 9H7M17 12H7M17 15h-3"/>
+        </svg>
+      </div>
+      <div class="portal-card-title">Ahorro y<br>Crédito</div>
+    </a>
+
+    <!-- Punto de Venta -->
+    <a href="{{ url_for('main.seleccionar_modulo', modulo='pos') }}" class="portal-card mod-pos">
+      <div class="portal-card-icon">
+        <svg fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m14-9l2 9M9 21a1 1 0 100-2 1 1 0 000 2zm10 0a1 1 0 100-2 1 1 0 000 2z"/>
+        </svg>
+      </div>
+      <div class="portal-card-title">Punto de<br>Venta</div>
+    </a>
+
+    <!-- Contabilidad -->
+    <a href="{{ url_for('main.seleccionar_modulo', modulo='contabilidad') }}" class="portal-card mod-cont">
+      <div class="portal-card-icon">
+        <svg fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+        </svg>
+      </div>
+      <div class="portal-card-title">Contabilidad</div>
+    </a>
+
+    <!-- Ajustes del Sistema -->
+    <a href="{{ url_for('main.seleccionar_modulo', modulo='ajustes') }}" class="portal-card mod-ajustes">
+      <div class="portal-card-icon">
+        <svg fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+      </div>
+      <div class="portal-card-title">Ajustes</div>
+    </a>
+
+  </div>
+</div>
+{% endblock %}

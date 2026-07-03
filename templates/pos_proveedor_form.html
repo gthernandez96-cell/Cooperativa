@@ -1,0 +1,393 @@
+{% extends 'base.html' %}
+{% block title %}Proveedor: {{ p.nombre or 'Nuevo' }}{% endblock %}
+{% block content %}
+<style>
+.odoo-form-page {
+  font-family: 'DM Sans', sans-serif;
+  color: #1e293b;
+  background: #fff;
+  min-height: calc(100vh - 80px);
+}
+.odoo-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.odoo-header-left {
+  display: flex;
+  gap: 12px;
+}
+.odoo-btn-primary {
+  background: #714B67;
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.odoo-btn-secondary {
+  background: #fff;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.odoo-form-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+.odoo-radio-group {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+.odoo-radio-group label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.odoo-title-input {
+  width: 100%;
+  font-size: 32px;
+  font-weight: 600;
+  color: #1e293b;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 4px 0;
+  margin-bottom: 24px;
+  outline: none;
+  background: transparent;
+  transition: border-color 0.2s;
+}
+.odoo-title-input:focus {
+  border-bottom: 2px solid #cbd5e1;
+}
+.odoo-title-input::placeholder {
+  color: #94a3b8;
+}
+
+.odoo-top-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  margin-bottom: 30px;
+}
+.odoo-field-row {
+  display: flex;
+  margin-bottom: 12px;
+  align-items: flex-start;
+}
+.odoo-field-label {
+  width: 140px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  padding-top: 6px;
+}
+.odoo-field-input {
+  flex: 1;
+}
+.odoo-input {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 6px 0;
+  font-size: 14px;
+  color: #1e293b;
+  outline: none;
+  background: transparent;
+  transition: border-color 0.2s;
+}
+.odoo-input:focus {
+  border-bottom: 1px solid #3b82f6;
+}
+.odoo-input::placeholder {
+  color: #cbd5e1;
+}
+
+.odoo-tabs {
+  display: flex;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 24px;
+}
+.odoo-tab {
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+.odoo-tab.active {
+  color: #1e293b;
+  border-bottom: 2px solid #714B67;
+}
+.odoo-tab:hover:not(.active) {
+  color: #334155;
+  border-bottom: 2px solid #cbd5e1;
+}
+.odoo-tab-content {
+  display: none;
+}
+.odoo-tab-content.active {
+  display: block;
+}
+
+.odoo-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
+  margin-top: 16px;
+}
+</style>
+
+<div class="odoo-form-page">
+  <form action="{{ url_for('pos.proveedores_guardar') }}" method="POST">
+    <input type="hidden" name="id" value="{{ p.id or '' }}">
+    
+    <div class="odoo-header">
+      <div class="odoo-header-left">
+        <button type="submit" class="odoo-btn-primary">Guardar</button>
+        <a href="{{ url_for('pos.proveedores') }}" class="odoo-btn-secondary">Descartar</a>
+      </div>
+      <div>
+        <!-- Stats top bar if needed -->
+      </div>
+    </div>
+
+    <div class="odoo-form-content">
+      <div class="odoo-radio-group">
+        <label><input type="radio" name="tipo" value="individual"> Individual</label>
+        <label><input type="radio" name="tipo" value="empresa" checked> Empresa</label>
+      </div>
+
+      <input type="text" class="odoo-title-input" name="nombre" value="{{ p.nombre or '' }}" placeholder="Por ejemplo, Lumber Inc" required>
+
+      <div class="odoo-top-section">
+        <!-- Columna Izquierda -->
+        <div>
+          <div class="odoo-field-row">
+            <div class="odoo-field-label">Dirección</div>
+            <div class="odoo-field-input">
+              <input type="text" class="odoo-input" name="direccion" value="{{ p.direccion or '' }}" placeholder="Calle, Ciudad, País...">
+            </div>
+          </div>
+          <div class="odoo-field-row">
+            <div class="odoo-field-label">NIT</div>
+            <div class="odoo-field-input">
+              <input type="text" class="odoo-input" name="nit" value="{{ p.nit or '' }}" placeholder="/ si no aplica">
+            </div>
+          </div>
+          <div class="odoo-field-row">
+            <div class="odoo-field-label">Estado</div>
+            <div class="odoo-field-input">
+              <select name="estado" class="odoo-input">
+                <option value="activo" {% if p.estado == 'activo' %}selected{% endif %}>Activo</option>
+                <option value="inactivo" {% if p.estado == 'inactivo' %}selected{% endif %}>Inactivo</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Columna Derecha -->
+        <div>
+          <div class="odoo-field-row">
+            <div class="odoo-field-label">Teléfono</div>
+            <div class="odoo-field-input">
+              <input type="text" class="odoo-input" name="telefono" value="{{ p.telefono or '' }}" placeholder="+502 ...">
+            </div>
+          </div>
+          <div class="odoo-field-row">
+            <div class="odoo-field-label">Celular</div>
+            <div class="odoo-field-input">
+              <input type="text" class="odoo-input" disabled placeholder="(No guardado en BD)">
+            </div>
+          </div>
+          <div class="odoo-field-row">
+            <div class="odoo-field-label">Correo electrónico</div>
+            <div class="odoo-field-input">
+              <input type="email" class="odoo-input" name="email" value="{{ p.email or '' }}" placeholder="ejemplo@correo.com">
+            </div>
+          </div>
+          <div class="odoo-field-row">
+            <div class="odoo-field-label">Sitio web</div>
+            <div class="odoo-field-input">
+              <input type="text" class="odoo-input" disabled placeholder="https://www.ejemplo.com">
+            </div>
+          </div>
+          <div class="odoo-field-row">
+            <div class="odoo-field-label">Etiquetas</div>
+            <div class="odoo-field-input">
+              <input type="text" class="odoo-input" disabled placeholder="B2B, Consultoría...">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABS -->
+      <div class="odoo-tabs">
+        <div class="odoo-tab" onclick="switchTab(event, 'tab-contactos')">Contactos y direcciones</div>
+        <div class="odoo-tab active" onclick="switchTab(event, 'tab-ventas')">Ventas y compra</div>
+        <div class="odoo-tab" onclick="switchTab(event, 'tab-contabilidad')">Contabilidad</div>
+        <div class="odoo-tab" onclick="switchTab(event, 'tab-notas')">Notas internas</div>
+      </div>
+
+      <!-- TAB: Contactos -->
+      <div id="tab-contactos" class="odoo-tab-content">
+        <div style="padding: 20px; color: #94a3b8; text-align: center; border: 1px dashed #cbd5e1;">
+          No hay contactos adicionales registrados.
+        </div>
+      </div>
+
+      <!-- TAB: Ventas y Compra -->
+      <div id="tab-ventas" class="odoo-tab-content active">
+        <div class="odoo-top-section">
+          <div>
+            <div class="odoo-section-title">VENTAS</div>
+            <div class="odoo-field-row">
+              <div class="odoo-field-label">Vendedor</div>
+              <div class="odoo-field-input">
+                <input type="text" class="odoo-input" name="vendedor_nombre" value="{{ p.vendedor_nombre or '' }}" placeholder="Nombre del contacto vendedor">
+              </div>
+            </div>
+            <div class="odoo-field-row">
+              <div class="odoo-field-label">Términos de pago</div>
+              <div class="odoo-field-input">
+                <select name="metodo_pago" class="odoo-input" id="metodoPagoSelect" onchange="toggleBancoFields()">
+                  <option value="Cheque" {% if p.metodo_pago == 'Cheque' %}selected{% endif %}>Cheque</option>
+                  <option value="Transferencia" {% if p.metodo_pago == 'Transferencia' %}selected{% endif %}>Transferencia</option>
+                </select>
+              </div>
+            </div>
+            
+            <div id="bancoFieldsContainer" style="display: none; background: #f8fafc; padding: 12px; border-radius: 4px; margin-top: 8px;">
+              <div class="odoo-field-row">
+                <div class="odoo-field-label">Banco</div>
+                <div class="odoo-field-input">
+                  <input type="text" name="banco_nombre" class="odoo-input" value="{{ p.banco_nombre or '' }}" placeholder="Nombre del banco">
+                </div>
+              </div>
+              <div class="odoo-field-row">
+                <div class="odoo-field-label">Tipo de Cuenta</div>
+                <div class="odoo-field-input">
+                  <select name="banco_tipo_cuenta" class="odoo-input">
+                    <option value="Monetaria" {% if p.banco_tipo_cuenta == 'Monetaria' %}selected{% endif %}>Monetaria</option>
+                    <option value="Ahorro" {% if p.banco_tipo_cuenta == 'Ahorro' %}selected{% endif %}>Ahorro</option>
+                  </select>
+                </div>
+              </div>
+              <div class="odoo-field-row">
+                <div class="odoo-field-label">Nº de Cuenta</div>
+                <div class="odoo-field-input">
+                  <input type="text" name="banco_numero_cuenta" class="odoo-input" value="{{ p.banco_numero_cuenta or '' }}" placeholder="0000000000">
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div>
+            <div class="odoo-section-title">COMPRA</div>
+            <div class="odoo-field-row">
+              <div class="odoo-field-label">Comprador</div>
+              <div class="odoo-field-input">
+                <input type="text" class="odoo-input" disabled placeholder="Usuario Actual">
+              </div>
+            </div>
+            <div class="odoo-field-row">
+              <div class="odoo-field-label">Días de Crédito</div>
+              <div class="odoo-field-input">
+                <select name="terminos_pago" class="odoo-input">
+                  <option value="Pago inmediato" {% if p.terminos_pago == 'Pago inmediato' %}selected{% endif %}>Pago inmediato</option>
+                  <option value="15 días" {% if p.terminos_pago == '15 días' %}selected{% endif %}>15 días</option>
+                  <option value="21 días" {% if p.terminos_pago == '21 días' %}selected{% endif %}>21 días</option>
+                  <option value="30 días" {% if p.terminos_pago == '30 días' %}selected{% endif %}>30 días</option>
+                  <option value="45 días" {% if p.terminos_pago == '45 días' %}selected{% endif %}>45 días</option>
+                  <option value="Fin del siguiente mes" {% if p.terminos_pago == 'Fin del siguiente mes' %}selected{% endif %}>Fin del siguiente mes</option>
+                  <option value="10 días después del fin del siguiente mes" {% if p.terminos_pago == '10 días después del fin del siguiente mes' %}selected{% endif %}>10 días después del fin del siguiente mes</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Contabilidad -->
+      <div id="tab-contabilidad" class="odoo-tab-content">
+        <div class="odoo-top-section">
+          <div>
+            <div class="odoo-section-title">CUENTAS BANCARIAS</div>
+            <div style="color: #94a3b8; font-size: 13px;">Ninguna cuenta agregada.</div>
+          </div>
+          <div>
+            <div class="odoo-section-title">ENTRADA DE CONTABILIDAD</div>
+            <div class="odoo-field-row">
+              <div class="odoo-field-label">Cuenta por cobrar</div>
+              <div class="odoo-field-input"><input type="text" class="odoo-input" disabled value="112000 Clientes Nacionales"></div>
+            </div>
+            <div class="odoo-field-row">
+              <div class="odoo-field-label">Cuenta por pagar</div>
+              <div class="odoo-field-input"><input type="text" class="odoo-input" disabled value="211000 Proveedores"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Notas -->
+      <div id="tab-notas" class="odoo-tab-content">
+        <textarea class="odoo-input" style="height: 150px; border: 1px solid #e2e8f0; padding: 12px; resize: vertical;" placeholder="Notas internas..." disabled></textarea>
+      </div>
+
+    </div>
+  </form>
+</div>
+
+<script>
+function switchTab(evt, tabId) {
+  // Ocultar todos los contenidos
+  const contents = document.querySelectorAll('.odoo-tab-content');
+  contents.forEach(c => c.classList.remove('active'));
+  
+  // Quitar la clase active de todos los tabs
+  const tabs = document.querySelectorAll('.odoo-tab');
+  tabs.forEach(t => t.classList.remove('active'));
+  
+  // Activar el tab y el contenido seleccionado
+  document.getElementById(tabId).classList.add('active');
+  evt.currentTarget.classList.add('active');
+}
+
+function toggleBancoFields() {
+  const select = document.getElementById('metodoPagoSelect');
+  const container = document.getElementById('bancoFieldsContainer');
+  if (select.value === 'Transferencia') {
+    container.style.display = 'block';
+  } else {
+    container.style.display = 'none';
+  }
+}
+
+// Inicializar el formulario en base al estado guardado
+document.addEventListener('DOMContentLoaded', () => {
+  toggleBancoFields();
+});
+</script>
+{% endblock %}

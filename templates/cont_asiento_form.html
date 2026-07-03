@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+{% block title %}Nuevo Asiento Contable{% endblock %}
+{% block extra_head %}
+<style>
+.asiento-page { max-width: 900px; margin: 0 auto; padding: 24px 20px; }
+.asiento-card { background: var(--c-white); border-radius: 16px; border: 1.5px solid var(--c-border); box-shadow: 0 2px 16px rgba(0,30,70,.08); overflow: hidden; }
+.asiento-hdr { padding: 20px 28px; background: linear-gradient(90deg, #001f3d, #003b74); color: #fff; }
+.asiento-title { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 700; }
+.asiento-body { padding: 24px 28px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--c-gray); }
+.form-control { padding: 9px 12px; border: 1.5px solid var(--c-border); border-radius: 8px; font-size: 13px; font-family: inherit; outline: none; transition: border-color .15s; width: 100%; }
+.form-control:focus { border-color: #0057a3; }
+/* Líneas de apuntes */
+.apuntes-section { margin-top: 20px; }
+.apuntes-title { font-family: 'Fraunces', serif; font-size: 15px; font-weight: 600; color: #002a50; margin-bottom: 12px; }
+.apuntes-table { width: 100%; border-collapse: collapse; }
+.apuntes-table th { padding: 8px 10px; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--c-gray); font-weight: 600; background: #f8fafb; border: 1px solid var(--c-border); text-align: left; }
+.apuntes-table td { padding: 6px 6px; border: 1px solid #f3f4f6; }
+.apunte-input { padding: 7px 10px; border: 1.5px solid var(--c-border); border-radius: 6px; font-size: 13px; font-family: inherit; width: 100%; outline: none; }
+.apunte-input:focus { border-color: #0057a3; }
+.totals-bar { display: flex; justify-content: flex-end; gap: 24px; padding: 12px; background: #f8fafb; border: 1px solid var(--c-border); border-radius: 8px; margin-top: 8px; }
+.totals-bar .t-lbl { font-size: 12px; color: var(--c-gray); }
+.totals-bar .t-val { font-weight: 700; font-size: 16px; }
+.totals-bar .t-diff { font-weight: 700; font-size: 16px; }
+.t-diff.ok { color: #047857; }
+.t-diff.err { color: #dc2626; }
+.btn-row { display: flex; gap: 10px; justify-content: space-between; align-items: center; margin-top: 16px; border-top: 1px solid var(--c-border); padding-top: 16px; }
+.btn { display:inline-flex; align-items:center; gap:6px; padding:10px 20px; border-radius:8px; font-size:13px; font-weight:600; border:none; cursor:pointer; font-family:inherit; text-decoration:none; }
+.btn-primary { background:#003b74; color:#fff; }
+.btn-primary:hover { background:#001f3d; }
+.btn-outline { background:transparent; border:1.5px solid var(--c-border); color:var(--c-gray); }
+.btn-add { background:#f0f6ff; color:#003b74; border:1.5px solid #c3d9f5; }
+.btn-add:hover { background:#e0eeff; }
+.btn-del { background:#fef2f2; color:#dc2626; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:14px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="asiento-page">
+  <div style="margin-bottom:16px;">
+    <a href="{{ url_for('contabilidad.asientos') }}" style="font-size:13px; color:#0057a3; text-decoration:none;">← Volver a Asientos</a>
+  </div>
+
+  <div class="asiento-card">
+    <div class="asiento-hdr">
+      <div class="asiento-title">Nuevo Asiento Contable</div>
+      <div style="font-size:13px; opacity:.8; margin-top:4px;">Partida de partida doble · Debe = Haber</div>
+    </div>
+    <div class="asiento-body">
+      <form method="post" id="asientoForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Fecha *</label>
+            <input type="date" name="fecha" class="form-control" value="{{ hoy }}" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Descripción *</label>
+            <input type="text" name="descripcion" class="form-control" placeholder="Ej: Pago de nómina enero 2024" required>
+          </div>
+        </div>
+
+        <!-- Líneas de Apuntes -->
+        <div class="apuntes-section">
+          <div class="apuntes-title">Líneas del Asiento</div>
+          <table class="apuntes-table" id="apuntesTable">
+            <thead>
+              <tr>
+                <th style="width:35%;">Cuenta</th>
+                <th style="width:30%;">Descripción</th>
+                <th style="width:13%;">Debe (Q)</th>
+                <th style="width:13%;">Haber (Q)</th>
+                <th style="width:9%;"></th>
+              </tr>
+            </thead>
+            <tbody id="apuntesBody">
+              <tr class="apunte-row">
+                <td>
+                  <select name="cuenta_id[]" class="apunte-input cuenta-sel" required>
+                    <option value="">Seleccionar cuenta…</option>
+                    {% for c in cuentas %}
+                    <option value="{{ c.id }}" data-tipo="{{ c.tipo }}" data-nat="{{ c.naturaleza }}">{{ c.codigo }} — {{ c.nombre }}</option>
+                    {% endfor %}
+                  </select>
+                </td>
+                <td><input type="text" name="descripcion_apunte[]" class="apunte-input" placeholder="Descripción…"></td>
+                <td><input type="number" name="debe[]" class="apunte-input debe-input" min="0" step="0.01" value="0" placeholder="0.00"></td>
+                <td><input type="number" name="haber[]" class="apunte-input haber-input" min="0" step="0.01" value="0" placeholder="0.00"></td>
+                <td style="text-align:center;"><button type="button" class="btn-del" onclick="removeRow(this)">✕</button></td>
+              </tr>
+              <tr class="apunte-row">
+                <td>
+                  <select name="cuenta_id[]" class="apunte-input cuenta-sel" required>
+                    <option value="">Seleccionar cuenta…</option>
+                    {% for c in cuentas %}
+                    <option value="{{ c.id }}" data-tipo="{{ c.tipo }}" data-nat="{{ c.naturaleza }}">{{ c.codigo }} — {{ c.nombre }}</option>
+                    {% endfor %}
+                  </select>
+                </td>
+                <td><input type="text" name="descripcion_apunte[]" class="apunte-input" placeholder="Descripción…"></td>
+                <td><input type="number" name="debe[]" class="apunte-input debe-input" min="0" step="0.01" value="0" placeholder="0.00"></td>
+                <td><input type="number" name="haber[]" class="apunte-input haber-input" min="0" step="0.01" value="0" placeholder="0.00"></td>
+                <td style="text-align:center;"><button type="button" class="btn-del" onclick="removeRow(this)">✕</button></td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="margin-top:8px;">
+            <button type="button" class="btn btn-add" onclick="addRow()">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+              Agregar línea
+            </button>
+          </div>
+
+          <div class="totals-bar" id="totalsBar">
+            <div>
+              <div class="t-lbl">Total Debe</div>
+              <div class="t-val" id="totalDebe">Q 0.00</div>
+            </div>
+            <div>
+              <div class="t-lbl">Total Haber</div>
+              <div class="t-val" id="totalHaber">Q 0.00</div>
+            </div>
+            <div>
+              <div class="t-lbl">Diferencia</div>
+              <div class="t-diff ok" id="diffVal">Q 0.00 ✓</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <a href="{{ url_for('contabilidad.asientos') }}" class="btn btn-outline">Cancelar</a>
+          <button type="submit" class="btn btn-primary" id="btnGuardar">
+            Guardar en Borrador
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const cuentasData = {{ cuentas | tojson }};
+
+function getCuentasSelectHTML() {
+  let opts = '<option value="">Seleccionar cuenta…</option>';
+  cuentasData.forEach(c => {
+    opts += `<option value="${c.id}" data-tipo="${c.tipo}" data-nat="${c.naturaleza}">${c.codigo} — ${c.nombre}</option>`;
+  });
+  return opts;
+}
+
+function addRow() {
+  const tbody = document.getElementById('apuntesBody');
+  const row = document.createElement('tr');
+  row.className = 'apunte-row';
+  row.innerHTML = `
+    <td><select name="cuenta_id[]" class="apunte-input cuenta-sel">${getCuentasSelectHTML()}</select></td>
+    <td><input type="text" name="descripcion_apunte[]" class="apunte-input" placeholder="Descripción…"></td>
+    <td><input type="number" name="debe[]" class="apunte-input debe-input" min="0" step="0.01" value="0" placeholder="0.00"></td>
+    <td><input type="number" name="haber[]" class="apunte-input haber-input" min="0" step="0.01" value="0" placeholder="0.00"></td>
+    <td style="text-align:center;"><button type="button" class="btn-del" onclick="removeRow(this)">✕</button></td>
+  `;
+  tbody.appendChild(row);
+  bindCalculate();
+}
+
+function removeRow(btn) {
+  const rows = document.querySelectorAll('.apunte-row');
+  if (rows.length <= 2) { alert('El asiento debe tener al menos 2 líneas.'); return; }
+  btn.closest('tr').remove();
+  calculate();
+}
+
+function calculate() {
+  let debe = 0, haber = 0;
+  document.querySelectorAll('.debe-input').forEach(i => debe += parseFloat(i.value||0));
+  document.querySelectorAll('.haber-input').forEach(i => haber += parseFloat(i.value||0));
+  const diff = Math.abs(debe - haber);
+  document.getElementById('totalDebe').textContent = 'Q ' + debe.toFixed(2);
+  document.getElementById('totalHaber').textContent = 'Q ' + haber.toFixed(2);
+  const diffEl = document.getElementById('diffVal');
+  if (diff < 0.01) {
+    diffEl.textContent = 'Q 0.00 ✓';
+    diffEl.className = 't-diff ok';
+  } else {
+    diffEl.textContent = `Q ${diff.toFixed(2)} ✗`;
+    diffEl.className = 't-diff err';
+  }
+}
+
+function bindCalculate() {
+  document.querySelectorAll('.debe-input, .haber-input').forEach(i => {
+    i.removeEventListener('input', calculate);
+    i.addEventListener('input', calculate);
+  });
+}
+
+bindCalculate();
+</script>
+{% endblock %}

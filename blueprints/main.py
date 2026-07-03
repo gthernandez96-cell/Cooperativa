@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, g, redirect, url_for
+from flask import Blueprint, render_template, g, redirect, url_for, session
 from datetime import date, timedelta
 from utils.db import get_db, db_fetchone, db_fetchall, get_system_setting
 from utils.decorators import login_required
@@ -48,9 +48,26 @@ def _calcular_alertas_cuotas(conn):
 @bp.route('/')
 @login_required()
 def index():
-    from flask import session, redirect, url_for
-    if session.get('user_role', '').lower() == 'promotora':
+    role = session.get('user_role', '').lower()
+    if role == 'promotora':
         return redirect(url_for('promotora.dashboard'))
+
+    # Administradores ven el portal de módulos si no tienen módulo activo
+    modulo_activo = session.get('active_module')
+    if not modulo_activo:
+        if role == 'administrador':
+            return render_template('portal.html')
+        else:
+            # Operadores y otros van directo a ahorros
+            session['active_module'] = 'ahorro_credito'
+            modulo_activo = 'ahorro_credito'
+
+    if modulo_activo == 'pos':
+        return redirect(url_for('pos.dashboard'))
+    if modulo_activo == 'contabilidad':
+        return redirect(url_for('contabilidad.dashboard'))
+
+    # Dashboard de Ahorros y Créditos (comportamiento original)
     conn = get_db()
     etiquetas_ahorro = {
         'ahorro_aportacion': 'Aportación',
@@ -170,3 +187,30 @@ def calculadora():
         conn.close()
 
     return render_template('calculadora.html', tasa_default=tasa_val)
+
+
+@bp.route('/seleccionar_modulo/<modulo>')
+@login_required()
+def seleccionar_modulo(modulo):
+    """Guarda el módulo activo en sesión y redirige al dashboard correspondiente."""
+    modulos_validos = ['ahorro_credito', 'pos', 'contabilidad', 'ajustes']
+    if modulo not in modulos_validos:
+        return redirect(url_for('main.index'))
+    session['active_module'] = modulo
+    session.modified = True
+    if modulo == 'pos':
+        return redirect(url_for('pos.dashboard'))
+    elif modulo == 'contabilidad':
+        return redirect(url_for('contabilidad.dashboard'))
+    elif modulo == 'ajustes':
+        return redirect(url_for('usuarios.usuarios'))
+    return redirect(url_for('main.index'))
+
+
+@bp.route('/portal')
+@login_required()
+def portal():
+    """Pantalla del selector de módulos (App Switcher)."""
+    session.pop('active_module', None)
+    session.modified = True
+    return render_template('portal.html')

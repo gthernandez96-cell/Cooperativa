@@ -6,1140 +6,12 @@
 <title>{% block title %}{{ cooperativa_nombre }}{% endblock %}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,500;0,700;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<style>
-:root {
-  --c-blue: #003b74;
-  --c-blue-mid: #0057a3;
-  --c-blue-light: #4a7ebf;
-  --c-white: #ffffff;
-  --c-cream: #f8fafb;
-  --c-gold: #f6c954;
-  --c-gold-light: #ffe38f;
-  --c-dark: #1a1a1a;
-  --c-gray: #687a8b;
-  --c-border: #dbe4ef;
-  --c-danger: #b91c1c;
-  --c-danger-light: #fee2e2;
-  --c-gray: #6b7280;
-  --c-gray-light: #f3f4f6;
-  --c-border: #e5e7eb;
-  --c-danger: #dc2626;
-  --c-danger-light: #fef2f2;
-  --c-green: #059669;
-  --c-green-mid: #047857;
-  --c-green-light: #10b981;
-  --c-green-pale: #d1fae5;
-  --touch-target: 44px;
-  --content-max: 1420px;
-  --header-stack-height: 116px;
-  --footer-height: 60px;
-  --radius: 12px;
-  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,.12);
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: 'DM Sans', sans-serif;
-  background:
-    radial-gradient(1200px 700px at 100% -10%, rgba(74,126,191,.14), transparent 60%),
-    radial-gradient(900px 520px at -10% 15%, rgba(246,201,84,.12), transparent 52%),
-    linear-gradient(180deg, #f3f6fb 0%, #e8edf7 100%);
-  color: var(--c-dark);
-  font-size: 15px;
-  line-height: 1.6;
-  min-height: 100vh;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-}
-
-a,
-button,
-input,
-select,
-textarea {
-  -webkit-tap-highlight-color: transparent;
-}
-
-:focus-visible {
-  outline: 3px solid rgba(0, 87, 163, .35);
-  outline-offset: 2px;
-}
-
-.top-brand {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 1100;
-  background: linear-gradient(90deg, #001f3d 0%, #003b74 55%, #0b5ea8 100%);
-  color: var(--c-white);
-  border-bottom: 2px solid #d4a72c;
-  box-shadow: 0 1px 0 rgba(255,255,255,.08) inset, 0 6px 18px rgba(0, 42, 80, .16);
-}
-
-.top-brand-content {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 6px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-}
-
-.top-brand-photo {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  object-fit: cover;
-  border: 1px solid rgba(255,255,255,.28);
-  background: rgba(255,255,255,.14);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, .12);
-}
-
-.top-brand-text {
-  font-family: 'Fraunces', serif;
-  font-size: 19px;
-  font-weight: 600;
-  letter-spacing: .2px;
-  line-height: 1.15;
-  text-shadow: 0 1px 0 rgba(0,0,0,.18);
-}
-
-/* Header */
-.header {
-  background: var(--c-white);
-  border-bottom: 1px solid var(--c-border);
-  box-shadow: 0 10px 28px rgba(0, 32, 68, .08);
-  position: fixed;
-  top: 48px;
-  left: 0;
-  right: 0;
-  z-index: 1000;
-  height: 68px;
-}
-
-.header-content {
-  max-width: var(--content-max);
-  margin: 0 auto;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 18px;
-  height: 100%;
-}
-
-.header-logo {
-  display: none;
-}
-
-.mobile-menu-toggle {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  width: var(--touch-target);
-  height: var(--touch-target);
-  border-radius: 10px;
-  border: 1px solid var(--c-border);
-  background: var(--c-white);
-  color: var(--c-blue);
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 42, 80, .08);
-}
-
-.mobile-menu-toggle svg {
-  width: 20px;
-  height: 20px;
-}
-
-.header-nav {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  justify-content: flex-start;
-  flex-wrap: nowrap;
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #c7d3e3 transparent;
-}
-
-.nav-link {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 9px 10px;
-  min-height: var(--touch-target);
-  color: var(--c-gray);
-  text-decoration: none;
-  font-size: 13px;
-  font-weight: 500;
-  border-radius: 8px;
-  transition: all .15s;
-  white-space: nowrap;
-  position: relative;
-}
-
-.nav-link:hover {
-  background: var(--c-cream);
-  color: var(--c-dark);
-}
-
-.nav-link.active {
-  background: rgba(0, 87, 163, .08);
-  color: #003b74;
-  box-shadow: none;
-}
-
-.nav-link.active::after {
-  content: "";
-  position: absolute;
-  left: 10px;
-  right: 10px;
-  bottom: 2px;
-  height: 3px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #c69214 0%, #f6c954 100%);
-}
-
-.nav-link svg {
-  width: 13px;
-  height: 13px;
-  opacity: .7;
-}
-
-.nav-link.active svg {
-  opacity: 1;
-  color: #003b74;
-}
-
-.nav-dropdown {
-  position: relative;
-}
-
-.nav-dropdown .dropdown-toggle {
-  padding-right: 24px;
-}
-
-.nav-dropdown .dropdown-toggle::before {
-  content: "";
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-35%);
-  width: 0;
-  height: 0;
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
-  border-top: 6px solid currentColor;
-  opacity: .8;
-}
-
-.dropdown-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  min-width: 220px;
-  background: var(--c-white);
-  border: 1px solid var(--c-border);
-  border-radius: 12px;
-  box-shadow: var(--shadow-lg);
-  padding: 8px;
-  display: none;
-  z-index: 1200;
-}
-
-.dropdown-link {
-  display: block;
-  color: var(--c-gray);
-  text-decoration: none;
-  font-size: 13px;
-  font-weight: 500;
-  padding: 8px 10px;
-  border-radius: 8px;
-}
-
-.dropdown-link:hover,
-.dropdown-link.active {
-  background: var(--c-cream);
-  color: var(--c-dark);
-}
-
-.nav-dropdown:hover .dropdown-menu,
-.nav-dropdown:focus-within .dropdown-menu {
-  display: block;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
-  min-height: var(--touch-target);
-  background: var(--c-cream);
-  border-radius: 20px;
-  font-size: 11px;
-  justify-content: center;
-  margin-left: 0;
-  border: 1px solid var(--c-border);
-  box-shadow: 0 4px 12px rgba(0, 42, 80, .06);
-  position: relative;
-  flex: 0 0 auto;
-}
-
-.user-info::before {
-  display: none;
-}
-
-.user-details {
-  display: flex;
-  flex-direction: column;
-}
-
-.user-details strong {
-  font-weight: 600;
-  color: var(--c-dark);
-  font-size: 11px;
-}
-
-.user-details small {
-  font-size: 9px;
-  color: var(--c-gray);
-  text-transform: uppercase;
-  letter-spacing: .5px;
-}
-
-.mobile-nav {
-  display: none;
-}
-
-.mobile-nav-backdrop {
-  display: none;
-}
-
-/* Main */
-.main {
-  margin-top: var(--header-stack-height);
-  flex: 1;
-  padding: clamp(14px, 2.2vw, 24px);
-  background: rgba(255,255,255,.75);
-  min-height: calc(100vh - var(--header-stack-height) - var(--footer-height));
-}
-
-/* Footer */
-.footer {
-  background: var(--c-white);
-  border-top: 1px solid var(--c-border);
-  padding: 20px 0;
-  min-height: var(--footer-height);
-  margin-top: auto;
-}
-
-.footer-content {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 24px;
-  text-align: center;
-  font-size: 13px;
-  color: var(--c-gray);
-}
-.page-header { margin-bottom: 32px; display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 14px; }
-.page-title { font-family: 'Fraunces', serif; font-size: clamp(24px, 3.2vw, 32px); font-weight: 700; color: #002a50; letter-spacing: -.6px; }
-.page-subtitle { font-size: 14px; color: var(--c-gray); margin-top: 2px; }
-
-/* Cards */
-.card { background: var(--c-white); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--c-border); }
-.card-header { padding: 18px 22px 14px; border-bottom: 1px solid var(--c-border); display: flex; align-items: center; justify-content: space-between; }
-.card-title { font-weight: 500; font-size: 15px; color: var(--c-dark); }
-.card-body { padding: 20px 22px; }
-
-/* Stats grid */
-.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 16px; margin-bottom: 28px; }
-.stat-card { background: var(--c-white); border-radius: var(--radius); padding: 20px; border: 1px solid var(--c-border); box-shadow: var(--shadow); }
-.stat-card.accent { background: var(--c-blue); border-color: var(--c-blue); }
-.stat-card.gold { background: var(--c-gold); border-color: var(--c-gold); }
-.stat-label { font-size: 12px; color: var(--c-gray); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 8px; }
-.stat-card.accent .stat-label, .stat-card.gold .stat-label { color: rgba(255,255,255,.7); }
-.stat-value { font-family: 'Fraunces', serif; font-size: 26px; font-weight: 500; color: var(--c-blue); line-height: 1; }
-.stat-card.accent .stat-value { color: var(--c-white); }
-.stat-card.gold .stat-value { color: var(--c-blue); }
-
-/* Table */
-.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; touch-action: pan-x; }
-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-th { background: var(--c-cream); padding: 10px 14px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--c-gray); border-bottom: 1px solid var(--c-border); font-weight: 500; }
-td { padding: 12px 14px; border-bottom: 1px solid var(--c-border); color: var(--c-dark); vertical-align: middle; }
-tr:last-child td { border-bottom: none; }
-tr:hover td { background: var(--c-cream); }
-
-.responsive-table td[data-label]::before {
-  content: attr(data-label);
-  display: none;
-}
-
-/* Badges */
-.badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
-.badge-green { background: var(--c-green-pale); color: var(--c-green-mid); }
-.badge-gold { background: #fef9c3; color: #854d0e; }
-.badge-gray { background: var(--c-gray-light); color: var(--c-gray); }
-.badge-red { background: var(--c-danger-light); color: var(--c-danger); }
-
-/* Buttons */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: var(--touch-target);
-  padding: 10px 18px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  border: none;
-  text-decoration: none;
-  transition: all .15s;
-  font-family: inherit;
-}
-.btn-primary { background: var(--c-blue); color: #fff; }
-.btn-primary:hover { background: var(--c-blue-mid); }
-.btn-gold { background: var(--c-gold); color: var(--c-blue); }
-.btn-gold:hover { background: var(--c-gold-light); }
-.btn-outline { background: transparent; border: 1px solid var(--c-border); color: var(--c-dark); }
-.btn-outline:hover { background: var(--c-gray-light); }
-.btn-danger { background: var(--c-danger-light); color: var(--c-danger); }
-.btn-sm { min-height: 36px; padding: 6px 12px; font-size: 13px; }
-
-/* Forms */
-.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 16px; }
-.form-group { display: flex; flex-direction: column; gap: 5px; }
-.form-group label { font-size: 13px; font-weight: 500; color: var(--c-dark); }
-.form-group input, .form-group select, .form-group textarea {
-  min-height: var(--touch-target);
-  padding: 10px 12px; border: 1px solid var(--c-border); border-radius: 10px; font-size: 14px;
-  font-family: inherit; background: #fff; color: var(--c-dark); transition: border-color .15s;
-}
-.form-group input:focus, .form-group select:focus { outline: none; border-color: var(--c-green-light); box-shadow: 0 0 0 3px rgba(64,145,108,.1); }
-.form-actions { margin-top: 20px; display: flex; gap: 10px; }
-
-/* Alerts */
-.alert { padding: 12px 16px; border-radius: 8px; font-size: 14px; margin-bottom: 20px; }
-.alert-success { background: var(--c-green-pale); color: var(--c-green); border-left: 3px solid var(--c-green-light); }
-.alert-danger { background: var(--c-danger-light); color: var(--c-danger); border-left: 3px solid var(--c-danger); }
-
-@media (prefers-reduced-motion: no-preference) {
-  .main {
-    animation: uiFadeIn .28s ease-out;
-  }
-
-  .card,
-  .stat-card {
-    animation: uiLiftIn .3s ease-out;
-  }
-}
-
-@keyframes uiFadeIn {
-  from {
-    opacity: .65;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes uiLiftIn {
-  from {
-    opacity: .5;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Amount formatting */
-.amount { font-family: 'Fraunces', serif; font-weight: 500; }
-.amount-positive { color: var(--c-green-mid); }
-.amount-negative { color: var(--c-danger); }
-
-/* Responsive Design */
-@media (max-width: 1024px) {
-  .header-content {
-    gap: 12px;
-    padding: 8px 14px;
-  }
-
-  .header-nav {
-    gap: 2px;
-  }
-
-  .nav-link {
-    padding: 7px 7px;
-    font-size: 12px;
-  }
-
-  .user-info {
-    padding: 6px 9px;
-  }
-
-  .main {
-    padding: 20px;
-  }
-}
-
-@media (max-width: 768px) {
-  :root {
-    --header-stack-height: 108px;
-  }
-
-  .top-brand-content {
-    padding: 5px 12px;
-    gap: 8px;
-  }
-
-  .top-brand-photo {
-    width: 32px;
-    height: 32px;
-  }
-
-  .top-brand-text {
-    font-size: 14px;
-  }
-
-  .header-content {
-    padding: 0 16px;
-  }
-
-  .header-nav {
-    display: none;
-  }
-
-  .mobile-menu-toggle {
-    display: inline-flex;
-  }
-
-  .header {
-    min-height: 64px;
-    height: auto;
-  }
-
-  .header-content {
-    flex-direction: row;
-    justify-content: space-between;
-    min-height: 64px;
-    padding: 8px 12px;
-  }
-
-  .user-info {
-    display: none;
-  }
-
-  .mobile-nav {
-    display: block;
-    position: fixed;
-    top: 48px;
-    right: 0;
-    width: min(86vw, 320px);
-    height: calc(100vh - 48px);
-    background: rgba(255,255,255,.98);
-    backdrop-filter: blur(8px);
-    box-shadow: -10px 0 30px rgba(0, 32, 68, .16);
-    transform: translateX(100%);
-    transition: transform .2s ease;
-    z-index: 1200;
-    padding: 14px 12px 16px;
-    overflow-y: auto;
-  }
-
-  .mobile-nav.is-open {
-    transform: translateX(0);
-  }
-
-  .mobile-nav-backdrop {
-    position: fixed;
-    inset: 48px 0 0 0;
-    background: rgba(0, 23, 44, .34);
-    z-index: 1190;
-  }
-
-  .mobile-nav-backdrop.is-open {
-    display: block;
-  }
-
-  .mobile-nav-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 12px;
-  }
-
-  .mobile-nav-title {
-    font-family: 'Fraunces', serif;
-    font-size: 16px;
-    color: #002a50;
-  }
-
-  .mobile-nav-close {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 34px;
-    height: 34px;
-    border-radius: 8px;
-    border: 1px solid var(--c-border);
-    background: var(--c-white);
-    color: var(--c-blue);
-    cursor: pointer;
-  }
-
-  .mobile-nav-links {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .mobile-nav-link {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 9px 10px;
-    border-radius: 8px;
-    text-decoration: none;
-    color: var(--c-dark);
-    background: #fff;
-    border: 1px solid var(--c-border);
-    font-size: 13px;
-    font-weight: 500;
-  }
-
-  .mobile-nav-link.active {
-    background: rgba(0, 87, 163, .08);
-    color: #003b74;
-    border-color: rgba(0, 87, 163, .14);
-  }
-
-  .mobile-user-box {
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid var(--c-border);
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .mobile-user-meta {
-    padding: 10px;
-    border-radius: 10px;
-    background: var(--c-cream);
-    border: 1px solid var(--c-border);
-  }
-
-  .mobile-user-meta strong {
-    display: block;
-    font-size: 13px;
-    color: var(--c-dark);
-  }
-
-  .mobile-user-meta small {
-    display: block;
-    margin-top: 2px;
-    font-size: 10px;
-    color: var(--c-gray);
-    text-transform: uppercase;
-    letter-spacing: .5px;
-  }
-
-  .btn {
-    min-height: var(--touch-target);
-    padding: 10px 14px;
-    font-size: 14px;
-    border-radius: 9px;
-    gap: 4px;
-  }
-
-  .btn-sm {
-    min-height: 38px;
-    padding: 7px 10px;
-    font-size: 12px;
-  }
-
-  .form-actions {
-    margin-top: 14px;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  .form-actions .btn {
-    min-height: auto;
-  }
-
-  .main {
-    margin-top: var(--header-stack-height);
-    padding: 12px;
-  }
-
-  .page-title {
-    font-size: 21px;
-  }
-
-  .card-header,
-  .card-body {
-    padding-left: 14px;
-    padding-right: 14px;
-  }
-
-  .table-wrap {
-    border-radius: 10px;
-  }
-
-  table.responsive-table {
-    border: 0;
-    min-width: 0;
-  }
-
-  table.responsive-table thead {
-    display: none;
-  }
-
-  table.responsive-table tbody {
-    display: grid;
-    gap: 10px;
-  }
-
-  table.responsive-table tr {
-    display: block;
-    background: #fff;
-    border: 1px solid var(--c-border);
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0, 32, 68, .05);
-    overflow: hidden;
-  }
-
-  table.responsive-table td {
-    display: grid;
-    grid-template-columns: minmax(112px, 38%) 1fr;
-    gap: 8px;
-    align-items: start;
-    padding: 9px 10px;
-    border-bottom: 1px dashed #d9e4f3;
-    text-align: left;
-    white-space: normal;
-    word-break: break-word;
-  }
-
-  table.responsive-table td:last-child {
-    border-bottom: 0;
-  }
-
-  table.responsive-table td[data-label]::before {
-    display: block;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: .5px;
-    color: #58708a;
-    font-weight: 700;
-    line-height: 1.25;
-    padding-top: 2px;
-  }
-
-  table.responsive-table td > .btn,
-  table.responsive-table td > .btn-sm,
-  table.responsive-table td .btn,
-  table.responsive-table td .btn-sm {
-    width: 100%;
-    justify-content: center;
-  }
-}
-
-@media (pointer: coarse) {
-  .nav-link,
-  .mobile-nav-link,
-  .dropdown-link,
-  .btn,
-  .mobile-menu-toggle,
-  .mobile-nav-close,
-  .form-group input,
-  .form-group select,
-  .form-group textarea {
-    min-height: var(--touch-target);
-  }
-
-  .table-wrap {
-    scrollbar-width: auto;
-  }
-}
-
-@media (max-width: 480px) {
-  .top-brand-content {
-    gap: 8px;
-  }
-
-  .top-brand-photo {
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-  }
-
-  .top-brand-text {
-    font-size: 12px;
-    line-height: 1.2;
-  }
-
-}
-
-/* ── Estilos de Reportes Oficiales (Previsualización y Pantalla) ── */
-.document-sheet {
-    background: var(--c-white);
-    border: 1px solid var(--c-border);
-    border-radius: 12px;
-    padding: 40px 50px;
-    margin-bottom: 40px;
-    box-shadow: 0 4px 18px rgba(0, 32, 68, 0.045);
-    font-family: inherit;
-    color: var(--c-dark);
-}
-
-.doc-letterhead {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 2px solid var(--c-blue);
-    padding-bottom: 16px;
-    margin-bottom: 24px;
-}
-
-.doc-logo-title-group {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
-
-.doc-title-primary {
-    font-family: 'Fraunces', serif;
-    font-size: 21px;
-    font-weight: 700;
-    color: var(--c-blue);
-    letter-spacing: -0.5px;
-}
-
-.doc-title-secondary {
-    font-size: 12px;
-    text-transform: uppercase;
-    font-weight: 700;
-    color: var(--c-gray);
-    letter-spacing: 1px;
-    margin-top: 2px;
-}
-
-.doc-meta-right {
-    text-align: right;
-    font-size: 12px;
-    color: var(--c-gray);
-    line-height: 1.5;
-}
-
-.doc-meta-right strong {
-    color: var(--c-dark);
-}
-
-.doc-header-block {
-    text-align: center;
-    margin-bottom: 28px;
-}
-
-.doc-header-title {
-    font-family: 'Fraunces', serif;
-    font-size: 20px;
-    font-weight: 700;
-    color: #0f1f32;
-    text-transform: uppercase;
-    letter-spacing: -0.5px;
-}
-
-.doc-header-filters {
-    font-size: 12px;
-    color: var(--c-gray);
-    margin-top: 6px;
-    background: var(--c-cream);
-    border: 1px solid var(--c-border);
-    padding: 6px 12px;
-    border-radius: 8px;
-    display: inline-block;
-}
-
-/* Tablas del documento oficial */
-.doc-table-wrap {
-    margin: 24px 0 40px 0;
-}
-
-.doc-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-}
-
-.doc-table th {
-    background: var(--c-cream) !important;
-    border: 1.5px solid var(--c-border) !important;
-    padding: 10px 12px !important;
-    font-weight: 700 !important;
-    font-size: 10.5px !important;
-    color: var(--c-dark) !important;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.doc-table td {
-    border: 1px solid var(--c-border) !important;
-    padding: 10px 12px !important;
-    vertical-align: middle;
-}
-
-.doc-table tr:hover td {
-    background: transparent !important; /* evitar hover visual en hojas de reporte */
-}
-
-/* Firmas al pie */
-.doc-signatures {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 30px;
-    margin-top: 60px;
-    border-top: 1px dashed var(--c-border);
-    padding-top: 40px;
-    text-align: center;
-}
-
-.doc-signature-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.doc-signature-line {
-    width: 180px;
-    height: 1px;
-    background: #a0aec0;
-    margin-bottom: 8px;
-}
-
-.doc-signature-label {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--c-dark);
-}
-
-.doc-signature-sub {
-    font-size: 11px;
-    color: var(--c-gray);
-    margin-top: 2px;
-}
-
-/* ── Estilos específicos de impresión (PDF) ── */
-@media print {
-    body {
-        background: white !important;
-        color: black !important;
-        font-size: 12px !important;
-    }
-    
-    /* Ocultar elementos innecesarios */
-    .top-brand,
-    .header,
-    .mobile-menu-toggle,
-    .footer,
-    .rep-filters-container,
-    .g-header-actions,
-    .btn,
-    .rep-summary-row,
-    .rep-btn-clear,
-    a[href],
-    .card-header,
-    .card-title {
-        display: none !important;
-    }
-    
-    /* Expandir y formatear hoja membretada */
-    .main {
-        margin-top: 0 !important;
-        padding: 0 !important;
-        background: transparent !important;
-    }
-    
-    .container {
-        max-width: 100% !important;
-        width: 100% !important;
-        padding: 0 !important;
-    }
-    
-    .document-sheet {
-        border: none !important;
-        box-shadow: none !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        background: white !important;
-    }
-    
-    .doc-table th {
-        background: #f3f4f6 !important;
-        border: 1px solid #9ca3af !important;
-        color: black !important;
-    }
-    
-    .doc-table td {
-        border: 1px solid #d1d5db !important;
-    }
-    
-    /* Forzar saltos de página adecuados en tablas */
-    tr {
-        page-break-inside: avoid !important;
-        page-break-after: auto !important;
-    }
-    
-    thead {
-        display: table-header-group !important;
-    }
-    
-    .doc-signatures {
-        page-break-inside: avoid !important;
-        margin-top: 40px !important;
-        padding-top: 20px !important;
-        border-top: 1px solid #9ca3af !important;
-    }
-}
-
-/* ── TopLoader (barra de progreso superior) ────────────────────────────── */
-#top-loader {
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 3px;
-  width: 0%;
-  background: linear-gradient(90deg, #f6c954 0%, #fbbf24 50%, #f59e0b 100%);
-  z-index: 99999;
-  border-radius: 0 3px 3px 0;
-  transition: width 0.25s ease, opacity 0.4s ease;
-  box-shadow: 0 0 8px rgba(246, 201, 84, 0.6);
-  pointer-events: none;
-}
-
-/* ── Modal de Confirmación Genérico ─────────────────────────────────────── */
-#confirm-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 23, 44, 0.55);
-  backdrop-filter: blur(4px);
-  z-index: 99000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease;
-}
-
-#confirm-overlay.is-open {
-  opacity: 1;
-  pointer-events: all;
-}
-
-#confirm-box {
-  background: #ffffff;
-  border-radius: 20px;
-  padding: 32px 36px;
-  max-width: 420px;
-  width: 90%;
-  box-shadow: 0 25px 60px rgba(0, 32, 68, 0.22);
-  transform: scale(0.92) translateY(12px);
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-#confirm-overlay.is-open #confirm-box {
-  transform: scale(1) translateY(0);
-}
-
-#confirm-icon {
-  width: 52px;
-  height: 52px;
-  background: #fff7ed;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 16px;
-  color: #d97706;
-}
-
-#confirm-title {
-  font-family: 'Fraunces', serif;
-  font-size: 20px;
-  font-weight: 700;
-  color: #0f172a;
-  text-align: center;
-  margin-bottom: 8px;
-}
-
-#confirm-message {
-  font-size: 14px;
-  color: #475569;
-  text-align: center;
-  margin-bottom: 24px;
-  line-height: 1.6;
-}
-
-#confirm-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-}
-
-#confirm-cancel {
-  padding: 10px 22px;
-  border-radius: 10px;
-  border: 1.5px solid #e2e8f0;
-  background: #f8fafc;
-  color: #475569;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-  transition: all 0.15s;
-}
-
-#confirm-cancel:hover {
-  background: #e2e8f0;
-}
-
-#confirm-ok {
-  padding: 10px 22px;
-  border-radius: 10px;
-  border: none;
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  font-family: inherit;
-  transition: all 0.15s;
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
-}
-
-#confirm-ok:hover {
-  background: linear-gradient(135deg, #b91c1c, #991b1b);
-  transform: translateY(-1px);
-}
-
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/core.css') }}">
 {% block extra_head %}{% endblock %}
 <!-- Token CSRF para protección de formularios (Flask-WTF) -->
 <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
-<body>
+<body class="{% if session.get('active_module') == 'pos' %}mod-pos{% endif %}">
 
 <!-- TopLoader -->
 <div id="top-loader"></div>
@@ -1306,13 +178,30 @@ tr:hover td { background: var(--c-cream); }
 <header class="header">
   <div class="header-content">
     <div class="header-logo"></div>
+    {% if session.get('active_module') %}
     <button type="button" class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Abrir menú">
       <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
     </button>
+    {% endif %}
     <nav class="header-nav">
+      {% set active_mod = session.get('active_module') %}
+
+      {# ── Botón: volver al portal (siempre visible si hay módulo) ── #}
+      {% if active_mod and session.get('user_role') == 'Administrador' %}
+      <a href="{{ url_for('main.portal') }}" class="nav-link" title="Cambiar módulo" style="margin-right:6px; border:1px solid var(--c-border);">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+          <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+        </svg>
+        Módulos
+      </a>
+      {% endif %}
+
+      {# ── Navegación Módulo: Ahorros y Créditos ── #}
+      {% if active_mod == 'ahorro_credito' %}
       <a href="{{ url_for('main.index') }}" class="nav-link {% if request.endpoint=='main.index' %}active{% endif %}">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-        Dashboard
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        Inicio
       </a>
       <a href="{{ url_for('socios.socios') }}" class="nav-link {% if 'socio' in request.endpoint %}active{% endif %}">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75M21 21v-2a4 4 0 0 0-3-3.85"/></svg>
@@ -1335,7 +224,7 @@ tr:hover td { background: var(--c-cream); }
       </a>
       <a href="{{ url_for('prestamos.transacciones_masivas') }}" class="nav-link {% if 'prestamos.transacciones_masivas' in request.endpoint %}active{% endif %}">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"/></svg>
-        Transacciones Masivas
+        Masivas
       </a>
       <a href="{{ url_for('movimientos.diarios') }}" class="nav-link {% if 'movimientos' in request.endpoint %}active{% endif %}">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
@@ -1345,26 +234,93 @@ tr:hover td { background: var(--c-cream); }
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
         Reportes
       </a>
-      <a href="{{ url_for('main.calculadora') }}" class="nav-link {% if request.endpoint == 'main.calculadora' %}active{% endif %}">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="14" y2="14"/><line x1="8" y1="18" x2="12" y2="18"/></svg>
-        Calculadora
-      </a>
-      {% if session.get('user_role') == 'Administrador' %}
-      <a href="{{ url_for('usuarios.roles') }}" class="nav-link {% if 'usuarios.roles' in request.endpoint %}active{% endif %}">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2a5 5 0 0 1 5 5v3a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5z"/><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/></svg>
-        Roles
-      </a>
+      {# ── Navegación Módulo: Ajustes del Sistema ── #}
+      {% elif active_mod == 'ajustes' %}
       <a href="{{ url_for('usuarios.usuarios') }}" class="nav-link {% if 'usuarios.usuarios' in request.endpoint %}active{% endif %}">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-3-3.87"/><path d="M4 21v-2a4 4 0 0 1 3-3.87"/><circle cx="12" cy="7" r="4"/></svg>
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
         Usuarios
       </a>
-      <a href="{{ url_for('configuraciones.configuraciones') }}" class="nav-link {% if 'configuraciones.configuraciones' in request.endpoint %}active{% endif %}">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 1 2.73.73l.15.08a2 2 0 0 0 2 0l.43-.25a2 2 0 0 1 1-1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 0 2 0l.15.08a2 2 0 0 1 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 1-2.73-.73l-.15-.08a2 2 0 0 0-2 0l-.43.25a2 2 0 0 1-1 1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-        Configuración
+      <a href="{{ url_for('usuarios.roles') }}" class="nav-link {% if 'usuarios.roles' in request.endpoint %}active{% endif %}">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+        Roles
       </a>
-      <a href="{{ url_for('configuraciones.auditoria_eventos') }}" class="nav-link {% if request.endpoint=='auditoria_eventos' %}active{% endif %}">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 3h18v18H3z"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>
+      <a href="{{ url_for('configuraciones.configuraciones') }}" class="nav-link {% if 'configuraciones.configuraciones' in request.endpoint %}active{% endif %}">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31(2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        Config.
+      </a>
+      <a href="{{ url_for('configuraciones.auditoria_eventos') }}" class="nav-link {% if request.endpoint=='configuraciones.auditoria_eventos' %}active{% endif %}">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
         Bitácora
+      </a>
+
+      {# ── Navegación Módulo: Punto de Venta (POS) ── #}
+      {% elif active_mod == 'pos' %}
+      <a href="{{ url_for('pos.dashboard') }}" class="nav-link {% if request.endpoint=='pos.dashboard' %}active{% endif %}">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3"/></svg>
+        Inicio
+      </a>
+      <a href="{{ url_for('pos.terminal') }}" class="nav-link {% if request.endpoint=='pos.terminal' %}active{% endif %}">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="2" y1="20" x2="22" y2="20"/><line x1="12" y1="17" x2="12" y2="20"/></svg>
+        Terminal
+      </a>
+      <a href="{{ url_for('pos.cajas') }}" class="nav-link {% if request.endpoint=='pos.cajas' %}active{% endif %}">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M16 2v2M8 2v2M3 10h18"/></svg>
+        Cajas
+      </a>
+      <a href="{{ url_for('pos.cotizaciones') }}" class="nav-link {% if request.endpoint=='pos.cotizaciones' %}active{% endif %}">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Cotizaciones
+      </a>
+      <a href="{{ url_for('pos.devoluciones') }}" class="nav-link {% if request.endpoint=='pos.devoluciones' %}active{% endif %}">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 15L12 19M12 19L8 15M12 19V9C12 7.89543 12.8954 7 14 7H18"/></svg>
+        Devoluciones
+      </a>
+      <a href="{{ url_for('pos.compras') }}" class="nav-link {% if request.endpoint=='pos.compras' %}active{% endif %}">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+        Compras
+      </a>
+      <a href="{{ url_for('pos.productos') }}" class="nav-link {% if request.endpoint=='pos.productos' %}active{% endif %}">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+        Productos
+      </a>
+      <a href="{{ url_for('pos.proveedores') }}" class="nav-link {% if request.endpoint=='pos.proveedores' %}active{% endif %}">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        Proveedores
+      </a>
+      <a href="{{ url_for('pos.historial') }}" class="nav-link {% if request.endpoint in ['pos.historial', 'pos.detalle_venta'] %}active{% endif %}">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Historial
+      </a>
+      <a href="{{ url_for('pos.reportes') }}" class="nav-link {% if request.endpoint == 'pos.reportes' %}active{% endif %}">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10a2 2 0 01-2 2h-2a2 2 0 01-2-2zm9 0v-8a2 2 0 00-2-2h-2a2 2 0 00-2 2v8a2 2 0 002 2h2a2 2 0 002-2z"/></svg>
+        Reportes
+      </a>
+      <a href="{{ url_for('pos.ajustes') }}" class="nav-link {% if request.endpoint=='pos.ajustes' %}active{% endif %}">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        Ajustes
+      </a>
+
+      {# ── Navegación Módulo: Contabilidad ── #}
+      {% elif active_mod == 'contabilidad' %}
+      <a href="{{ url_for('contabilidad.dashboard') }}" class="nav-link {% if request.endpoint=='contabilidad.dashboard' %}active{% endif %}">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3"/></svg>
+        Inicio Cont.
+      </a>
+      <a href="{{ url_for('contabilidad.nomenclatura') }}" class="nav-link {% if request.endpoint in ['contabilidad.nomenclatura','contabilidad.nueva_cuenta','contabilidad.editar_cuenta'] %}active{% endif %}">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7h18M3 12h12M3 17h8"/></svg>
+        Nomenclatura
+      </a>
+      <a href="{{ url_for('contabilidad.asientos') }}" class="nav-link {% if request.endpoint in ['contabilidad.asientos','contabilidad.nuevo_asiento','contabilidad.detalle_asiento'] %}active{% endif %}">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/></svg>
+        Asientos
+      </a>
+      <a href="{{ url_for('contabilidad.libro_mayor') }}" class="nav-link {% if request.endpoint=='contabilidad.libro_mayor' %}active{% endif %}">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+        Libro Mayor
+      </a>
+      <a href="{{ url_for('contabilidad.balanza') }}" class="nav-link {% if request.endpoint=='contabilidad.balanza' %}active{% endif %}">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+        Balanza
       </a>
       {% endif %}
     </nav>
@@ -1387,24 +343,41 @@ tr:hover td { background: var(--c-cream); }
     <button type="button" class="mobile-nav-close" id="mobileNavClose" aria-label="Cerrar menú">✕</button>
   </div>
   <div class="mobile-nav-links">
-    <a href="{{ url_for('main.index') }}" class="mobile-nav-link {% if request.endpoint=='main.index' %}active{% endif %}">Dashboard</a>
-    <a href="{{ url_for('socios.socios') }}" class="mobile-nav-link {% if 'socio' in request.endpoint %}active{% endif %}">Asociados</a>
-    <a href="{{ url_for('ahorro.cuentas') }}" class="mobile-nav-link {% if 'cuenta' in request.endpoint %}active{% endif %}">Cuentas</a>
-    {% if session.get('user_role') in ['Administrador', 'Operador'] %}
-    {% set is_gestion_mob = request.endpoint in ['prestamos.gestiones', 'ahorro.gestion_retiro', 'prestamos.gestion_solicitud_prestamo'] %}
-    <a href="{{ url_for('prestamos.gestiones') }}" class="mobile-nav-link {% if request.endpoint=='prestamos.gestiones' %}active{% endif %}">Gestiones</a>
-    <a href="{{ url_for('ahorro.gestion_retiro') }}" class="mobile-nav-link {% if request.endpoint=='ahorro.gestion_retiro' %}active{% endif %}">Retiro</a>
-    <a href="{{ url_for('prestamos.gestion_solicitud_prestamo') }}" class="mobile-nav-link {% if request.endpoint=='prestamos.gestion_solicitud_prestamo' %}active{% endif %}">Solicitud de prestamos</a>
-    {% endif %}
-    <a href="{{ url_for('prestamos.prestamos') }}" class="mobile-nav-link {% if request.blueprint == 'prestamos' and not is_gestion_mob and request.endpoint != 'prestamos.transacciones_masivas' %}active{% endif %}">Préstamos</a>
-    <a href="{{ url_for('prestamos.transacciones_masivas') }}" class="mobile-nav-link {% if 'prestamos.transacciones_masivas' in request.endpoint %}active{% endif %}">Transacciones Masivas</a>
-    <a href="{{ url_for('movimientos.diarios') }}" class="mobile-nav-link {% if 'movimientos' in request.endpoint %}active{% endif %}">Movimientos del día</a>
-    <a href="{{ url_for('reportes.index') }}" class="mobile-nav-link {% if 'reportes' in request.endpoint %}active{% endif %}">Reportes</a>
-    {% if session.get('user_role') == 'Administrador' %}
-    <a href="{{ url_for('usuarios.roles') }}" class="mobile-nav-link {% if 'usuarios.roles' in request.endpoint %}active{% endif %}">Roles</a>
-    <a href="{{ url_for('usuarios.usuarios') }}" class="mobile-nav-link {% if 'usuarios.usuarios' in request.endpoint %}active{% endif %}">Usuarios</a>
-    <a href="{{ url_for('configuraciones.configuraciones') }}" class="mobile-nav-link {% if 'configuraciones.configuraciones' in request.endpoint %}active{% endif %}">Configuración</a>
-    <a href="{{ url_for('configuraciones.auditoria_eventos') }}" class="mobile-nav-link {% if request.endpoint=='auditoria_eventos' %}active{% endif %}">Bitácora</a>
+    {% set active_mod = session.get('active_module') %}
+    {% if active_mod == 'ahorro_credito' %}
+      <a href="{{ url_for('main.index') }}" class="mobile-nav-link {% if request.endpoint=='main.index' %}active{% endif %}">Dashboard</a>
+      <a href="{{ url_for('socios.socios') }}" class="mobile-nav-link {% if 'socio' in request.endpoint %}active{% endif %}">Asociados</a>
+      <a href="{{ url_for('ahorro.cuentas') }}" class="mobile-nav-link {% if 'cuenta' in request.endpoint %}active{% endif %}">Cuentas</a>
+      {% if session.get('user_role') in ['Administrador', 'Operador'] %}
+      {% set is_gestion_mob = request.endpoint in ['prestamos.gestiones', 'ahorro.gestion_retiro', 'prestamos.gestion_solicitud_prestamo'] %}
+      <a href="{{ url_for('prestamos.gestiones') }}" class="mobile-nav-link {% if request.endpoint=='prestamos.gestiones' %}active{% endif %}">Gestiones</a>
+      <a href="{{ url_for('ahorro.gestion_retiro') }}" class="mobile-nav-link {% if request.endpoint=='ahorro.gestion_retiro' %}active{% endif %}">Retiro</a>
+      <a href="{{ url_for('prestamos.gestion_solicitud_prestamo') }}" class="mobile-nav-link {% if request.endpoint=='prestamos.gestion_solicitud_prestamo' %}active{% endif %}">Solicitud de prestamos</a>
+      {% endif %}
+      <a href="{{ url_for('prestamos.prestamos') }}" class="mobile-nav-link {% if request.blueprint == 'prestamos' and not is_gestion_mob and request.endpoint != 'prestamos.transacciones_masivas' %}active{% endif %}">Préstamos</a>
+      <a href="{{ url_for('prestamos.transacciones_masivas') }}" class="mobile-nav-link {% if 'prestamos.transacciones_masivas' in request.endpoint %}active{% endif %}">Transacciones Masivas</a>
+      <a href="{{ url_for('movimientos.diarios') }}" class="mobile-nav-link {% if 'movimientos' in request.endpoint %}active{% endif %}">Movimientos del día</a>
+      <a href="{{ url_for('reportes.index') }}" class="mobile-nav-link {% if 'reportes' in request.endpoint %}active{% endif %}">Reportes</a>
+    {% elif active_mod == 'ajustes' %}
+      <a href="{{ url_for('usuarios.usuarios') }}" class="mobile-nav-link {% if 'usuarios.usuarios' in request.endpoint %}active{% endif %}">Usuarios</a>
+      <a href="{{ url_for('usuarios.roles') }}" class="mobile-nav-link {% if 'usuarios.roles' in request.endpoint %}active{% endif %}">Roles</a>
+      <a href="{{ url_for('configuraciones.configuraciones') }}" class="mobile-nav-link {% if 'configuraciones.configuraciones' in request.endpoint %}active{% endif %}">Configuración</a>
+      <a href="{{ url_for('configuraciones.auditoria_eventos') }}" class="mobile-nav-link {% if request.endpoint=='configuraciones.auditoria_eventos' %}active{% endif %}">Bitácora</a>
+    {% elif active_mod == 'pos' %}
+      <a href="{{ url_for('pos.dashboard') }}" class="mobile-nav-link {% if request.endpoint=='pos.dashboard' %}active{% endif %}">Inicio POS</a>
+      <a href="{{ url_for('pos.terminal') }}" class="mobile-nav-link {% if request.endpoint=='pos.terminal' %}active{% endif %}">Terminal</a>
+      <a href="{{ url_for('pos.cajas') }}" class="mobile-nav-link {% if request.endpoint=='pos.cajas' %}active{% endif %}">Cajas</a>
+      <a href="{{ url_for('pos.cotizaciones') }}" class="mobile-nav-link {% if request.endpoint=='pos.cotizaciones' %}active{% endif %}">Cotizaciones</a>
+      <a href="{{ url_for('pos.devoluciones') }}" class="mobile-nav-link {% if request.endpoint=='pos.devoluciones' %}active{% endif %}">Devoluciones</a>
+      <a href="{{ url_for('pos.compras') }}" class="mobile-nav-link {% if request.endpoint=='pos.compras' %}active{% endif %}">Compras</a>
+      <a href="{{ url_for('pos.productos') }}" class="mobile-nav-link {% if request.endpoint=='pos.productos' %}active{% endif %}">Productos</a>
+      <a href="{{ url_for('pos.proveedores') }}" class="mobile-nav-link {% if request.endpoint=='pos.proveedores' %}active{% endif %}">Proveedores</a>
+      <a href="{{ url_for('pos.historial') }}" class="mobile-nav-link {% if request.endpoint in ['pos.historial', 'pos.detalle_venta'] %}active{% endif %}">Historial</a>
+      <a href="{{ url_for('pos.reportes') }}" class="mobile-nav-link {% if request.endpoint=='pos.reportes' %}active{% endif %}">Reportes</a>
+      <a href="{{ url_for('pos.ajustes') }}" class="mobile-nav-link {% if request.endpoint=='pos.ajustes' %}active{% endif %}">Ajustes POS</a>
+    {% elif active_mod == 'contabilidad' %}
+      <a href="{{ url_for('contabilidad.dashboard') }}" class="mobile-nav-link">Inicio Cont.</a>
+      <a href="{{ url_for('contabilidad.nomenclatura') }}" class="mobile-nav-link">Nomenclatura</a>
     {% endif %}
   </div>
   {% if session.get('username') %}
@@ -1434,6 +407,17 @@ tr:hover td { background: var(--c-cream); }
 </footer>
 
 <script>
+// Ocultar mensajes de alerta automáticamente después de 3.5 segundos
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        document.querySelectorAll('.alert').forEach(function(alert) {
+            alert.style.transition = 'opacity 0.5s ease';
+            alert.style.opacity = '0';
+            setTimeout(() => alert.remove(), 500);
+        });
+    }, 3500);
+});
+
 const mobileMenuToggle = document.getElementById('mobileMenuToggle');
 const mobileNav = document.getElementById('mobileNav');
 const mobileNavClose = document.getElementById('mobileNavClose');

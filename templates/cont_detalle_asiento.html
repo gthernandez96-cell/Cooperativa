@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% block title %}Detalle Asiento {{ partida.numero }}{% endblock %}
+{% block content %}
+<style>
+.asiento-det-page { max-width: 860px; margin: 0 auto; padding: 24px 20px; }
+.asiento-card { background: var(--c-white); border-radius: 16px; border: 1.5px solid var(--c-border); box-shadow: 0 2px 16px rgba(0,30,70,.08); overflow: hidden; }
+.asiento-hdr { padding: 20px 28px; background: linear-gradient(90deg, #001f3d, #003b74); color: #fff; display: flex; justify-content: space-between; align-items: flex-start; }
+.asiento-title { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 700; }
+.asiento-meta { font-size: 13px; opacity: .8; margin-top: 4px; }
+.asiento-body { padding: 24px 28px; }
+.info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+.info-block { background: #f8fafb; border-radius: 8px; padding: 12px; }
+.info-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--c-gray); margin-bottom: 4px; }
+.info-val { font-size: 14px; font-weight: 500; color: #002a50; }
+.g-table { width: 100%; border-collapse: collapse; }
+.g-table th { padding: 9px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--c-gray); font-weight: 600; border-bottom: 2px solid var(--c-border); text-align: left; background: #f8fafb; }
+.g-table td { padding: 10px 14px; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+.g-table tfoot td { border-top: 2px solid var(--c-border); font-weight: 700; background: #f8fafb; font-size: 14px; }
+.tipo-activo { color: #1e40af; } .tipo-pasivo { color: #9d174d; }
+.tipo-ingreso { color: #15803d; } .tipo-gasto { color: #b91c1c; }
+.tipo-patrimonio { color: #065f46; }
+.badge-borrador { background: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.badge-asentado { background: #d1fae5; color: #047857; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.badge-anulado { background: #fee2e2; color: #dc2626; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.action-row { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; border-top: 1px solid var(--c-border); padding-top: 16px; }
+.btn { display:inline-flex; align-items:center; gap:6px; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:600; border:none; cursor:pointer; font-family:inherit; text-decoration:none; }
+.btn-primary { background:#003b74; color:#fff; }
+.btn-danger { background:#fef2f2; color:#dc2626; border:1.5px solid #fca5a5; }
+.btn-outline { background:transparent; border:1.5px solid var(--c-border); color:var(--c-gray); }
+.cuadre-ok { color: #047857; font-weight: 700; }
+.cuadre-err { color: #dc2626; font-weight: 700; }
+</style>
+
+<div class="asiento-det-page">
+  <div style="margin-bottom:16px;">
+    <a href="{{ url_for('contabilidad.asientos') }}" style="font-size:13px; color:#0057a3; text-decoration:none;">← Volver a Asientos</a>
+  </div>
+
+  <div class="asiento-card">
+    <div class="asiento-hdr">
+      <div>
+        <div class="asiento-title">{{ partida.numero }}</div>
+        <div class="asiento-meta">{{ partida.descripcion }}</div>
+        <div class="asiento-meta" style="margin-top:2px;">{{ partida.fecha }} · {{ partida.usuario or 'sistema' }}</div>
+      </div>
+      <div>
+        {% if partida.estado=='asentado' %}<span class="badge-asentado">Asentado</span>
+        {% elif partida.estado=='borrador' %}<span class="badge-borrador">Borrador</span>
+        {% else %}<span class="badge-anulado">Anulado</span>{% endif %}
+      </div>
+    </div>
+
+    <div class="asiento-body">
+      <div class="info-grid">
+        <div class="info-block">
+          <div class="info-label">Origen</div>
+          <div class="info-val">{{ partida.origen_tipo or 'Manual' }} {% if partida.origen_id %}#{{ partida.origen_id }}{% endif %}</div>
+        </div>
+        <div class="info-block">
+          <div class="info-label">Fecha</div>
+          <div class="info-val">{{ partida.fecha }}</div>
+        </div>
+        <div class="info-block">
+          <div class="info-label">N° Apuntes</div>
+          <div class="info-val">{{ apuntes|length }}</div>
+        </div>
+      </div>
+
+      <table class="g-table">
+        <thead>
+          <tr>
+            <th>Cuenta</th>
+            <th>Tipo</th>
+            <th>Descripción</th>
+            <th style="text-align:right;">Debe (Q)</th>
+            <th style="text-align:right;">Haber (Q)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% set total_debe = namespace(v=0) %}
+          {% set total_haber = namespace(v=0) %}
+          {% for a in apuntes %}
+          {% set total_debe.v = total_debe.v + a.debe %}
+          {% set total_haber.v = total_haber.v + a.haber %}
+          <tr>
+            <td>
+              <strong>{{ a.cuenta_codigo }}</strong>
+              <div style="font-size:12px; color:var(--c-gray);">{{ a.cuenta_nombre }}</div>
+            </td>
+            <td><span class="tipo-{{ a.cuenta_tipo }}">{{ a.cuenta_tipo|capitalize }}</span></td>
+            <td style="color:var(--c-gray);">{{ a.descripcion or '—' }}</td>
+            <td style="text-align:right; font-family:monospace; color:#003b74;">
+              {% if a.debe > 0 %}{{ "%.2f"|format(a.debe|float) }}{% endif %}
+            </td>
+            <td style="text-align:right; font-family:monospace; color:#047857;">
+              {% if a.haber > 0 %}{{ "%.2f"|format(a.haber|float) }}{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3">
+              TOTALES
+              {% set diff = (total_debe.v - total_haber.v)|abs %}
+              {% if diff < 0.01 %}
+              <span class="cuadre-ok" style="margin-left:12px; font-size:12px;">✓ Cuadrado</span>
+              {% else %}
+              <span class="cuadre-err" style="margin-left:12px; font-size:12px;">✗ Diferencia: Q{{ "%.2f"|format(diff) }}</span>
+              {% endif %}
+            </td>
+            <td style="text-align:right;">{{ "%.2f"|format(total_debe.v) }}</td>
+            <td style="text-align:right;">{{ "%.2f"|format(total_haber.v) }}</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div class="action-row">
+        {% if partida.estado == 'borrador' %}
+        <form method="post" action="{{ url_for('contabilidad.asentar_partida', pid=partida.id) }}" style="display:inline;">
+          <button type="submit" class="btn btn-primary">✔ Asentar Partida</button>
+        </form>
+        {% endif %}
+        {% if partida.estado in ['borrador','asentado'] %}
+        <form method="post" action="{{ url_for('contabilidad.anular_partida', pid=partida.id) }}" style="display:inline;"
+              data-confirm="¿Anular la partida {{ partida.numero }}?">
+          <button type="submit" class="btn btn-danger">✕ Anular</button>
+        </form>
+        {% endif %}
+        <a href="{{ url_for('contabilidad.asientos') }}" class="btn btn-outline">Volver</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

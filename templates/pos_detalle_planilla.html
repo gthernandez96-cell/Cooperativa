@@ -1,0 +1,1135 @@
+{% extends "base.html" %}
+
+{% block title %}Planilla de Préstamos — {{ cooperativa_nombre }}{% endblock %}
+
+{% block content %}
+<style>
+  /* Variables e impecable diseño premium soberbio y corporativo */
+  :root {
+    --neutral-dark: #1e293b;
+    --neutral-muted: #475569;
+    --neutral-light: #f8fafc;
+    --border-color: #cbd5e1;
+    --border-light: #e2e8f0;
+    --accent-slate: #334155;
+    --accent-teal: #0d9488;
+    --accent-teal-pale: #f0fdfa;
+    --accent-teal-border: #99f6e4;
+    --accent-amber: #b45309;
+    --accent-amber-pale: #fffbeb;
+    --accent-amber-border: #fde68a;
+    --card-shadow-corporate: 0 1px 3px rgba(0, 0, 0, 0.05), 0 10px 20px -5px rgba(0, 0, 0, 0.03);
+    --transition-smooth: all 0.2s ease-in-out;
+  }
+
+  .premium-header {
+    background: #ffffff;
+    padding: 22px 28px;
+    border-radius: 14px;
+    color: var(--neutral-dark);
+    border: 1px solid var(--border-light);
+    border-bottom: 2px solid var(--border-color);
+    box-shadow: var(--card-shadow-corporate);
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .premium-title {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--neutral-dark);
+    margin: 0;
+  }
+
+  .premium-subtitle {
+    font-size: 13.5px;
+    color: var(--neutral-muted);
+    margin-top: 4px;
+  }
+
+  .premium-card {
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1px solid var(--border-light);
+    box-shadow: var(--card-shadow-corporate);
+    margin-bottom: 24px;
+    overflow: hidden;
+    transition: var(--transition-smooth);
+  }
+
+  .premium-card:hover {
+    box-shadow: 0 12px 25px -5px rgba(0, 0, 0, 0.05);
+  }
+
+  .premium-card-header {
+    padding: 16px 24px;
+    background: #fdfdfd;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .premium-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--neutral-dark);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .premium-card-body {
+    padding: 24px;
+  }
+
+  /* Stats grid */
+  .premium-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .premium-stat-card {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 20px 24px;
+    border: 1px solid var(--border-light);
+    box-shadow: var(--card-shadow-corporate);
+    position: relative;
+    overflow: hidden;
+    transition: var(--transition-smooth);
+  }
+
+  .premium-stat-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .premium-stat-card.blue {
+    border-top: 4px solid var(--neutral-dark);
+  }
+
+  .premium-stat-card.gold {
+    border-top: 4px solid var(--accent-slate);
+  }
+
+  .premium-stat-label {
+    font-size: 10.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--neutral-muted);
+    margin-bottom: 8px;
+  }
+
+  .premium-stat-value {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--neutral-dark);
+    line-height: 1.1;
+  }
+
+  .premium-stat-icon {
+    position: absolute;
+    right: 20px;
+    bottom: 14px;
+    font-size: 40px;
+    color: #e2e8f0;
+    pointer-events: none;
+  }
+
+  /* Grid de Datos de Planilla */
+  .metadata-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
+
+  .metadata-item {
+    background: var(--neutral-light);
+    border: 1px solid var(--border-light);
+    padding: 12px 16px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: var(--transition-smooth);
+  }
+
+  .metadata-item:hover {
+    background: #ffffff;
+    border-color: var(--border-color);
+  }
+
+  .metadata-label {
+    font-size: 9.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--neutral-muted);
+  }
+
+  .metadata-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--neutral-dark);
+  }
+
+  /* Toolbar de Búsqueda */
+  .toolbar-container {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .search-wrapper {
+    position: relative;
+    flex: 1;
+    min-width: 280px;
+  }
+
+  .search-wrapper svg {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--neutral-muted);
+    pointer-events: none;
+  }
+
+  .search-input-premium {
+    width: 100%;
+    padding: 8px 16px 8px 40px;
+    min-height: 38px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    background: #ffffff;
+    transition: var(--transition-smooth);
+  }
+
+  .search-input-premium:focus {
+    outline: none;
+    border-color: var(--neutral-muted);
+    box-shadow: 0 0 0 3px rgba(71, 85, 105, 0.08);
+  }
+
+  /* Tabla Ejecutiva */
+  .premium-table-wrap {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid var(--border-light);
+    background: #ffffff;
+  }
+
+  .premium-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .premium-table th {
+    background: var(--neutral-light);
+    padding: 12px 14px;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--neutral-muted);
+    border-bottom: 2px solid var(--border-light);
+  }
+
+  .premium-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-light);
+    color: var(--neutral-dark);
+    font-size: 13px;
+    transition: var(--transition-smooth);
+    vertical-align: middle;
+  }
+
+  .premium-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  /* Fila activa modificada con color pizarra sutil */
+  .premium-table tr {
+    border-left: 3px solid transparent;
+  }
+
+  .fila-modificada-activa {
+    border-left-color: var(--neutral-muted) !important;
+  }
+
+  .fila-modificada-activa td {
+    background-color: var(--neutral-light) !important;
+    font-weight: 600;
+  }
+
+  .premium-table tr:hover td {
+    background: rgba(0, 0, 0, 0.01);
+  }
+
+  /* Estilización de Inputs Financieros */
+  .financial-input-wrapper {
+    position: relative;
+    max-width: 110px;
+  }
+
+  .financial-input-wrapper span {
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--neutral-muted);
+    pointer-events: none;
+  }
+
+  .premium-monto-input {
+    width: 100%;
+    padding: 6px 8px 6px 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--neutral-dark);
+    transition: var(--transition-smooth);
+    background-color: var(--neutral-light);
+  }
+
+  .premium-monto-input:focus {
+    outline: none;
+    border-color: var(--neutral-muted);
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(71, 85, 105, 0.12);
+  }
+
+  .premium-monto-input:disabled {
+    background-color: #f1f5f9;
+    color: #94a3b8;
+    border-color: #e2e8f0;
+  }
+
+  /* Switch Corporativo Sobrio */
+  .custom-switch {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+  }
+
+  .custom-switch input {
+    display: none;
+  }
+
+  .custom-switch-slider {
+    width: 36px;
+    height: 18px;
+    background-color: #cbd5e1;
+    border-radius: 9999px;
+    position: relative;
+    transition: var(--transition-smooth);
+  }
+
+  .custom-switch-slider::before {
+    content: '';
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background-color: #ffffff;
+    top: 2px;
+    left: 2px;
+    transition: var(--transition-smooth);
+  }
+
+  .custom-switch input:checked + .custom-switch-slider {
+    background-color: var(--neutral-muted);
+  }
+
+  .custom-switch input:checked + .custom-switch-slider::before {
+    transform: translateX(18px);
+  }
+
+  .custom-switch input:disabled + .custom-switch-slider {
+    background-color: #e2e8f0;
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  /* Botones Ejecutivos */
+  .btn-premium {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: var(--transition-smooth);
+    text-decoration: none;
+  }
+
+  .btn-premium.primary {
+    background: var(--neutral-dark);
+    color: #ffffff;
+  }
+
+  .btn-premium.primary:hover {
+    background: #0f172a;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  }
+
+  .btn-premium.secondary {
+    background: #ffffff;
+    border-color: var(--border-color);
+    color: var(--neutral-muted);
+  }
+
+  .btn-premium.secondary:hover {
+    background: var(--neutral-light);
+    border-color: var(--neutral-muted);
+    color: var(--neutral-dark);
+  }
+
+  .btn-premium.gold {
+    background: var(--neutral-muted);
+    color: #ffffff;
+  }
+
+  .btn-premium.gold:hover {
+    background: var(--neutral-dark);
+  }
+
+  .btn-premium.action-cuota {
+    background: #ffffff;
+    color: var(--neutral-muted);
+    border: 1px solid var(--border-color);
+    font-size: 11.5px;
+    padding: 5px 12px;
+    border-radius: 6px;
+  }
+
+  .btn-premium.action-cuota:hover {
+    background: var(--neutral-light);
+    color: var(--neutral-dark);
+    border-color: var(--neutral-muted);
+  }
+
+  /* Panel de Resumen Flotante Sobrio y Claro (Impecable) */
+  .summary-card-floating {
+    position: sticky;
+    bottom: 16px;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(8px);
+    border: 1.5px solid var(--border-color);
+    color: var(--neutral-dark);
+    border-radius: 14px;
+    padding: 16px 24px;
+    margin-top: 24px;
+    z-index: 999;
+    box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.05), 0 10px 30px rgba(0, 0, 0, 0.08);
+  }
+
+  .summary-grid {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .summary-blocks-group {
+    display: flex;
+    gap: 28px;
+    flex-wrap: wrap;
+  }
+
+  .summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .summary-label {
+    font-size: 9.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--neutral-muted);
+  }
+
+  .summary-value {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--neutral-dark);
+    line-height: 1.1;
+  }
+
+  .summary-value.highlight {
+    color: var(--neutral-dark);
+  }
+
+  .summary-value.success {
+    color: var(--neutral-dark);
+  }
+
+  /* Modal de Boleta Premium con estilo sobrio */
+  .premium-modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(5px);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+
+  .premium-modal-card {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--border-color);
+    width: 100%;
+    max-width: 460px;
+    overflow: hidden;
+  }
+
+  .premium-modal-header {
+    background: var(--neutral-light);
+    padding: 16px 24px;
+    color: var(--neutral-dark);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .premium-modal-title {
+    font-family: 'Fraunces', serif;
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .premium-modal-close-btn {
+    background: transparent;
+    border: none;
+    width: 24px;
+    height: 24px;
+    color: var(--neutral-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+  }
+
+  .premium-modal-close-btn:hover {
+    color: var(--neutral-dark);
+  }
+
+  .premium-modal-body {
+    padding: 24px;
+  }
+
+  .form-control-premium {
+    width: 100%;
+    min-height: 40px;
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 13.5px;
+    font-weight: 500;
+    transition: var(--transition-smooth);
+    background: var(--neutral-light);
+  }
+
+  .form-control-premium:focus {
+    outline: none;
+    border-color: var(--neutral-muted);
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(71, 85, 105, 0.08);
+  }
+
+  .form-control-premium.is-invalid {
+    border-color: var(--c-danger);
+    background: var(--c-danger-light);
+  }
+
+  /* Badge de estado local */
+  .badge-state {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .badge-state.pendiente { background: var(--accent-amber-pale); color: var(--accent-amber); border: 1px solid var(--accent-amber-border); }
+  .badge-state.parcial { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+  .badge-state.aplicada { background: var(--accent-teal-pale); color: var(--accent-teal); border: 1px solid var(--accent-teal-border); }
+</style>
+
+<!-- Cabecera Premium -->
+<div class="premium-header">
+  <div>
+    <h1 class="premium-title">Planilla de Préstamos</h1>
+    <p class="premium-subtitle">Procesamiento y conciliación masiva de cuotas amortizadas</p>
+  </div>
+  <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+    <a class="btn-premium secondary" href="{{ url_for('prestamos.exportar_planilla_prestamos', planilla_id=planilla.id) }}" style="text-decoration: none; border-color: #10b981; color: #047857;">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="margin-right: 2px;">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7,10 12,15 17,10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Exportar Planilla
+    </a>
+    {% if not planilla or planilla.estado != 'aplicada' %}
+    <button class="btn-premium primary" id="btnAbrirModalPagos" data-planilla-id="{{ planilla.id }}" data-detalle-url="{{ url_for('pos.detalle_planilla_pos', planilla_id=planilla.id) }}">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="margin-right: 2px;">
+        <path d="M9 12l2 2 4-4M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"/>
+      </svg>
+      Procesar Pagos Masivos
+    </button>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Grid de Métricas de Planilla -->
+<div class="premium-stats-grid">
+  <div class="premium-stat-card blue">
+    <div class="premium-stat-label">Total de Créditos en Planilla</div>
+    <div class="premium-stat-value">{{ detalles|length }}</div>
+    <div class="premium-stat-icon">
+      <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+        <circle cx="9" cy="7" r="4"></circle>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+      </svg>
+    </div>
+  </div>
+  <div class="premium-stat-card gold">
+    <div class="premium-stat-label">Monto Total Programado</div>
+    <div class="premium-stat-value amount">Q {{ "%.2f"|format(planilla.total_monto or 0) }}</div>
+    <div class="premium-stat-icon">
+      <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+        <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+        <line x1="12" y1="4" x2="12" y2="20"></line>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- Datos de la Planilla -->
+<div class="premium-card">
+  <div class="premium-card-header">
+    <h3 class="premium-card-title">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+      </svg>
+      Especificaciones de Nómina
+    </h3>
+  </div>
+  <div class="premium-card-body">
+    <div class="metadata-grid">
+      <div class="metadata-item">
+        <span class="metadata-label">Nombre Planilla</span>
+        <span class="metadata-value">{{ nombre_planilla }}</span>
+      </div>
+      <div class="metadata-item">
+        <span class="metadata-label">Fecha de Cobro</span>
+        <span class="metadata-value">{{ fecha_pago|fecha_dmy }}</span>
+      </div>
+      <div class="metadata-item">
+        <span class="metadata-label">Frecuencia Laboral</span>
+        <span class="metadata-value">{{ frecuencia }}</span>
+      </div>
+      <div class="metadata-item">
+        <span class="metadata-label">Boleta de Depósito</span>
+        <span class="metadata-value" style="font-family: monospace; font-size: 12.5px;">{{ boleta_deposito or 'Pendiente' }}</span>
+      </div>
+      <div class="metadata-item">
+        <span class="metadata-label">Estado de Planilla</span>
+        <span>
+          <span class="badge-state {{ planilla.estado if planilla else 'pendiente' }}">
+            {{ (planilla.estado.title() if planilla else 'Pendiente') }}
+          </span>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Barra de Búsqueda y Filtro de Operaciones -->
+<div class="premium-card" style="margin-bottom: 20px;">
+  <div class="premium-card-body">
+    <div class="toolbar-container">
+      <div class="search-wrapper">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input
+          type="text"
+          id="buscarPrestamoPlanilla"
+          class="search-input-premium"
+          placeholder="Filtrar por código de socio, nombre completo o número de préstamo..."
+        >
+      </div>
+      <span id="contadorResultadosPlanilla" style="font-size: 12px; font-weight: 700; color: var(--neutral-muted); background: var(--neutral-light); padding: 4px 10px; border-radius: 6px;"></span>
+    </div>
+  </div>
+</div>
+
+<!-- Listado Masivo de Pagos -->
+<div class="premium-card">
+  <div class="premium-card-header">
+    <h3 class="premium-card-title">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+      </svg>
+      Créditos Activos en Planilla
+    </h3>
+    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+      <span style="font-size: 13px; font-weight: 700; color: var(--neutral-muted);">Aplicar cuota completa:</span>
+      <button class="btn-premium action-cuota" onclick="aplicarCuotasCompletas()">
+        Autocompletar Cuotas
+      </button>
+    </div>
+  </div>
+  <div class="premium-card-body" style="padding: 0;">
+    <div class="premium-table-wrap" style="border: none; border-radius: 0;">
+      <table class="premium-table">
+        <thead>
+          <tr>
+            <th>Código Socio</th>
+            <th>Nombre Completo</th>
+            <th style="text-align: right;">Saldo Actual Crédito</th>
+            <th style="text-align: center; width: 130px;">Abono a Realizar</th>
+            <th style="text-align: right; width: 120px;">Nuevo Saldo</th>
+            <th style="text-align: center; width: 80px;">Seleccionar</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for prestamo in detalles %}
+          <tr id="fila-prestamo-{{ prestamo['referencia_id'] }}">
+            <td style="font-weight: 700; color: var(--neutral-dark);">{{ prestamo['socio_codigo'] }}</td>
+            <td style="font-weight: 600;">{{ prestamo['socio_nombre'] }}</td>
+            <td style="text-align: right; font-weight: 700; color: var(--neutral-dark);" class="amount">Q {{ "%.2f"|format(prestamo['saldo_actual'] or 0) }}</td>
+            <td style="text-align: center;">
+              <div class="financial-input-wrapper" style="margin: 0 auto;">
+                <span>Q</span>
+                <input type="number" 
+                       class="monto-input premium-monto-input" 
+                       step="0.01" 
+                       min="0" 
+                       max="{{ prestamo['saldo_actual'] or 0 }}"
+                       placeholder="0.00"
+                       value="{{ '%.2f'|format(prestamo['monto'] or 0) }}"
+                       data-prestamo-id="{{ prestamo['referencia_id'] }}"
+                       data-detalle-id="{{ prestamo['id'] }}"
+                       data-numero="{{ prestamo['numero_referencia'] }}"
+                       data-saldo-pendiente="{{ prestamo['saldo_actual'] or 0 }}"
+                       data-cuota-mensual="{{ prestamo['monto'] or 0 }}"
+                       {% if prestamo['estado'] == 'aplicado' %}disabled{% endif %}
+                       onchange="calcularNuevoSaldo(this)">
+              </div>
+            </td>
+            <td style="text-align: right; font-weight: 700; color: var(--neutral-dark);" class="amount nuevo-saldo" id="nuevo-saldo-{{ prestamo['referencia_id'] }}">
+              Q {{ "%.2f"|format(prestamo['saldo_actual'] or 0) }}
+            </td>
+            <td style="text-align: center;">
+              <label class="custom-switch">
+                <input type="checkbox" 
+                       class="prestamo-checkbox" 
+                       data-prestamo-id="{{ prestamo['referencia_id'] }}" 
+                       {% if prestamo['estado'] == 'aplicado' %}checked disabled{% endif %}>
+                <span class="custom-switch-slider"></span>
+              </label>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Resumen Operativo Flotante Sutil -->
+<div class="summary-card-floating">
+  <div class="summary-grid">
+    <div class="summary-blocks-group">
+      <div class="summary-item">
+        <span class="summary-label">Créditos Seleccionados</span>
+        <span id="prestamos-seleccionados" class="summary-value highlight">0</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">Monto Total a Pagar</span>
+        <span id="total-pagar" class="summary-value highlight amount">Q 0.00</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">Operaciones Válidas</span>
+        <span id="operaciones-validas" class="summary-value success">0</span>
+      </div>
+    </div>
+    {% if not planilla or planilla.estado != 'aplicada' %}
+    <button class="btn-premium primary" onclick="abrirModalPrestamo()" style="padding: 10px 22px;">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="margin-right: 2px;">
+        <path d="M9 12l2 2 4-4M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"/>
+      </svg>
+      Aplicar Pagos Seleccionados
+    </button>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Modal de Aplicación de Planilla -->
+<div id="modalBoletaPrestamo" class="premium-modal-backdrop">
+  <div class="premium-modal-card">
+    <div class="premium-modal-header">
+      <h5 class="premium-modal-title">Aplicar Nómina de Pagos</h5>
+      <button type="button" class="premium-modal-close-btn" id="btnCerrarModalPrestamo">✕</button>
+    </div>
+    <div class="premium-modal-body">
+      <p style="font-size: 13px; color: var(--neutral-muted); margin-bottom: 20px; line-height: 1.5;">
+        Ingrese el número de la boleta de depósito para formalizar y procesar la aplicación masiva de los pagos de cuotas en las cuentas de préstamos.
+      </p>
+      <div style="margin-bottom: 24px;">
+        <label for="inputBoletaPrestamo" style="font-size: 11px; font-weight: 800; color: var(--neutral-muted); display: block; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+          Número de Boleta de Depósito
+        </label>
+        <input type="text" id="inputBoletaPrestamo" class="form-control-premium" placeholder="Ej: BOL-009845" maxlength="50">
+        <div id="errorBoletaPrestamo" style="color: var(--c-danger); font-size: 12px; font-weight: 700; margin-top: 6px; display: none;">
+          Debe ingresar el número de boleta de pago.
+        </div>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" class="btn-premium secondary" id="btnCancelarModalPrestamo">Cancelar</button>
+        <button type="button" class="btn-premium primary" id="btnConfirmarPagos">Aplicar Planilla</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const btnAbrirModalPagos = document.getElementById('btnAbrirModalPagos');
+const modalBoletaPrestamo = document.getElementById('modalBoletaPrestamo');
+const inputBoletaPrestamo = document.getElementById('inputBoletaPrestamo');
+const errorBoletaPrestamo = document.getElementById('errorBoletaPrestamo');
+const btnCerrarModalPrestamo = document.getElementById('btnCerrarModalPrestamo');
+const btnCancelarModalPrestamo = document.getElementById('btnCancelarModalPrestamo');
+const btnConfirmarPagos = document.getElementById('btnConfirmarPagos');
+const planillaPrestamoId = btnAbrirModalPagos ? btnAbrirModalPagos.dataset.planillaId : "{{ planilla.id }}";
+const detallePlanillaUrl = btnAbrirModalPagos ? btnAbrirModalPagos.dataset.detalleUrl : '';
+
+function calcularNuevoSaldo(input) {
+  const row = input.closest('tr');
+  const prestamoId = input.dataset.prestamoId;
+  const saldoPendiente = parseFloat(input.dataset.saldoPendiente);
+  const monto = parseFloat(input.value) || 0;
+  const nuevoSaldo = Math.max(0, saldoPendiente - monto);
+  
+  const nuevoSaldoElement = document.getElementById(`nuevo-saldo-${prestamoId}`);
+  nuevoSaldoElement.textContent = `Q ${nuevoSaldo.toFixed(2)}`;
+  
+  const checkbox = document.querySelector(`.prestamo-checkbox[data-prestamo-id="${prestamoId}"]`);
+  
+  // Estilo reactivo al monto ingresado
+  if (monto > saldoPendiente) {
+    input.style.borderColor = 'var(--c-danger)';
+    input.style.boxShadow = '0 0 0 3px rgba(220, 38, 38, 0.1)';
+    nuevoSaldoElement.style.color = 'var(--c-danger)';
+    if (checkbox && !checkbox.disabled) checkbox.checked = false;
+    row.classList.remove('fila-modificada-activa');
+  } else if (monto > 0) {
+    input.style.borderColor = 'var(--neutral-muted)';
+    input.style.boxShadow = '0 0 0 3px rgba(71, 85, 105, 0.1)';
+    nuevoSaldoElement.style.color = 'var(--neutral-dark)';
+    if (checkbox && !checkbox.disabled) checkbox.checked = true;
+    row.classList.add('fila-modificada-activa');
+  } else {
+    input.style.borderColor = 'var(--border-color)';
+    input.style.boxShadow = 'none';
+    nuevoSaldoElement.style.color = 'var(--neutral-dark)';
+    if (checkbox && !checkbox.disabled) checkbox.checked = false;
+    row.classList.remove('fila-modificada-activa');
+  }
+  
+  actualizarResumen();
+}
+
+function aplicarCuotasCompletas() {
+  const inputs = document.querySelectorAll('.monto-input');
+  
+  inputs.forEach(input => {
+    const cuotaMensual = parseFloat(input.dataset.cuotaMensual);
+    const saldoPendiente = parseFloat(input.dataset.saldoPendiente);
+    
+    // Aplicar la cuota mensual o el saldo pendiente si es menor
+    const montoAAplicar = Math.min(cuotaMensual, saldoPendiente);
+    input.value = montoAAplicar.toFixed(2);
+    calcularNuevoSaldo(input);
+  });
+}
+
+function actualizarResumen() {
+  const inputs = document.querySelectorAll('.monto-input');
+  
+  let prestamosSeleccionados = 0;
+  let totalPagar = 0;
+  let operacionesValidas = 0;
+  
+  inputs.forEach((input) => {
+    const monto = parseFloat(input.value) || 0;
+    const saldoPendiente = parseFloat(input.dataset.saldoPendiente);
+    const checkbox = document.querySelector(`.prestamo-checkbox[data-prestamo-id="${input.dataset.prestamoId}"]`);
+    
+    if (monto > 0 && monto <= saldoPendiente) {
+      operacionesValidas++;
+      totalPagar += monto;
+    }
+    
+    if (checkbox && checkbox.checked) {
+      prestamosSeleccionados++;
+    }
+  });
+  
+  document.getElementById('prestamos-seleccionados').textContent = prestamosSeleccionados;
+  document.getElementById('total-pagar').textContent = `Q ${totalPagar.toFixed(2)}`;
+  document.getElementById('operaciones-validas').textContent = operacionesValidas;
+}
+
+function procesarPagos() {
+  const inputs = document.querySelectorAll('.monto-input');
+  const pagos = [];
+  
+  inputs.forEach(input => {
+    if (input.disabled) return; // Skip already applied rows
+    
+    const checkbox = document.querySelector(`.prestamo-checkbox[data-prestamo-id="${input.dataset.prestamoId}"]`);
+    if (!checkbox || !checkbox.checked) return; // Skip unchecked rows
+    
+    const monto = parseFloat(input.value) || 0;
+    const saldoPendiente = parseFloat(input.dataset.saldoPendiente);
+    
+    if (monto > 0 && monto <= saldoPendiente) {
+      pagos.push({
+        prestamo_id: parseInt(input.dataset.prestamoId),
+        detalle_id: parseInt(input.dataset.detalleId),
+        numero: input.dataset.numero,
+        monto: monto
+      });
+    }
+  });
+  
+  if (pagos.length === 0) {
+    alert('No hay pagos válidos para procesar. Verifique los montos.');
+    return;
+  }
+  
+  const errores = [];
+  inputs.forEach(input => {
+    if (input.disabled) return; // Skip already applied rows
+    
+    const checkbox = document.querySelector(`.prestamo-checkbox[data-prestamo-id="${input.dataset.prestamoId}"]`);
+    if (!checkbox || !checkbox.checked) return; // Skip unchecked rows
+    
+    const monto = parseFloat(input.value) || 0;
+    const saldoPendiente = parseFloat(input.dataset.saldoPendiente);
+    if (monto > saldoPendiente) {
+      errores.push(`Préstamo ${input.dataset.numero}: Monto excede saldo pendiente`);
+    }
+  });
+  
+  if (errores.length > 0) {
+    alert('Errores encontrados:\n\n' + errores.join('\n'));
+    return;
+  }
+  
+  if (!confirm(`¿Está seguro de procesar ${pagos.length} pagos por un total de Q ${pagos.reduce((sum, p) => sum + p.monto, 0).toFixed(2)}?`)) {
+    return;
+  }
+  
+  const button = btnConfirmarPagos;
+  const originalText = button.innerHTML;
+  button.textContent = 'Aplicando...';
+  button.disabled = true;
+  
+  fetch("{{ url_for('pos.procesar_planilla_pos') }}", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': '{{ csrf_token() }}'
+    },
+    body: JSON.stringify({
+      planilla_id: planillaPrestamoId,
+      pagos: pagos,
+      nombre_planilla: '{{ nombre_planilla }}',
+      fecha_pago: '{{ fecha_pago }}',
+      boleta_deposito: inputBoletaPrestamo.value.trim(),
+      frecuencia: '{{ frecuencia }}'
+    })
+  })
+  .then(async response => {
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'No fue posible aplicar la planilla.');
+    }
+    return data;
+  })
+  .then(data => {
+    cerrarModalPrestamo();
+    let mensaje = `Procesamiento completado:\n\n`;
+    mensaje += `✅ Procesados: ${data.procesados}\n`;
+    mensaje += `❌ Errores: ${data.errores.length}\n`;
+    mensaje += `📊 Total: ${data.total}\n\n`;
+    
+    if (data.errores.length > 0) {
+      mensaje += `Errores encontrados:\n${data.errores.join('\n')}`;
+    }
+    
+    alert(mensaje);
+    
+    if (data.procesados > 0) {
+      window.location.href = "{{ url_for('pos.detalle_planilla_pos', planilla_id=planilla.id) }}";
+    }
+  })
+  .catch(error => {
+    alert(error.message || 'Error al procesar los pagos.');
+  })
+  .finally(() => {
+    button.innerHTML = originalText;
+    button.disabled = false;
+  });
+}
+
+function abrirModalPrestamo() {
+  modalBoletaPrestamo.style.display = 'flex';
+  inputBoletaPrestamo.value = '';
+  errorBoletaPrestamo.style.display = 'none';
+  inputBoletaPrestamo.classList.remove('is-invalid');
+  setTimeout(() => inputBoletaPrestamo.focus(), 50);
+}
+
+function cerrarModalPrestamo() {
+  modalBoletaPrestamo.style.display = 'none';
+}
+
+if (btnAbrirModalPagos) {
+  btnAbrirModalPagos.addEventListener('click', abrirModalPrestamo);
+}
+
+if (btnCerrarModalPrestamo) {
+  btnCerrarModalPrestamo.addEventListener('click', cerrarModalPrestamo);
+}
+
+if (btnCancelarModalPrestamo) {
+  btnCancelarModalPrestamo.addEventListener('click', cerrarModalPrestamo);
+}
+
+if (modalBoletaPrestamo) {
+  modalBoletaPrestamo.addEventListener('click', function(event) {
+    if (event.target === modalBoletaPrestamo) {
+      cerrarModalPrestamo();
+    }
+  });
+}
+
+if (btnConfirmarPagos) {
+  btnConfirmarPagos.addEventListener('click', function() {
+    if (!inputBoletaPrestamo.value.trim()) {
+      errorBoletaPrestamo.style.display = 'block';
+      inputBoletaPrestamo.classList.add('is-invalid');
+      inputBoletaPrestamo.focus();
+      return;
+    }
+
+    errorBoletaPrestamo.style.display = 'none';
+    inputBoletaPrestamo.classList.remove('is-invalid');
+    procesarPagos();
+  });
+}
+
+
+
+function filtrarTablaPlanillaPrestamos() {
+  const input = document.getElementById('buscarPrestamoPlanilla');
+  const filtro = (input?.value || '').trim().toLowerCase();
+  const filas = Array.from(document.querySelectorAll('.premium-table tbody tr'));
+  let visibles = 0;
+
+  filas.forEach((fila) => {
+    const codSocio = fila.cells[0]?.textContent.toLowerCase() || '';
+    const nomSocio = fila.cells[1]?.textContent.toLowerCase() || '';
+    const numPrestamo = fila.cells[2]?.textContent.toLowerCase() || '';
+    const coincidencia = !filtro || codSocio.includes(filtro) || nomSocio.includes(filtro) || numPrestamo.includes(filtro);
+    
+    fila.style.display = coincidencia ? '' : 'none';
+    if (coincidencia) visibles++;
+  });
+
+  const contador = document.getElementById('contadorResultadosPlanilla');
+  if (contador) {
+    contador.textContent = `${visibles} crédito(s) visible(s)`;
+  }
+}
+
+document.addEventListener('change', function(e) {
+  if (e.target.classList.contains('prestamo-checkbox')) {
+    const prestamoId = e.target.dataset.prestamoId;
+    const input = document.querySelector(`.monto-input[data-prestamo-id="${prestamoId}"]`);
+    const row = e.target.closest('tr');
+    
+    if (input) {
+      if (e.target.checked && parseFloat(input.value || 0) === 0) {
+        const cuotaMensual = parseFloat(input.dataset.cuotaMensual);
+        const saldoPendiente = parseFloat(input.dataset.saldoPendiente);
+        input.value = Math.min(cuotaMensual, saldoPendiente).toFixed(2);
+        calcularNuevoSaldo(input);
+      } else if (!e.target.checked) {
+        input.value = '0.00';
+        calcularNuevoSaldo(input);
+      }
+    }
+    actualizarResumen();
+  }
+});
+
+const buscarPrestamoPlanilla = document.getElementById('buscarPrestamoPlanilla');
+if (buscarPrestamoPlanilla) {
+  buscarPrestamoPlanilla.addEventListener('input', filtrarTablaPlanillaPrestamos);
+}
+
+document.querySelectorAll('.monto-input').forEach(input => {
+  calcularNuevoSaldo(input);
+});
+filtrarTablaPlanillaPrestamos();
+</script>
+
+{% endblock %}

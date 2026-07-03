@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Corte de Caja - {{ sesion.caja_nombre }}</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 13px;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            background: #fff;
+        }
+        .report-wrap {
+            max-width: 400px;
+            margin: 0 auto;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header h2 {
+            margin: 0;
+            font-size: 18px;
+            color: #0f172a;
+        }
+        .header p {
+            margin: 4px 0 0;
+            font-size: 11px;
+            color: #64748b;
+        }
+        .sep {
+            border-bottom: 1px dashed #000;
+            margin: 15px 0;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+        .data-table td {
+            padding: 5px 0;
+            vertical-align: top;
+        }
+        .data-table td.right {
+            text-align: right;
+            font-weight: bold;
+        }
+        .section-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            margin-top: 15px;
+        }
+        .btn-print {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background: #0f172a;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            margin-bottom: 15px;
+        }
+        @media print {
+            .btn-print {
+                display: none;
+            }
+            body {
+                padding: 0;
+            }
+            .report-wrap {
+                border: none;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="report-wrap">
+    <button class="btn-print" onclick="window.print()">🖨️ Imprimir Reporte</button>
+
+    <div class="header">
+        <h2>COOPAHORRO</h2>
+        <p>Reporte de Corte de Caja</p>
+        <p><strong>Caja:</strong> {{ sesion.caja_nombre }}</p>
+    </div>
+
+    <div class="sep"></div>
+
+    <table class="data-table">
+        <tr>
+            <td><strong>Sesión ID:</strong></td>
+            <td class="right">#{{ sesion.id }}</td>
+        </tr>
+        <tr>
+            <td><strong>Cajero:</strong></td>
+            <td class="right">{{ sesion.usuario_apertura }}</td>
+        </tr>
+        <tr>
+            <td><strong>Apertura:</strong></td>
+            <td class="right" style="font-size:11px; font-weight:normal;">{{ sesion.fecha_apertura[:16].replace('T', ' ') }}</td>
+        </tr>
+        <tr>
+            <td><strong>Cierre:</strong></td>
+            <td class="right" style="font-size:11px; font-weight:normal;">
+                {{ sesion.fecha_cierre[:16].replace('T', ' ') if sesion.fecha_cierre else 'Activo / Abierto' }}
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Estado:</strong></td>
+            <td class="right" style="text-transform: uppercase; color: {% if sesion.estado=='abierta' %}#047857{% else %}#475569{% endif %};">
+                {{ sesion.estado }}
+            </td>
+        </tr>
+    </table>
+
+    <div class="sep"></div>
+
+    <div class="section-title">Resumen Financiero</div>
+    <table class="data-table">
+        <tr>
+            <td>(+) Saldo Apertura:</td>
+            <td class="right">Q{{ "%.2f"|format(sesion.saldo_apertura) }}</td>
+        </tr>
+        <tr>
+            <td>(+) Ventas en Efectivo:</td>
+            <td class="right">Q{{ "%.2f"|format(totals.efectivo) }}</td>
+        </tr>
+        {% set mov_ent = namespace(val=0.0) %}
+        {% set mov_sal = namespace(val=0.0) %}
+        {% for m in movimientos %}
+            {% if m.tipo == 'entrada' %}
+                {% set mov_ent.val = mov_ent.val + m.monto %}
+            {% else %}
+                {% set mov_sal.val = mov_sal.val + m.monto %}
+            {% endif %}
+        {% endfor %}
+        <tr>
+            <td>(+) Entradas a Caja:</td>
+            <td class="right">Q{{ "%.2f"|format(mov_ent.val) }}</td>
+        </tr>
+        <tr>
+            <td>(-) Salidas de Caja:</td>
+            <td class="right">Q{{ "%.2f"|format(mov_sal.val) }}</td>
+        </tr>
+        <tr style="border-top: 1px solid #eee;">
+            <td><strong>(=) Saldo Esperado:</strong></td>
+            <td class="right">Q{{ "%.2f"|format(sesion.saldo_apertura + totals.efectivo + mov_ent.val - mov_sal.val) }}</td>
+        </tr>
+        {% if sesion.saldo_cierre is not none %}
+        <tr>
+            <td><strong>(=) Saldo Real en Arqueo:</strong></td>
+            <td class="right">Q{{ "%.2f"|format(sesion.saldo_cierre) }}</td>
+        </tr>
+        <tr style="border-top: 1px solid #000;">
+            <td><strong>Diferencia:</strong></td>
+            {% set diff = sesion.saldo_cierre - sesion.saldo_esperado %}
+            <td class="right" style="color: {% if diff == 0 %}#047857{% elif diff > 0 %}#0284c7{% else %}#dc2626{% endif %};">
+                {% if diff > 0 %}+{% endif %}Q{{ "%.2f"|format(diff) }}
+            </td>
+        </tr>
+        {% endif %}
+    </table>
+
+    <div class="sep"></div>
+
+    <div class="section-title">Otros Medios de Pago</div>
+    <table class="data-table">
+        <tr>
+            <td>Débito Ahorro:</td>
+            <td class="right">Q{{ "%.2f"|format(totals.debito_ahorro) }}</td>
+        </tr>
+        <tr>
+            <td>Crédito Consumo/POS:</td>
+            <td class="right">Q{{ "%.2f"|format(totals.credito_interno) }}</td>
+        </tr>
+        <tr>
+            <td>Notas de Crédito:</td>
+            <td class="right">Q{{ "%.2f"|format(totals.nota_credito) }}</td>
+        </tr>
+        <tr>
+            <td>Tarjeta Débito/Crédito:</td>
+            <td class="right">Q{{ "%.2f"|format(totals.tarjeta) }}</td>
+        </tr>
+    </table>
+
+    {% if movimientos %}
+    <div class="sep"></div>
+    <div class="section-title">Movimientos Manuales</div>
+    <table class="data-table" style="font-size: 11px;">
+        <thead>
+            <tr style="border-bottom: 1px solid #eee;">
+                <th style="text-align: left; padding-bottom: 4px;">Tipo</th>
+                <th style="text-align: left; padding-bottom: 4px;">Motivo</th>
+                <th style="text-align: right; padding-bottom: 4px;">Monto</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in movimientos %}
+            <tr>
+                <td style="text-transform: capitalize;">{{ m.tipo }}</td>
+                <td>{{ m.motivo }}</td>
+                <td style="text-align: right; font-weight: bold;">Q{{ "%.2f"|format(m.monto) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    {% if top_productos %}
+    <div class="sep"></div>
+    <div class="section-title">Top Productos Vendidos</div>
+    <table class="data-table" style="font-size: 11px;">
+        {% for p in top_productos %}
+        <tr>
+            <td>{{ p.nombre }}</td>
+            <td class="right">{{ p.cantidad|int }} und. (Q{{ "%.2f"|format(p.subtotal) }})</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+
+    {% if ventas_por_hora %}
+    <div class="sep no-print"></div>
+    <div class="section-title no-print">Ventas por Hora</div>
+    <div class="no-print" style="margin-bottom: 20px;">
+        <canvas id="ventasHoraChart" width="400" height="150"></canvas>
+    </div>
+    {% endif %}
+
+    <div class="sep" style="border-bottom-style: solid; margin-top: 40px;"></div>
+    <div style="text-align: center; margin-top: 40px; font-size: 11px;">
+        <br><br>
+        _____________________________________<br>
+        Firma Cajero: {{ sesion.usuario_apertura }}
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    {% if ventas_por_hora %}
+    const ctxHora = document.getElementById('ventasHoraChart').getContext('2d');
+    const horasData = {{ ventas_por_hora|tojson }};
+    const horasLabels = horasData.map(d => d.hora);
+    const horasTotales = horasData.map(d => d.total);
+    
+    new Chart(ctxHora, {
+        type: 'line',
+        data: {
+            labels: horasLabels,
+            datasets: [{
+                label: 'Ventas (Q)',
+                data: horasTotales,
+                borderColor: '#714B67',
+                backgroundColor: 'rgba(113, 75, 103, 0.2)',
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+    {% endif %}
+</script>
+</body>
+</html>

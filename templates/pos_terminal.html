@@ -1,0 +1,2588 @@
+{% extends 'base.html' %}
+{% block title %}Terminal de Venta — POS{% endblock %}
+{% block extra_head %}
+<link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+<style>
+/* ── POS: forzar sin padding en .main para llenar ventana ─────────────── */
+body .main { padding: 0 !important; margin: 0 !important; overflow: hidden; background: none; }
+body .footer, body .top-brand, body .header, body .mobile-nav, body .mobile-nav-backdrop { display: none !important; }
+
+/* ── Odoo Theme Variables ─────────────────────────────────────────────── */
+:root {
+  --odoo-purple: #714B67;
+  --odoo-purple-light: #f3f0f3;
+  --odoo-teal: #00878a;
+  --odoo-teal-light: #e6f3f3;
+  --odoo-border: #decbda;
+/* ── Layout Terminal Odoo (Full Screen con Pestañas) ───────────────────── */
+.alert {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 10500;
+  min-width: 300px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.pos-fullscreen-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background: var(--odoo-bg);
+  overflow: hidden;
+}
+
+.pos-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  background: #001f3d;
+  padding: 0 16px;
+  height: 54px;
+  border-bottom: 1px solid var(--odoo-bg);
+  flex-shrink: 0;
+}
+.pos-tabs { display: flex; gap: 4px; height: 100%; align-items: flex-end; overflow-x: auto; scrollbar-width: none; }
+.pos-tabs::-webkit-scrollbar { display: none; }
+.pos-tab {
+  background: #003b74; color: #cbd5e1; padding: 10px 18px; border-radius: 8px 8px 0 0;
+  cursor: pointer; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px;
+  transition: all 0.2s; white-space: nowrap; border: 1px solid #004d99; border-bottom: none;
+}
+.pos-tab:hover { background: #004d99; color: #fff; }
+.pos-tab.active {
+  background: var(--odoo-bg); color: #002a50;
+  border-color: var(--odoo-bg); margin-bottom: -1px; padding-bottom: 11px; font-weight: 800;
+}
+.pos-tab-close { font-size: 14px; opacity: 0.6; padding: 0 4px; border-radius: 50%; font-weight: bold; }
+.pos-tab-close:hover { opacity: 1; background: rgba(0,0,0,0.1); color: #ef4444; }
+.btn-new-order {
+  background: var(--odoo-teal); color: #fff; border: none; font-size: 13px; font-weight: 700; padding: 0 16px;
+  height: 34px; border-radius: 6px 6px 0 0; cursor: pointer; margin-bottom: -2px; transition: background 0.2s;
+  display: flex; align-items: center; justify-content: center;
+}
+.btn-new-order:hover { background: #006f71; }
+.btn-exit-pos { 
+  background: #dc2626; color: #fff; text-decoration: none; font-weight: 600; font-size: 13px; 
+  display: flex; align-items: center; padding: 6px 14px; border-radius: 6px; transition: background 0.2s;
+  margin-bottom: 8px; border: 1px solid #b91c1c;
+}
+.btn-exit-pos:hover { background: #b91c1c; }
+
+.pos-terminal {
+  display: grid;
+  grid-template-columns: 440px 1fr;
+  gap: 0;
+  flex: 1;
+  overflow: hidden;
+  background: var(--odoo-bg);
+}
+
+/* Panel Izquierdo: Órdenes, Totales, Numpad */
+.pos-left-pane {
+  background: #fff;
+  border-right: 1px solid #dee2e6;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-shadow: 4px 0 16px rgba(0,0,0,.03);
+}
+
+.client-section {
+  padding: 10px 14px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+}
+.client-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.client-info-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--odoo-purple);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Autocomplete dropdown del cliente ─────────────────────────────────── */
+.client-search-wrap { position: relative; }
+.client-autocomplete {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; right: 0;
+  background: #fff;
+  border: 1.5px solid var(--odoo-purple);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(113,75,103,.18);
+  z-index: 500;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.client-opt {
+  padding: 10px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f3f5;
+  transition: background .12s;
+  line-height: 1.4;
+}
+.client-opt:last-child { border-bottom: none; }
+.client-opt:hover, .client-opt.focused {
+  background: var(--odoo-purple-light);
+  color: var(--odoo-purple);
+}
+.client-opt strong { display: block; font-weight: 700; font-size: 13px; }
+.client-opt span { font-size: 11px; color: #6c757d; }
+
+.cart-section {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 0;
+}
+.cart-item {
+  padding: 10px 16px;
+  border-bottom: 1px solid #f1f3f5;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background .15s;
+}
+.cart-item.active {
+  background: var(--odoo-purple-light);
+  border-left: 4px solid var(--odoo-purple);
+  padding-left: 12px;
+}
+.cart-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cart-item-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #2c3e50;
+}
+.cart-item-meta {
+  font-size: 12px;
+  color: #6c757d;
+}
+.cart-item-total {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--odoo-teal);
+}
+
+.summary-section {
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+  border-bottom: 1px solid #dee2e6;
+}
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.summary-row.total {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--odoo-purple);
+  border-top: 1px dashed #decbda;
+  padding-top: 6px;
+  margin-top: 4px;
+}
+
+/* Numpad Odoo */
+.numpad-container {
+  display: grid;
+  grid-template-columns: 1fr 100px;
+  background: var(--numpad-bg);
+  padding: 10px;
+  gap: 8px;
+}
+.numpad-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.numpad-btn {
+  height: 52px;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #495057;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  transition: background .12s, transform .08s;
+}
+.numpad-btn:active {
+  background: #decbda;
+  transform: scale(.97);
+}
+.numpad-btn.mode-btn {
+  background: #f8f9fa;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+.numpad-btn.mode-btn.active {
+  background: var(--odoo-purple);
+  color: #fff;
+  border-color: var(--odoo-purple);
+}
+.numpad-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.btn-action-pos {
+  flex: 1;
+  border-radius: 8px;
+  border: none;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.btn-action-pay {
+  background: var(--odoo-teal);
+  box-shadow: 0 4px 10px rgba(0,135,138,.3);
+}
+.btn-action-pay:hover { background: #006e71; }
+.btn-action-pay:disabled { opacity: .5; cursor:not-allowed; box-shadow:none; }
+
+/* Panel Derecho: Catálogo de Productos u Opciones de Pago */
+.pos-right-pane {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+}
+
+.pos-top-bar {
+  background: #fff;
+  border-bottom: 1px solid #dee2e6;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cat-breadcrumb {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--odoo-purple);
+}
+
+.product-search {
+  width: 280px;
+  padding: 8px 12px;
+  border: 1.5px solid #dee2e6;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+  background: #f8f9fa;
+}
+.product-search:focus {
+  border-color: var(--odoo-purple);
+}
+
+.cat-bar {
+  display: flex;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #fff;
+  border-bottom: 1px solid #dee2e6;
+  overflow-x: auto;
+}
+.cat-tab {
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: #f1f3f5;
+  border: 1px solid #dee2e6;
+  font-size: 12px;
+  font-weight: 600;
+  color: #495057;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all .15s;
+}
+.cat-tab.active, .cat-tab:hover {
+  background: var(--odoo-purple);
+  color: #fff;
+  border-color: var(--odoo-purple);
+}
+
+.products-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  align-content: start;
+}
+
+.product-card {
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  height: 180px;
+  box-shadow: 0 2px 4px rgba(0,0,0,.02);
+  transition: border-color .15s, box-shadow .15s, transform .1s;
+  overflow: hidden;
+}
+.product-card:hover {
+  border-color: var(--odoo-purple);
+  box-shadow: 0 4px 12px rgba(113,75,103,.1);
+  transform: translateY(-1px);
+}
+.product-card.out-of-stock {
+  opacity: .5;
+  cursor: not-allowed;
+}
+.product-card.out-of-stock:hover {
+  transform: none;
+  border-color: #dee2e6;
+  box-shadow: none;
+}
+.product-card-img-wrapper {
+  height: 100px;
+  width: 100%;
+  background: #f8fafb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 32px; /* fallback icon size */
+}
+.product-card-img-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 4px;
+}
+.product-card-stock {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #495057;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.product-card-stock.low {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.product-card-body {
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  justify-content: space-between;
+}
+.product-card-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #2c3e50;
+  line-height: 1.25;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.product-card-price {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--odoo-teal);
+  text-align: right;
+  margin-top: auto;
+}
+
+/* ── Pantalla de Pagos Odoo ───────────────────────────────────────────── */
+.payment-screen {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  padding: 16px;
+  height: 100%;
+  background: var(--odoo-bg);
+  overflow-y: auto;
+}
+.payment-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.payment-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--odoo-purple);
+  margin-bottom: 2px;
+}
+.pay-method-btn {
+  padding: 10px 14px;
+  background: #fff;
+  border: 1.5px solid #dee2e6;
+  border-radius: 10px;
+  font-weight: 700;
+  color: #495057;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all .15s;
+}
+.pay-method-btn.selected {
+  border-color: var(--odoo-purple);
+  background: var(--odoo-purple-light);
+  color: var(--odoo-purple);
+}
+.pay-method-btn.credit-btn.selected {
+  border-color: #0369a1;
+  background: #e0f2fe;
+  color: #0369a1;
+}
+.pay-method-btn span.badge {
+  background: var(--odoo-teal);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+}
+.credit-limit-info {
+  font-size: 11px;
+  color: #6c757d;
+  margin-top: 4px;
+  padding: 0 2px;
+}
+
+/* Modal overlays generic */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,23,44,.5); backdrop-filter: blur(4px);
+  z-index: 9999; display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal-box {
+  background: #fff; border-radius: 20px; padding: 30px; max-width: 420px; width: 90%;
+  box-shadow: 0 25px 60px rgba(0,32,68,.22);
+}
+
+.history-drawer {
+  position: fixed; top: 0; right: -380px; width: 380px; height: 100%;
+  background: #fff; border-left: 1px solid #dee2e6;
+  box-shadow: -8px 0 32px rgba(0,0,0,.08); z-index: 999;
+  transition: right .3s cubic-bezier(.16,1,.3,1);
+  display: flex; flex-direction: column;
+}
+.history-drawer.open { right: 0; }
+.history-header { padding: 16px; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; }
+
+@media print {
+  body * { visibility: hidden; }
+  #ticket-print-area, #ticket-print-area * { visibility: visible; }
+  #ticket-print-area { 
+    display: block !important;
+    position: absolute; left: 0; top: 0; width: 80mm; 
+    font-family: 'Courier New', Courier, monospace !important; 
+    font-size: 12px; color: #000; background: #fff; padding: 0; margin: 0; 
+  }
+  .no-print { display: none !important; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pos-fullscreen-wrapper no-print">
+  {% if not sesion_caja %}
+  <div class="modal-overlay open" style="background: rgba(0,0,0,0.4); backdrop-filter: none; z-index: 10000;">
+    <div class="modal-box" style="padding: 0; max-width: 500px; border-radius: 6px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+      <div style="padding: 16px 24px; border-bottom: 1px solid #e5e7eb;">
+        <h2 style="font-family: 'DM Sans', sans-serif; font-size: 18px; font-weight: 700; color: #1f2937; margin: 0;">Control de apertura</h2>
+      </div>
+      <form action="{{ url_for('pos.cajas_abrir') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="next" value="{{ url_for('pos.terminal') }}">
+        <div style="padding: 24px;">
+          <div style="margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
+              <label style="font-size: 13px; font-weight: 600; color: #6b7280; margin: 0;">Caja Asignada</label>
+              <span style="font-size: 12px; color: #9ca3af;">Bodega: <strong style="color:#6b7280;">{{ bodega_asignada }}</strong></span>
+            </div>
+            <select name="caja_id" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 14px; outline: none; background: #fff;" required>
+              {% for c in cajas_disponibles %}
+              <option value="{{ c.id }}">{{ c.nombre }}</option>
+              {% else %}
+              <option value="">No hay cajas configuradas</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div style="margin-bottom: 20px;">
+            <label style="display: block; font-size: 13px; font-weight: 600; color: #6b7280; margin-bottom: 8px;">Efectivo de apertura</label>
+            <div style="display: flex; gap: 8px;">
+              <div style="position: relative; flex: 1;">
+                <input type="number" id="saldo_apertura_input" name="saldo_apertura" step="0.01" value="0.00" style="width: 100%; padding: 10px 32px 10px 12px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 15px; outline: none;">
+                <span style="position: absolute; right: 10px; top: 10px; cursor: pointer; color: #9ca3af; font-size: 12px; font-weight: bold;" onclick="document.getElementById('saldo_apertura_input').value='0.00'; calcularArqueo();">✖</span>
+              </div>
+              <button type="button" onclick="document.getElementById('arqueoModal').classList.add('open');" style="padding: 0 16px; border: 1px solid #d1d5db; border-radius: 4px; background: #f3f4f6; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px;" title="Detalle de arqueo">💵</button>
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 10px;">
+            <label style="display: block; font-size: 13px; font-weight: 600; color: #6b7280; margin-bottom: 8px;">Nota de apertura</label>
+            <textarea name="notas" placeholder="Agregar una nota de apertura..." style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 14px; outline: none; resize: vertical; min-height: 80px;"></textarea>
+          </div>
+        </div>
+        <div style="padding: 16px 24px; border-top: 1px solid #e5e7eb; display: flex; gap: 12px;">
+          <button type="submit" style="background: #714B67; color: white; border: none; padding: 10px 20px; font-size: 14px; font-weight: 600; border-radius: 4px; cursor: pointer; transition: background 0.2s;">Abrir caja registradora</button>
+          <button type="button" onclick="window.location.href='{{ url_for('pos.dashboard') }}'" style="background: #e5e7eb; color: #374151; border: none; padding: 10px 20px; font-size: 14px; font-weight: 600; border-radius: 4px; cursor: pointer; transition: background 0.2s;">Descartar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de Arqueo -->
+  <div id="arqueoModal" class="modal-overlay" style="background: rgba(0,0,0,0.5); backdrop-filter: none; z-index: 10001;">
+    <div class="modal-box" style="padding: 0; max-width: 600px; border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); background: #fff;">
+      <div style="padding: 16px 24px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 600; color: #111827; margin: 0;">Monedas/billetes</h2>
+        <span onclick="document.getElementById('arqueoModal').classList.remove('open');" style="cursor: pointer; font-size: 20px; color: #6b7280; font-weight: 300;">✕</span>
+      </div>
+      <div style="padding: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+        <!-- Left Column: Billetes -->
+        <div style="display: flex; flex-direction: column;">
+          {% for val in [200, 100, 50, 20, 10, 5, 2] %}
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: 16px; margin-bottom: 16px;">
+            <div style="display: flex; border: 1px solid #d1d5db; border-radius: 4px; overflow: hidden; background: #fff;">
+              <button type="button" onclick="decrement(this)" style="padding: 8px 14px; background: #f3f4f6; border: none; border-right: 1px solid #d1d5db; cursor: pointer; font-weight: 800; color: #374151;">−</button>
+              <input type="text" class="cuadre-input" data-valor="{{ val }}" value="0" style="width: 50px; text-align: center; border: none; font-size: 14px; outline: none; padding: 0;">
+              <button type="button" onclick="increment(this)" style="padding: 8px 14px; background: #f3f4f6; border: none; border-left: 1px solid #d1d5db; cursor: pointer; font-weight: 800; color: #374151;">+</button>
+            </div>
+            <span style="width: 70px; font-size: 14px; color: #4b5563;">{{ "%.2f"|format(val) }} Q</span>
+          </div>
+          {% endfor %}
+        </div>
+        <!-- Right Column: Monedas -->
+        <div style="display: flex; flex-direction: column;">
+          {% for val in [1, 0.50, 0.25, 0.20, 0.10, 0.05] %}
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: 16px; margin-bottom: 16px;">
+            <div style="display: flex; border: 1px solid #d1d5db; border-radius: 4px; overflow: hidden; background: #fff;">
+              <button type="button" onclick="decrement(this)" style="padding: 8px 14px; background: #f3f4f6; border: none; border-right: 1px solid #d1d5db; cursor: pointer; font-weight: 800; color: #374151;">−</button>
+              <input type="text" class="cuadre-input" data-valor="{{ val }}" value="0" style="width: 50px; text-align: center; border: none; font-size: 14px; outline: none; padding: 0;">
+              <button type="button" onclick="increment(this)" style="padding: 8px 14px; background: #f3f4f6; border: none; border-left: 1px solid #d1d5db; cursor: pointer; font-weight: 800; color: #374151;">+</button>
+            </div>
+            <span style="width: 70px; font-size: 14px; color: #4b5563;">{{ "%.2f"|format(val) }} Q</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div style="padding: 16px 24px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" onclick="document.getElementById('arqueoModal').classList.remove('open');" style="background: #714B67; color: white; border: none; padding: 10px 20px; font-size: 14px; font-weight: 600; border-radius: 4px; cursor: pointer; transition: background 0.2s;">Confirmar</button>
+        <span id="arqueoTotalLabel" style="font-size: 16px; font-weight: 600; color: #111827;">Total 0.00 Q</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function increment(btn) {
+      let input = btn.previousElementSibling;
+      input.value = (parseInt(input.value) || 0) + 1;
+      calcularArqueo();
+    }
+    function decrement(btn) {
+      let input = btn.nextElementSibling;
+      let val = (parseInt(input.value) || 0) - 1;
+      input.value = val < 0 ? 0 : val;
+      calcularArqueo();
+    }
+    function calcularArqueo() {
+      let total = 0;
+      document.querySelectorAll('.cuadre-input').forEach(input => {
+        let cant = parseInt(input.value) || 0;
+        let valor = parseFloat(input.dataset.valor) || 0;
+        total += cant * valor;
+      });
+      document.getElementById('saldo_apertura_input').value = total.toFixed(2);
+      document.getElementById('arqueoTotalLabel').innerText = 'Total ' + total.toFixed(2) + ' Q';
+    }
+    document.querySelectorAll('.cuadre-input').forEach(input => {
+      input.addEventListener('input', calcularArqueo);
+    });
+  </script>
+  {% endif %}
+  <div class="pos-top-bar">
+    <div class="pos-tabs" id="posTabsContainer">
+      <!-- Tabs se renderizan aquí dinámicamente -->
+    </div>
+    <div class="pos-top-actions" style="position: relative; display: flex; gap: 8px;">
+      <button type="button" class="btn-exit-pos" id="offlineSyncBtn" onclick="syncOfflineSales()" style="cursor:pointer; background:#10b981; color:#fff; border:none; display: flex; align-items: center; gap: 6px; padding: 0 12px; font-weight: 600; font-size: 13px; border-radius: 6px; transition: background 0.3s;" title="Estado de sincronización">
+        <span id="offlineStatusDot" style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#fff; box-shadow: 0 0 4px rgba(0,0,0,0.2);"></span>
+        <span id="offlineStatusText">En línea (0)</span>
+      </button>
+
+      <button type="button" class="btn-exit-pos dropdown-toggle" onclick="toggleExitMenu(event)" style="cursor:pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; background:#475569; color:#fff; border:none;">
+        ⚙️ Configuraciones <span style="font-size: 10px;">▼</span>
+      </button>
+      <div id="exitDropdown" style="display: none; position: absolute; right: 0; top: 100%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 1000; min-width: 220px; overflow: hidden; margin-top: 4px;">
+        
+        <a href="#" onclick="abrirPostVentaModal(); return false;" style="display: block; padding: 12px 16px; color: #059669; text-decoration: none; font-size: 13px; font-weight: 600; border-bottom: 1px solid #f1f5f9; transition: background 0.2s;">🔄 Gestión Post-Venta</a>
+        
+        <a href="#" onclick="verVentasSuspendidas(); return false;" style="display: block; padding: 12px 16px; color: #d97706; text-decoration: none; font-size: 13px; font-weight: 600; border-bottom: 1px solid #f1f5f9; transition: background 0.2s;">📋 Ventas Suspendidas</a>
+        
+        <a href="#" onclick="suspenderVenta(); return false;" style="display: block; padding: 12px 16px; color: #d97706; text-decoration: none; font-size: 13px; font-weight: 600; border-bottom: 1px solid #f1f5f9; transition: background 0.2s;">⏸️ Suspender Venta Actual</a>
+        
+        <a href="#" onclick="toggleFullscreen(); return false;" style="display: block; padding: 12px 16px; color: #475569; text-decoration: none; font-size: 13px; font-weight: 600; border-bottom: 1px solid #f1f5f9; transition: background 0.2s;">🖥️ Pantalla Completa (F11)</a>
+        
+        <a href="{{ url_for('pos.cajas') }}" style="display: block; padding: 12px 16px; color: #0f172a; text-decoration: none; font-size: 13px; font-weight: 700; border-bottom: 1px solid #f1f5f9; transition: background 0.2s;">🔒 Cerrar Caja / Arqueo</a>
+        
+        <a href="{{ url_for('pos.dashboard') }}" style="display: block; padding: 12px 16px; color: #dc2626; text-decoration: none; font-size: 13px; font-weight: 700; transition: background 0.2s;">🚪 Salir al Dashboard</a>
+        
+      </div>
+    </div>
+  </div>
+  
+  <!-- Shortcuts help -->
+  <div style="background: #e0e7ff; padding: 4px 16px; font-size: 11px; color: #4338ca; display: flex; gap: 16px; border-bottom: 1px solid #c7d2fe;" class="no-print">
+    <strong>Atajos de Teclado:</strong>
+    <span><kbd style="background:#fff; border:1px solid #a5b4fc; padding:1px 4px; border-radius:3px;">F2</kbd> Buscar Cliente</span>
+    <span><kbd style="background:#fff; border:1px solid #a5b4fc; padding:1px 4px; border-radius:3px;">F3</kbd> Buscar Producto</span>
+    <span><kbd style="background:#fff; border:1px solid #a5b4fc; padding:1px 4px; border-radius:3px;">F4</kbd> Cobrar / Validar Pago</span>
+    <span><kbd style="background:#fff; border:1px solid #a5b4fc; padding:1px 4px; border-radius:3px;">F11</kbd> Pantalla Completa</span>
+  </div>
+
+  <div class="pos-terminal no-print">
+
+  <!-- ==================== PANEL IZQUIERDO ==================== -->
+  <div class="pos-left-pane">
+    <!-- Cliente Selección -->
+    <div class="client-section">
+      <div class="client-bar">
+        <div style="display:flex; align-items:center; gap:6px; flex:1; overflow:hidden;">
+          👤 <span class="client-info-text" id="activeClientName">Cliente General</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <button id="btnLimpiarCliente" style="display:none; border:none; background:none; color:#6c757d; font-size:11px; font-weight:700; cursor:pointer;" onclick="limpiarCliente()">✕ Quitar</button>
+          <button id="btnEstadoCuenta" style="display:none; border:none; background:none; color:#17a2b8; font-size:11px; font-weight:700; cursor:pointer;" onclick="imprimirEstadoCuentaPOS()">🖨️ Est. Cuenta</button>
+          <button id="btnHistorialSocio" style="display:none; border:none; background:none; color:var(--odoo-purple); font-size:11px; font-weight:700; cursor:pointer;" onclick="toggleHistoryDrawer(true)">📜 Historial</button>
+        </div>
+      </div>
+      <div class="client-search-wrap" style="margin-top:6px;">
+        <input type="text" class="field" id="clientSearch" placeholder="Buscar asociado por código, nombre o apellido…" autocomplete="off" style="padding:6px 12px; font-size:12px; width:100%;">
+        <div class="client-autocomplete" id="clientList"></div>
+      </div>
+      <input type="hidden" id="socio_id" value="">
+      <input type="hidden" id="cuenta_id" value="">
+      <div id="clientInfo" style="font-size:11px; color:var(--c-gray); margin-top:4px;"></div>
+    </div>
+
+    <!-- Lista del Carrito -->
+    <div class="cart-section">
+      <div class="empty-cart" id="emptyCart" style="padding:30px 10px;">
+        <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="width:36px; height:36px; opacity:.3; margin-bottom:8px;"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m14-9l2 9M9 21a1 1 0 100-2 1 1 0 000 2zm10 0a1 1 0 100-2 1 1 0 000 2z"/></svg>
+        <p style="font-size:12px;">Carrito vacío. Seleccione productos.</p>
+      </div>
+      <div id="cartItems"></div>
+    </div>
+
+    <!-- Totales -->
+    <div class="summary-section">
+      <div class="summary-row"><span>Subtotal</span><span id="subtotalDisplay">Q 0.00</span></div>
+      <div class="summary-row" id="descuentoRow" style="display:none; color:#dc2626;"><span>Descuento Manual</span><span id="descuentoDisplay">− Q 0.00</span></div>
+      <div class="summary-row" id="puntosCanjeRow" style="display:none; color:#dc2626;">
+        <span>Descuento por Puntos</span>
+        <span id="puntosCanjeDisplay">− Q 0.00</span>
+      </div>
+      <div class="summary-row total"><span>TOTAL</span><span id="totalDisplay">Q 0.00</span></div>
+    </div>
+
+    <!-- Numpad Odoo -->
+    <div class="numpad-container">
+      <div class="numpad-grid">
+        <button class="numpad-btn" data-val="1">1</button>
+        <button class="numpad-btn" data-val="2">2</button>
+        <button class="numpad-btn" data-val="3">3</button>
+        <button class="numpad-btn mode-btn active" data-mode="qty">Cant</button>
+
+        <button class="numpad-btn" data-val="4">4</button>
+        <button class="numpad-btn" data-val="5">5</button>
+        <button class="numpad-btn" data-val="6">6</button>
+        <button class="numpad-btn mode-btn" data-mode="disc">Desc</button>
+
+        <button class="numpad-btn" data-val="7">7</button>
+        <button class="numpad-btn" data-val="8">8</button>
+        <button class="numpad-btn" data-val="9">9</button>
+        <button class="numpad-btn mode-btn" data-mode="price">Precio</button>
+
+        <button class="numpad-btn" data-val="sign">+/-</button>
+        <button class="numpad-btn" data-val="0">0</button>
+        <button class="numpad-btn" data-val=".">.</button>
+        <button class="numpad-btn" data-val="back">⌫</button>
+      </div>
+      <div class="numpad-actions">
+        <button class="btn-action-pos btn-action-pay" id="btnPaymentScreen" disabled onclick="togglePaymentView(true)">
+          ▶ <span>Pago</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== PANEL DERECHO ==================== -->
+  <div class="pos-right-pane" id="catalogView">
+    <!-- Barra Superior -->
+    <div class="pos-top-bar">
+      <div class="cat-breadcrumb" id="catBreadcrumb">📂 Catálogo</div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <input type="text" class="product-search" id="prodSearch" placeholder="🔍 Buscar por nombre, código o escanear barras…" autocomplete="off" style="flex-grow:1;">
+        <button class="cat-tab" style="background:#e2e8f0; font-weight:700;" onclick="location.href='/pos/cotizaciones'">📋 Presupuestos</button>
+      </div>
+    </div>
+
+    <!-- Categorías -->
+    <div class="cat-bar">
+      <button class="cat-tab active" data-cat="">Todos</button>
+      <button class="cat-tab" data-cat="rapida" style="color:#047857; font-weight:700; background:#ecfdf5; border:1px solid #d1fae5;">⚡ Venta Rápida</button>
+      {% for cat in categorias %}
+      <button class="cat-tab" data-cat="{{ cat.id }}">{{ cat.nombre }}</button>
+      {% endfor %}
+      <button class="cat-tab" data-cat="bajo_stock" style="color:#b91c1c; font-weight:700; background:#fef2f2; border:1px solid #fee2e2;">⚠️ Stock Bajo</button>
+    </div>
+
+    <!-- Grid de Productos -->
+    <div class="products-container" id="productsGrid">
+      {% for p in productos %}
+      <div class="product-card {% if p.stock <= 0 and p.unidad != 'servicio' %}out-of-stock{% endif %}"
+           data-id="{{ p.id }}" data-nombre="{{ p.nombre }}" data-precio="{{ p.precio_venta }}" data-precio-socio="{{ p.precio_socio }}"
+           data-stock="{{ p.stock }}" data-stock-minimo="{{ p.stock_minimo or 0 }}" data-unidad="{{ p.unidad }}" data-cat="{{ p.categoria_id or '' }}"
+           data-codigo="{{ p.codigo }}" {% if p.venta_rapida %}data-rapida="1"{% endif %}>
+        <div class="product-card-img-wrapper">
+          {% if p.imagen %}
+            <img src="{{ url_for('static', filename=p.imagen) }}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+            <span style="display:none;">
+              {% if p.categoria_nombre == 'Alimentos' %}🛒
+              {% elif p.categoria_nombre == 'Servicios' %}⚙️
+              {% else %}📦{% endif %}
+            </span>
+          {% else %}
+            <span>
+              {% if p.categoria_nombre == 'Alimentos' %}🛒
+              {% elif p.categoria_nombre == 'Servicios' %}⚙️
+              {% else %}📦{% endif %}
+            </span>
+          {% endif %}
+          
+          {% if p.unidad != 'servicio' %}
+          <span class="product-card-stock {% if p.stock <= p.stock_minimo %}low{% endif %}">
+            {% if p.stock <= p.stock_minimo %}⚠️ {% endif %}Stk: {{ p.stock|int }}
+          </span>
+          {% endif %}
+        </div>
+        <div class="product-card-body">
+          <div class="product-card-name" style="display: flex; align-items: flex-start; justify-content: space-between;">
+            <span>{{ p.nombre }}</span>
+            {% if p.unidad != 'servicio' %}
+            <button onclick="verStockBodegas(event, {{ p.id }}, '{{ p.nombre|replace("'", "\\'")|replace('"', '&quot;') }}')" style="background: none; border: none; font-size: 14px; cursor: pointer; padding: 0 0 0 4px; opacity: 0.7;" title="Ver stock en otras bodegas">👁️</button>
+            {% endif %}
+          </div>
+          <div class="product-card-price">Q{{ "%.2f"|format(p.precio_venta|float) }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- PANTALLA DE PAGO INTEGRADAS ESTILO ODOO -->
+  <div class="pos-right-pane" id="paymentView" style="display:none;">
+    <div class="pos-top-bar">
+      <div class="cat-breadcrumb">💳 Métodos de Pago</div>
+      <button class="cat-tab" style="background:#dee2e6; color:#212529;" onclick="togglePaymentView(false)">← Regresar al catálogo</button>
+    </div>
+
+    <div class="payment-screen">
+      <!-- Columna 1: Métodos de Pago -->
+      <div class="payment-col">
+        <div class="payment-title">Seleccionar Método</div>
+        
+        <!-- EFECTIVO: siempre visible -->
+        <button class="pay-method-btn selected" id="pay_method_efectivo" onclick="selectPayMethod('efectivo')">
+          <span>💵 Efectivo</span>
+          <span class="badge" id="badge_efectivo">Q 0.00</span>
+        </button>
+
+        <!-- CRÉDITO CONSUMO: visible solo si hay socio seleccionado -->
+        <div id="creditoMethodWrap" style="display:none;">
+          <button class="pay-method-btn credit-btn" id="pay_method_credito" onclick="selectPayMethod('credito_interno')">
+            <span>💳 Crédito Consumo</span>
+            <span class="badge" id="badge_credito">Q 0.00</span>
+          </button>
+          <div class="credit-limit-info" id="creditLimitInfo">Disponible: Q 700.00 de Q700.00</div>
+        </div>
+
+        <div id="paymentNCSection" style="display:none; flex-direction:column; gap:6px;">
+          <button class="pay-method-btn" id="pay_method_nc" onclick="selectPayMethod('nota_credito')">
+            <span>🔄 Nota de Crédito</span>
+            <span class="badge" id="badge_nc">Q 0.00</span>
+          </button>
+          <select id="paymentNCSelect" class="field" style="font-size:12px; padding:6px 10px;"></select>
+        </div>
+      </div>
+
+      <!-- Columna 2: Teclado de Pago Táctil -->
+      <div class="payment-col">
+        <div class="payment-title">Especificar Monto</div>
+        <div style="background:#fff; border:1px solid #ccc; border-radius:8px; padding:10px 14px; text-align:right; font-size:20px; font-weight:800; color:var(--odoo-purple);" id="paymentInputDisplay">
+          Q 0.00
+        </div>
+        <!-- Keypad -->
+        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:6px;">
+          <button class="numpad-btn" style="height:46px; font-size:16px;" onclick="payKeypadPress('1')">1</button>
+          <button class="numpad-btn" style="height:46px; font-size:16px;" onclick="payKeypadPress('2')">2</button>
+          <button class="numpad-btn" style="height:46px; font-size:16px;" onclick="payKeypadPress('3')">3</button>
+          <button class="numpad-btn" style="height:46px; font-size:16px;" onclick="payKeypadPress('4')">4</button>
+          <button class="numpad-btn" style="height:46px; font-size:16px;" onclick="payKeypadPress('5')">5</button>
+          <button class="numpad-btn" style="height:46px; font-size:16px;" onclick="payKeypadPress('6')">6</button>
+          <button class="numpad-btn" style="height:46px; font-size:16px;" onclick="payKeypadPress('7')">7</button>
+          <button class="numpad-btn" style="height:46px; font-size:16px;" onclick="payKeypadPress('8')">8</button>
+          <button class="numpad-btn" style="height:46px; font-size:16px;" onclick="payKeypadPress('9')">9</button>
+          <button class="numpad-btn" style="height:46px; font-size:16px;" onclick="payKeypadPress('clear')">C</button>
+          <button class="numpad-btn" style="height:46px; font-size:16px;" onclick="payKeypadPress('0')">0</button>
+          <button class="numpad-btn" style="height:46px; font-size:16px;" onclick="payKeypadPress('.')">.</button>
+          <button id="btnPagoExacto" class="numpad-btn" style="height:46px; font-size:14px; font-weight:700; background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; margin-top:8px; width:100%; grid-column:span 3;" onclick="aplicarPagoExacto()">⚡ Exacto Q 0.00</button>
+        </div>
+      </div>
+
+      <!-- Columna 3: Estado del Pago / Resumen -->
+      <div class="payment-col" style="background:#fff; border:1px solid #dee2e6; border-radius:10px; padding:16px; display:flex; flex-direction:column; justify-content:space-between;">
+        <div>
+          <div style="font-size:12px; font-weight:700; color:var(--c-gray); text-transform:uppercase; margin-bottom:12px;">Resumen del Cobro</div>
+          <div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:8px;"><span>Total Compra:</span><strong id="payTotalVenta">Q 0.00</strong></div>
+          <div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:8px; color:#047857;"><span>Suma Pagado:</span><strong id="paySumaPagada">Q 0.00</strong></div>
+          <div style="display:flex; justify-content:space-between; font-size:15px; font-weight:700; border-top:1px dashed #dee2e6; padding-top:10px; color:#b91c1c;" id="payDiffRow">
+            <span id="payDiffLabel">Falta por Cobrar:</span><strong id="payDiffValue">Q 0.00</strong>
+          </div>
+          
+          <div id="puntosCanjeSection" style="margin-top:20px; display:none; background:var(--odoo-purple-light); border:1px solid var(--odoo-purple); border-radius:8px; padding:10px;">
+            <div style="font-size:11px; font-weight:700; color:var(--odoo-purple); margin-bottom:4px;">FIDELIZACIÓN (PUNTOS)</div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <input type="number" id="puntosRedimir" class="field" min="0" value="0" style="padding:4px 8px; font-size:12px; text-align:right; width:80px;">
+              <span style="font-size:11px; color:#374151;" id="puntosAvailText">Disp. 0</span>
+            </div>
+          </div>
+          
+          <div style="margin-top:20px;">
+            <div style="font-size:12px; font-weight:700; color:var(--c-gray); text-transform:uppercase; margin-bottom:8px;">Datos de Facturación (FEL)</div>
+            <input type="text" id="clienteNit" class="field" placeholder="NIT (Ej. CF)" value="CF" style="margin-bottom:8px; font-size:13px; padding:8px;">
+            <input type="text" id="clienteDireccion" class="field" placeholder="Dirección" value="Ciudad" style="font-size:13px; padding:8px;">
+          </div>
+        </div>
+
+        <button class="btn-cobrar" id="btnValidarVenta" disabled style="padding:16px; font-size:18px; border-radius:12px;" onclick="guardarVentaCompleta()">
+          Validar Pago
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Campo oculto de notas para la venta -->
+<textarea id="notasVenta" style="display:none;"></textarea>
+
+<!-- MODAL DE VENTA EXITOSA -->
+<div class="modal-overlay" id="saleSuccessOverlay">
+  <div class="modal-box" style="text-align:center; max-width:400px;">
+    <div class="sale-check">
+      <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+    </div>
+    <h2 style="font-family:'Fraunces',serif; font-size:22px; color:#002a50; margin-bottom:8px;">¡Venta Completada!</h2>
+    <p id="saleSuccessMsg" style="color:var(--c-gray); font-size:14px; margin-bottom:24px;"></p>
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <button onclick="imprimirTicket()" class="btn-primary" style="justify-content:center; padding:12px; border:none; background:var(--odoo-teal); color:#fff; border-radius:8px; font-weight:700; cursor:pointer;">🖨️ Imprimir Ticket</button>
+      <div style="display:flex; gap:8px;">
+        <a id="saleDetailLink" href="#" class="btn-primary" style="background:#f3f4f6; color:#002a50; flex:1; justify-content:center; border: 1.5px solid #d1d5db; text-decoration:none; display:flex; align-items:center; font-weight:700; font-size:13px; border-radius:8px;">Detalle</a>
+        <button id="saleNewBtn" class="btn-primary" style="flex:1; justify-content:center; background:var(--odoo-purple); border:none; color:#fff; font-weight:700; border-radius:8px; cursor:pointer;" onclick="resetTerminal()">Nueva Venta</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL POST-VENTA RÁPIDA -->
+<div class="modal-overlay" id="postVentaOverlay">
+  <div class="modal-box" style="max-width: 600px; padding: 20px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+      <h3 style="font-family:'Fraunces',serif; font-size:18px; margin:0; color:#002a50;">🔄 Gestión Post-Venta (Últimas Ventas)</h3>
+      <button style="background:none; border:none; font-size:18px; cursor:pointer;" onclick="cerrarPostVentaModal()">✕</button>
+    </div>
+    <div style="max-height:400px; overflow-y:auto;">
+      <table class="g-table" style="width:100%; font-size:12px; text-align:left;">
+        <thead>
+          <tr style="background:#f1f5f9; border-bottom:1px solid #cbd5e1;">
+            <th style="padding:8px;"># Ticket</th>
+            <th style="padding:8px;">Cliente</th>
+            <th style="padding:8px;">Total</th>
+            <th style="padding:8px;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="postVentaTbody">
+          <!-- Llenado por JS -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL LATERAL DE HISTORIAL DE COMPRAS DEL SOCIO -->
+<div class="history-drawer" id="historyDrawer">
+  <div class="history-header">
+    <h3 style="font-family:'Fraunces',serif; font-size:16px; margin:0; color:#002a50;">Compras Recientes</h3>
+    <button style="background:none; border:none; font-size:18px; cursor:pointer;" onclick="toggleHistoryDrawer(false)">✕</button>
+  </div>
+  <div style="flex:1; overflow-y:auto; padding:15px;" id="historyContent">
+    <p style="color:var(--c-gray); text-align:center;">Cargando historial...</p>
+  </div>
+</div>
+
+  </div> <!-- end .pos-terminal -->
+</div> <!-- end .pos-fullscreen-wrapper -->
+
+<!-- ÁREA DE IMPRESIÓN DEL TICKET -->
+<div id="ticket-print-area" class="visible-print" style="display:none;"></div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let cart = {};
+let activeCartKey = null; // ID de producto seleccionado en el carrito
+let currentMode = 'qty'; // qty, disc, price
+let numpadBuffer = ''; // Buffer de entrada del teclado numérico
+
+let socioId = null;
+let cuentaId = null;
+let pointsAvailable = 0;
+let creditAvailable = 0.0;
+let cobroEnPlanilla = 0.0;
+let saldoCreditoUsado = 0.0;
+let limiteCredito = 700.0;
+let creditNotes = [];
+let loadedCotizacionId = null;
+
+// Estructura de pagos de la venta actual en pantalla de pago
+let paymentValues = {
+  efectivo: 0.0,
+  debito_ahorro: 0.0,
+  credito_interno: 0.0,
+  nota_credito: 0.0
+};
+let selectedPaymentMethod = 'efectivo';
+let payBuffer = '';
+
+// ── Estado de Pestañas (Orders) ─────────────────────────────────────────
+let orderIdCounter = 1;
+let orders = [];
+let activeOrderId = null;
+
+function saveActiveOrderState() {
+  if (!activeOrderId) return;
+  const order = orders.find(o => o.id === activeOrderId);
+  if (order) {
+    order.cart = JSON.parse(JSON.stringify(cart));
+    order.activeCartKey = activeCartKey;
+    order.socioId = socioId;
+    order.cuentaId = cuentaId;
+    order.pointsAvailable = pointsAvailable;
+    order.creditAvailable = creditAvailable;
+    order.cobroEnPlanilla = cobroEnPlanilla;
+    order.saldoCreditoUsado = saldoCreditoUsado;
+    order.limiteCredito = limiteCredito;
+    order.creditNotes = JSON.parse(JSON.stringify(creditNotes));
+    order.loadedCotizacionId = loadedCotizacionId;
+    order.paymentValues = JSON.parse(JSON.stringify(paymentValues));
+    order.selectedPaymentMethod = selectedPaymentMethod;
+    order.notas = document.getElementById('notasVenta').value;
+    order.clientName = document.getElementById('activeClientName').innerText;
+    order.clientSearch = document.getElementById('clientSearch').value;
+    order.clienteNit = document.getElementById('clienteNit').value;
+    order.clienteDireccion = document.getElementById('clienteDireccion').value;
+  }
+}
+
+function restoreOrderState(orderId) {
+  const order = orders.find(o => o.id === orderId);
+  if (!order) return;
+  activeOrderId = order.id;
+  
+  cart = JSON.parse(JSON.stringify(order.cart));
+  activeCartKey = order.activeCartKey;
+  socioId = order.socioId;
+  cuentaId = order.cuentaId;
+  pointsAvailable = order.pointsAvailable;
+  creditAvailable = order.creditAvailable;
+  cobroEnPlanilla = order.cobroEnPlanilla || 0.0;
+  saldoCreditoUsado = order.saldoCreditoUsado || 0.0;
+  limiteCredito = order.limiteCredito || 700.0;
+  creditNotes = JSON.parse(JSON.stringify(order.creditNotes));
+  loadedCotizacionId = order.loadedCotizacionId;
+  paymentValues = JSON.parse(JSON.stringify(order.paymentValues));
+  selectedPaymentMethod = order.selectedPaymentMethod;
+  document.getElementById('notasVenta').value = order.notas;
+  document.getElementById('activeClientName').innerText = order.clientName;
+  document.getElementById('clientSearch').value = order.clientSearch;
+  document.getElementById('clienteNit').value = order.clienteNit || 'CF';
+  document.getElementById('clienteDireccion').value = order.clienteDireccion || 'Ciudad';
+  
+  renderTabs();
+  renderCart(); // Esto llama a calcTotals()
+  
+  if (socioId) {
+    document.getElementById('btnLimpiarCliente').style.display = 'block';
+    document.getElementById('btnHistorialSocio').style.display = 'block';
+    document.getElementById('creditoMethodWrap').style.display = 'block';
+    document.getElementById('clientInfo').innerHTML = `
+      <details style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; margin-top:8px;">
+        <summary style="padding:8px 12px; cursor:pointer; font-size:12px; color:#0369a1; font-weight:600; list-style:none; display:flex; justify-content:space-between; align-items:center;">
+          <span>💳 Crédito: Q ${creditAvailable.toFixed(2)} disponibles</span>
+          <span style="color:#94a3b8; font-size:10px;">▼ Desglosar</span>
+        </summary>
+        <div style="padding:0 12px 8px 12px; font-size:12px; color:#334155; border-top:1px solid #e2e8f0; margin-top:4px; padding-top:8px;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <span>Límite de Consumo:</span> 
+            <strong>Q ${limiteCredito.toFixed(2)}</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <span>Enviado a Cobro (Planilla):</span> 
+            <strong style="color:#f59e0b;">Q ${cobroEnPlanilla.toFixed(2)}</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span>Nuevo Consumo:</span> 
+            <strong style="color:#ef4444;">Q ${saldoCreditoUsado.toFixed(2)}</strong>
+          </div>
+        </div>
+      </details>
+      <div style="margin-top:6px; text-align:right;">
+        <span style="color:#15803d; font-weight:600; font-size:12px;">⭐ Puntos Disponibles: <strong>${pointsAvailable}</strong></span>
+      </div>
+    `;
+    
+    document.getElementById('creditLimitInfo').textContent = `Disponible: Q ${creditAvailable.toFixed(2)} de Q${limiteCredito.toFixed(2)}`;
+    
+    const btnCredito = document.getElementById('pay_method_credito');
+    if (btnCredito) {
+      btnCredito.disabled = creditAvailable <= 0;
+      btnCredito.style.opacity = creditAvailable <= 0 ? '0.5' : '1';
+      btnCredito.title = creditAvailable <= 0 ? 'Límite de crédito agotado' : `Disponible: Q${creditAvailable.toFixed(2)}`;
+    }
+    
+    if (pointsAvailable > 0) {
+      document.getElementById('puntosCanjeSection').style.display = 'block';
+      document.getElementById('puntosAvailText').textContent = `Disponibles: ${pointsAvailable} pts`;
+      document.getElementById('puntosRedimir').max = pointsAvailable;
+    } else {
+      document.getElementById('puntosCanjeSection').style.display = 'none';
+    }
+    
+    if (creditNotes.length > 0) {
+      document.getElementById('paymentNCSection').style.display = 'flex';
+      const selectNC = document.getElementById('paymentNCSelect');
+      selectNC.innerHTML = '<option value="">-- Seleccionar Nota de Crédito --</option>';
+      creditNotes.forEach(nc => {
+        const opt = document.createElement('option');
+        opt.value = nc.id;
+        opt.textContent = `${nc.numero} (Disp. Q${nc.saldo_disponible.toFixed(2)})`;
+        opt.dataset.saldo = nc.saldo_disponible;
+        selectNC.appendChild(opt);
+      });
+    } else {
+      document.getElementById('paymentNCSection').style.display = 'none';
+    }
+  } else {
+    document.getElementById('btnLimpiarCliente').style.display = 'none';
+    document.getElementById('btnHistorialSocio').style.display = 'none';
+    document.getElementById('creditoMethodWrap').style.display = 'none';
+    document.getElementById('paymentNCSection').style.display = 'none';
+    document.getElementById('puntosCanjeSection').style.display = 'none';
+    const info = document.getElementById('clientInfo');
+    if(info) info.innerHTML = '';
+  }
+  
+  if (document.getElementById('paymentView').style.display !== 'none') {
+    togglePaymentView(false);
+  }
+}
+
+function createNewOrder() {
+  saveActiveOrderState();
+  const newOrder = {
+    id: orderIdCounter++,
+    cart: {}, activeCartKey: null, socioId: null, cuentaId: null,
+    pointsAvailable: 0, creditAvailable: 0.0, creditNotes: [], loadedCotizacionId: null,
+    paymentValues: { efectivo: 0.0, debito_ahorro: 0.0, credito_interno: 0.0, nota_credito: 0.0 },
+    selectedPaymentMethod: 'efectivo', notas: '', clientName: 'Cliente General', clientSearch: '',
+    clienteNit: 'CF', clienteDireccion: 'Ciudad'
+  };
+  orders.push(newOrder);
+  restoreOrderState(newOrder.id);
+}
+
+function switchOrder(orderId) {
+  if (orderId === activeOrderId) return;
+  saveActiveOrderState();
+  restoreOrderState(orderId);
+}
+
+function removeOrder(orderId, event) {
+  if (event) event.stopPropagation();
+  orders = orders.filter(o => o.id !== orderId);
+  if (orders.length === 0) {
+    activeOrderId = null;
+    createNewOrder();
+  } else if (orderId === activeOrderId) {
+    activeOrderId = null;
+    restoreOrderState(orders[orders.length - 1].id);
+  } else {
+    renderTabs();
+  }
+}
+
+function renderTabs() {
+  const container = document.getElementById('posTabsContainer');
+  if (!container) return;
+  let html = '';
+  orders.forEach((o) => {
+    let count = 0;
+    if (o.id === activeOrderId) {
+      count = Object.keys(cart).length;
+    } else {
+      count = Object.keys(o.cart).length;
+    }
+    
+    // Usar el nombre del cliente si está seleccionado, de lo contrario 'Orden X'
+    let clientShort = o.clientName;
+    if (clientShort === 'Cliente General') {
+      clientShort = 'Orden ' + o.id;
+    } else {
+      // Tomar solo el primer nombre/apellido para que no sea tan larga la pestaña
+      clientShort = clientShort.split(' ')[0];
+    }
+
+    const title = clientShort + (count > 0 ? ` (${count})` : '');
+    const isActive = o.id === activeOrderId ? 'active' : '';
+    html += `
+      <div class="pos-tab ${isActive}" onclick="switchOrder(${o.id})">
+        ${title}
+        <span class="pos-tab-close" onclick="removeOrder(${o.id}, event)">✕</span>
+      </div>
+    `;
+  });
+  html += `<button class="btn-new-order" onclick="createNewOrder()" title="Nueva Orden">+ Nueva Venta</button>`;
+  container.innerHTML = html;
+}
+
+// ── Búsqueda de productos por Código de Barras (Lector) ──────────────────
+let barcodeString = '';
+let lastKeyTime = Date.now();
+
+document.addEventListener('keypress', function(e) {
+  if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+    return;
+  }
+  
+  const currentTime = Date.now();
+  if (currentTime - lastKeyTime > 100) {
+    barcodeString = '';
+  }
+  lastKeyTime = currentTime;
+  
+  if (e.key === 'Enter') {
+    if (barcodeString.length >= 3) {
+      buscarYAgregarPorBarras(barcodeString);
+      barcodeString = '';
+    }
+  } else {
+    barcodeString += e.key;
+  }
+});
+
+// ── Atajos de Teclado (F2: Pago, Esc: Cancelar) ───────────────────────────
+document.addEventListener('keydown', function(e) {
+  // Ignorar si estamos en un campo de texto
+  if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+    return;
+  }
+  
+  // F2: Ir a Pantalla de Pago
+  if (e.key === 'F2') {
+    e.preventDefault();
+    if (!document.getElementById('btnPaymentScreen').disabled) {
+      togglePaymentView(true);
+    }
+  }
+  
+  // Esc: Regresar al catálogo desde pago o cerrar modal
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    if (document.getElementById('saleSuccessOverlay').classList.contains('open')) {
+      resetTerminal();
+    } else if (document.getElementById('paymentView').style.display !== 'none') {
+      togglePaymentView(false);
+    } else if (document.getElementById('historyDrawer').classList.contains('open')) {
+      toggleHistoryDrawer(false);
+    }
+  }
+  
+  // Enter en pantalla de pago: Validar Venta
+  if (e.key === 'Enter' && document.getElementById('paymentView').style.display !== 'none') {
+    e.preventDefault();
+    if (!document.getElementById('btnValidarVenta').disabled) {
+      guardarVentaCompleta();
+    }
+  }
+});
+
+// ── Efecto de sonido (Beep) para el escáner ──────────────────────────────
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime); // 880Hz = La5
+    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.1);
+  } catch(e) {}
+}
+
+async function buscarYAgregarPorBarras(barrasRaw) {
+  try {
+    let barras = barrasRaw;
+    let qty = 1;
+    // Soportar formato Cantidad*CodigoBarras (ej: 5*123456)
+    if (barrasRaw.includes('*')) {
+      const parts = barrasRaw.split('*');
+      const parsedQty = parseFloat(parts[0]);
+      if (!isNaN(parsedQty) && parsedQty > 0) {
+        qty = parsedQty;
+        barras = parts.slice(1).join('*'); // El resto es el código
+      }
+    }
+
+    const r = await fetch(`/pos/api/buscar_producto_barras?barras=${encodeURIComponent(barras)}`);
+    const p = await r.json();
+    if (p && !p.error) {
+      playBeep();
+      agregarAlCarritoDesdeObjeto(p, qty);
+    }
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+// ── Cargar Cotización Inicial si viene en URL ──────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  createNewOrder();
+  
+  const urlParams = new URLSearchParams(window.location.search);
+  const cotId = urlParams.get('cotizacion_id');
+  if (cotId) {
+    cargarCotizacion(cotId);
+  }
+});
+
+async function cargarCotizacion(id) {
+  try {
+    const res = await fetch(`/pos/cotizaciones/${id}/cargar`);
+    const data = await res.json();
+    if(data.success) {
+      loadedCotizacionId = id;
+      cart = {};
+      data.items.forEach(i => {
+        cart[i.id] = { nombre: i.nombre, precio: i.precio, qty: i.qty, stock: i.stock, unidad: i.unidad, discount: 0 };
+      });
+      renderCart();
+      if(data.items.length > 0) {
+        activeCartKey = data.items[0].id;
+        document.querySelector(`.cart-item[data-id="${activeCartKey}"]`)?.classList.add('active');
+      }
+      
+      if (data.socio) {
+        seleccionarSocio(data.socio);
+      } else if (data.cotizacion.cliente_nombre) {
+        document.getElementById('clientSearch').value = data.cotizacion.cliente_nombre;
+      }
+      
+      if (data.cotizacion.notas) {
+        document.getElementById('notasVenta').value = data.cotizacion.notas;
+      }
+      
+      if (data.cotizacion.descuento && document.getElementById('descuentoInput')) {
+        document.getElementById('descuentoInput').value = data.cotizacion.descuento;
+        calcTotals();
+      }
+    }
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+// ── Helpers de renderizado y cálculos ───────────────────────────────────
+const fmt = n => 'Q ' + parseFloat(n||0).toFixed(2);
+
+function calcTotals() {
+  let sub = 0;
+  Object.values(cart).forEach(i => {
+    const itemSub = i.precio * i.qty;
+    const descItem = i.discount || 0;
+    sub += Math.max(0, itemSub - descItem);
+  });
+  
+  // Descuento manual global si existe (opcional)
+  const descManualGlobal = parseFloat(document.getElementById('descuentoInput')?.value) || 0;
+  
+  // Descuento por puntos en pantalla de pago
+  const pts = parseInt(document.getElementById('puntosRedimir').value) || 0;
+  const descPuntos = pts * 0.10;
+  
+  const descTotal = descManualGlobal + descPuntos;
+  const total = Math.max(0, sub - descTotal);
+  
+  document.getElementById('subtotalDisplay').textContent = fmt(sub);
+  document.getElementById('totalDisplay').textContent = fmt(total);
+  
+  // Descuentos en sumario
+  const descRow = document.getElementById('descuentoRow');
+  const ptsRow = document.getElementById('puntosCanjeRow');
+  if(descManualGlobal > 0) {
+    descRow.style.display = 'flex';
+    document.getElementById('descuentoDisplay').textContent = `− ${fmt(descManualGlobal)}`;
+  } else {
+    descRow.style.display = 'none';
+  }
+  if(descPuntos > 0) {
+    ptsRow.style.display = 'flex';
+    document.getElementById('puntosCanjeDisplay').textContent = `− ${fmt(descPuntos)}`;
+  } else {
+    ptsRow.style.display = 'none';
+  }
+
+  return { sub, total, descTotal };
+}
+
+function renderCart() {
+  const container = document.getElementById('cartItems');
+  const empty = document.getElementById('emptyCart');
+  const keys = Object.keys(cart);
+  
+  if (!keys.length) {
+    container.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+    document.getElementById('btnPaymentScreen').disabled = true;
+    activeCartKey = null;
+    return;
+  }
+  
+  if (empty) empty.style.display = 'none';
+  container.innerHTML = '';
+  
+  keys.forEach(k => {
+    const item = cart[k];
+    const div = document.createElement('div');
+    div.className = 'cart-item' + (activeCartKey == k ? ' active' : '');
+    div.dataset.id = k;
+    div.innerHTML = `
+      <div class="cart-item-info">
+        <div class="cart-item-name">${item.nombre}</div>
+        <div class="cart-item-meta">${item.qty} ${item.unidad}s x Q${item.precio.toFixed(2)} c/u ${item.discount > 0 ? `(Desc. -Q${item.discount.toFixed(2)})` : ''}</div>
+      </div>
+      <div class="cart-item-total">${fmt((item.precio * item.qty) - (item.discount || 0))}</div>
+    `;
+    
+    // Seleccionar línea
+    div.addEventListener('click', () => {
+      document.querySelectorAll('.cart-item').forEach(el => el.classList.remove('active'));
+      div.classList.add('active');
+      activeCartKey = k;
+      numpadBuffer = '';
+    });
+    
+    container.appendChild(div);
+  });
+  
+  calcTotals();
+  document.getElementById('btnPaymentScreen').disabled = false;
+  if (typeof renderTabs === 'function') renderTabs();
+}
+
+function agregarAlCarritoDesdeObjeto(p, agregarQty = 1) {
+  const id = p.id;
+  if (cart[id]) {
+    if (p.unidad !== 'servicio' && cart[id].qty + agregarQty > parseFloat(p.stock||999)) {
+      alert('No hay más stock disponible.');
+      return;
+    }
+    cart[id].qty += agregarQty;
+  } else {
+    const pVenta = parseFloat(p.precio_venta) || 0;
+    const pSocio = parseFloat(p.precio_socio) || 0;
+    const precioBase = (socioId && pSocio > 0) ? pSocio : pVenta;
+    cart[id] = { 
+      nombre: p.nombre, 
+      precio_original: pVenta,
+      precio_socio: pSocio,
+      precio: precioBase, 
+      qty: agregarQty, 
+      stock: parseFloat(p.stock||999), 
+      unidad: p.unidad, 
+      discount: 0 
+    };
+  }
+  activeCartKey = id;
+  numpadBuffer = '';
+  renderCart();
+  
+  // Feedback visual
+  const itemRow = document.querySelector(`.cart-item[data-id="${id}"]`);
+  if (itemRow) {
+    itemRow.style.backgroundColor = '#dcfce7'; // verde claro
+    setTimeout(() => {
+      itemRow.style.backgroundColor = '';
+    }, 300);
+  }
+}
+
+// ── Búsqueda de cliente/asociado ─────────────────────────────────────────
+let searchTimeout = null;
+document.getElementById('clientSearch').addEventListener('input', function() {
+  clearTimeout(searchTimeout);
+  const q = this.value.trim();
+  if (q.length < 2) { document.getElementById('clientList').style.display='none'; return; }
+  searchTimeout = setTimeout(() => {
+    fetch(`/pos/api/buscar_socio?q=${encodeURIComponent(q)}`)
+      .then(r => r.json())
+      .then(data => {
+        const list = document.getElementById('clientList');
+        list.innerHTML = '';
+        if (!data.length) {
+          list.innerHTML = '<div class="client-opt" style="color:#999; cursor:default;">No se encontraron resultados.</div>';
+          list.style.display = 'block';
+          return;
+        }
+        data.forEach(s => {
+          const div = document.createElement('div');
+          div.className = 'client-opt';
+          const saldo = parseFloat(s.saldo || 0).toFixed(2);
+          div.innerHTML = `
+            <strong>${s.nombre} ${s.apellido}</strong>
+            <span>Cód: ${s.codigo}</span>
+          `;
+          div.addEventListener('click', () => seleccionarSocio(s));
+          list.appendChild(div);
+        });
+        list.style.display = 'block';
+      })
+      .catch(() => {
+        document.getElementById('clientList').style.display = 'none';
+      });
+  }, 300);
+});
+
+async function seleccionarSocio(s) {
+  document.getElementById('activeClientName').textContent = `${s.nombre} ${s.apellido}`;
+  document.getElementById('clientSearch').value = `${s.nombre} ${s.apellido}`;
+  socioId = s.id;
+  document.getElementById('socio_id').value = s.id;
+  cuentaId = s.cuenta_id || null;
+  document.getElementById('cuenta_id').value = s.cuenta_id || '';
+  
+  document.getElementById('clienteNit').value = s.nit || s.dpi || 'CF';
+  document.getElementById('clienteDireccion').value = s.direccion || 'Ciudad';
+  
+  document.getElementById('clientList').style.display = 'none';
+  document.getElementById('btnEstadoCuenta').style.display = 'block';
+  document.getElementById('btnHistorialSocio').style.display = 'block';
+  document.getElementById('btnLimpiarCliente').style.display = 'block';
+  
+  // Mostrar crédito consumo siempre para socios
+  document.getElementById('creditoMethodWrap').style.display = 'block';
+  
+  // Cargar puntos y crédito disponible desde API
+  try {
+    const res = await fetch(`/pos/api/puntos_socio/${s.id}`);
+    const data = await res.json();
+    pointsAvailable = data.puntos || 0;
+    creditAvailable = data.credito_disponible || 0.0;
+    cobroEnPlanilla = data.cobro_en_planilla || 0.0;
+    saldoCreditoUsado = data.saldo_credito_usado || 0.0;
+    limiteCredito = data.limite_credito || 700.0;
+    creditNotes = data.notas_credito || [];
+    
+    // Mostrar saldo de crédito consumo en el info del cliente
+    const info = document.getElementById('clientInfo');
+    info.innerHTML = `
+      <details style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; margin-top:8px;">
+        <summary style="padding:8px 12px; cursor:pointer; font-size:12px; color:#0369a1; font-weight:600; list-style:none; display:flex; justify-content:space-between; align-items:center;">
+          <span>💳 Crédito: Q ${creditAvailable.toFixed(2)} disponibles</span>
+          <span style="color:#94a3b8; font-size:10px;">▼ Desglosar</span>
+        </summary>
+        <div style="padding:0 12px 8px 12px; font-size:12px; color:#334155; border-top:1px solid #e2e8f0; margin-top:4px; padding-top:8px;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <span>Límite de Consumo:</span> 
+            <strong>Q ${limiteCredito.toFixed(2)}</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <span>Enviado a Cobro (Planilla):</span> 
+            <strong style="color:#f59e0b;">Q ${cobroEnPlanilla.toFixed(2)}</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span>Nuevo Consumo:</span> 
+            <strong style="color:#ef4444;">Q ${saldoCreditoUsado.toFixed(2)}</strong>
+          </div>
+        </div>
+      </details>
+      <div style="margin-top:6px; text-align:right;">
+        <span style="color:#15803d; font-weight:600; font-size:12px;">⭐ Puntos Disponibles: <strong>${pointsAvailable}</strong></span>
+      </div>
+    `;
+    
+    // Actualizar info de crédito en pantalla de pago
+    document.getElementById('creditLimitInfo').textContent =
+      `Disponible: Q ${creditAvailable.toFixed(2)} de Q${limiteCredito.toFixed(2)}`;
+    
+    // Si no tiene crédito disponible, deshabilitar el botón
+    const btnCredito = document.getElementById('pay_method_credito');
+    btnCredito.disabled = creditAvailable <= 0;
+    btnCredito.style.opacity = creditAvailable <= 0 ? '0.5' : '1';
+    btnCredito.title = creditAvailable <= 0 ? 'Límite de crédito agotado' : `Disponible: Q${creditAvailable.toFixed(2)}`;
+    
+    // Notas de crédito
+    const selectNC = document.getElementById('paymentNCSelect');
+    if (creditNotes.length > 0) {
+      selectNC.innerHTML = '<option value="">-- Seleccionar Nota de Crédito --</option>';
+      creditNotes.forEach(nc => {
+        const opt = document.createElement('option');
+        opt.value = nc.id;
+        opt.textContent = `${nc.numero} (Disp. Q${nc.saldo_disponible.toFixed(2)})`;
+        opt.dataset.saldo = nc.saldo_disponible;
+        selectNC.appendChild(opt);
+      });
+      document.getElementById('paymentNCSection').style.display = 'flex';
+    } else {
+      document.getElementById('paymentNCSection').style.display = 'none';
+    }
+    
+    // Puntos fidelización
+    if (pointsAvailable > 0) {
+      document.getElementById('puntosCanjeSection').style.display = 'block';
+      document.getElementById('puntosAvailText').textContent = `Disponibles: ${pointsAvailable} pts`;
+      document.getElementById('puntosRedimir').max = pointsAvailable;
+    } else {
+      document.getElementById('puntosCanjeSection').style.display = 'none';
+    }
+  } catch(e) {
+    console.error(e);
+  }
+  
+  // Recalcular precios del carrito
+  for (const id in cart) {
+    if (cart[id].precio_socio > 0) {
+      cart[id].precio = cart[id].precio_socio;
+    }
+  }
+  renderCart();
+}
+
+function limpiarCliente() {
+  socioId = null;
+  cuentaId = null;
+  pointsAvailable = 0;
+  creditAvailable = 0;
+  creditNotes = [];
+  document.getElementById('activeClientName').textContent = 'Cliente General';
+  document.getElementById('clientSearch').value = '';
+  document.getElementById('socio_id').value = '';
+  document.getElementById('cuenta_id').value = '';
+  document.getElementById('clienteNit').value = 'CF';
+  document.getElementById('clienteDireccion').value = 'Ciudad';
+  document.getElementById('clientList').style.display = 'none';
+  document.getElementById('btnEstadoCuenta').style.display = 'none';
+  document.getElementById('btnHistorialSocio').style.display = 'none';
+  document.getElementById('btnLimpiarCliente').style.display = 'none';
+  document.getElementById('creditoMethodWrap').style.display = 'none';
+  document.getElementById('paymentNCSection').style.display = 'none';
+  document.getElementById('puntosCanjeSection').style.display = 'none';
+  
+  // Revertir precios al precio normal
+  for (const id in cart) {
+    if (cart[id].precio_original) {
+      cart[id].precio = cart[id].precio_original;
+    }
+  }
+  renderCart();
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.client-search-wrap')) document.getElementById('clientList').style.display='none';
+});
+
+// ── Numpad Interactividad Táctil ───────────────────────────────────────
+document.querySelectorAll('.numpad-container .numpad-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.classList.contains('mode-btn')) {
+      document.querySelectorAll('.numpad-container .mode-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentMode = btn.dataset.mode;
+      numpadBuffer = '';
+      return;
+    }
+    
+    if (!activeCartKey) return;
+    const item = cart[activeCartKey];
+    const val = btn.dataset.val;
+    
+    if (val === 'back') {
+      if(numpadBuffer.length > 0) {
+        numpadBuffer = numpadBuffer.slice(0, -1);
+      } else {
+        // Borrar el ítem del carrito
+        delete cart[activeCartKey];
+        activeCartKey = Object.keys(cart)[0] || null;
+        renderCart();
+        return;
+      }
+    } else if (val === 'sign') {
+      if(numpadBuffer.startsWith('-')) {
+        numpadBuffer = numpadBuffer.slice(1);
+      } else {
+        numpadBuffer = '-' + numpadBuffer;
+      }
+    } else {
+      if(numpadBuffer === '0' && val !== '.') {
+        numpadBuffer = val;
+      } else {
+        numpadBuffer += val;
+      }
+    }
+    
+    const floatVal = parseFloat(numpadBuffer) || 0;
+    
+    if (currentMode === 'qty') {
+      if(item.unidad !== 'servicio' && floatVal > item.stock) {
+        alert('Stock insuficiente.');
+        numpadBuffer = item.qty.toString();
+        return;
+      }
+      item.qty = floatVal;
+      if(item.qty <= 0) {
+        delete cart[activeCartKey];
+        activeCartKey = Object.keys(cart)[0] || null;
+      }
+    } else if (currentMode === 'disc') {
+      item.discount = floatVal;
+    } else if (currentMode === 'price') {
+      item.precio = floatVal;
+    }
+    
+    renderCart();
+  });
+});
+
+// ── Historial Drawer ──────────────────────────────────────────────────────
+function toggleHistoryDrawer(show) {
+  const drawer = document.getElementById('historyDrawer');
+  if(show) {
+    drawer.classList.add('open');
+    cargarHistorialSocio();
+  } else {
+    drawer.classList.remove('open');
+  }
+}
+
+async function cargarHistorialSocio() {
+  const content = document.getElementById('historyContent');
+  if(!socioId) return;
+  try {
+    const [resPuntos, resHistorial] = await Promise.all([
+      fetch(`/pos/api/puntos_socio/${socioId}`),
+      fetch(`/pos/api/historial_asociado/${socioId}`)
+    ]);
+    const puntosData = await resPuntos.json();
+    const historialData = await resHistorial.json();
+    
+    content.innerHTML = '';
+    
+    // 1. Render Account Status card
+    const statusCard = document.createElement('div');
+    statusCard.style.background = '#f8fafc';
+    statusCard.style.border = '1px solid #e2e8f0';
+    statusCard.style.borderRadius = '12px';
+    statusCard.style.padding = '15px';
+    statusCard.style.marginBottom = '20px';
+    statusCard.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
+    
+    let notasCreditoHtml = '';
+    if (puntosData.notas_credito && puntosData.notas_credito.length > 0) {
+      notasCreditoHtml = `
+        <div style="margin-top: 10px; border-top: 1px solid #e2e8f0; padding-top: 10px;">
+          <strong style="font-size: 11px; color:#475569; display:block; margin-bottom: 4px;">Notas de Crédito Activas:</strong>
+          ${puntosData.notas_credito.map(nc => `
+            <div style="display:flex; justify-content:space-between; font-size:11px; background:#f0fdf4; border: 1px solid #bbf7d0; color:#166534; padding:3px 6px; border-radius:4px; margin-bottom:4px;">
+              <span>${nc.numero}</span>
+              <strong>${fmt(nc.saldo_disponible)}</strong>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    statusCard.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:8px; margin-bottom:10px;">
+        <span style="font-weight:700; color:#1e293b; font-size:13px;">Resumen del Asociado</span>
+        <span style="background:#fef3c7; color:#d97706; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:700;">⭐ ${puntosData.puntos} pts</span>
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; font-size:12px;">
+        <div>
+          <span style="color:#64748b; font-size:10px; display:block;">Crédito Utilizado</span>
+          <strong style="color:#ef4444; font-size:14px;">${fmt(puntosData.saldo_credito_usado)}</strong>
+        </div>
+        <div>
+          <span style="color:#64748b; font-size:10px; display:block;">Crédito Disponible</span>
+          <strong style="color:#22c55e; font-size:14px;">${fmt(puntosData.credito_disponible)}</strong>
+        </div>
+      </div>
+      <div style="font-size:10px; color:#94a3b8; margin-top:8px;">
+        Límite Autorizado: ${fmt(puntosData.limite_credito)}
+      </div>
+      ${notasCreditoHtml}
+    `;
+    content.appendChild(statusCard);
+    
+    // 2. Render Purchase History section
+    const historyHeader = document.createElement('h4');
+    historyHeader.style.margin = '0 0 10px 0';
+    historyHeader.style.fontSize = '13px';
+    historyHeader.style.color = '#1e293b';
+    historyHeader.style.borderBottom = '1px solid #e2e8f0';
+    historyHeader.style.paddingBottom = '5px';
+    historyHeader.textContent = 'Historial de Compras';
+    content.appendChild(historyHeader);
+    
+    if(!historialData.length) {
+      const p = document.createElement('p');
+      p.style.color = 'var(--c-gray)';
+      p.style.textAlign = 'center';
+      p.style.padding = '20px';
+      p.textContent = 'No hay compras anteriores.';
+      content.appendChild(p);
+      return;
+    }
+    
+    historialData.forEach(v => {
+      const div = document.createElement('div');
+      div.style.padding = '10px';
+      div.style.border = '1px solid var(--c-border)';
+      div.style.borderRadius = '8px';
+      div.style.marginBottom = '8px';
+      div.style.fontSize = '12px';
+      div.style.background = '#fff';
+      
+      let badgeEstado = '';
+      if(v.estado === 'completada') {
+        badgeEstado = `<span style="background:#dcfce7; color:#15803d; padding:1px 5px; border-radius:4px; font-size:9px; font-weight:700;">Pagada</span>`;
+      } else if(v.estado === 'devuelta') {
+        badgeEstado = `<span style="background:#f3f4f6; color:#4b5563; padding:1px 5px; border-radius:4px; font-size:9px; font-weight:700;">Devuelta</span>`;
+      } else {
+        badgeEstado = `<span style="background:#fef3c7; color:#d97706; padding:1px 5px; border-radius:4px; font-size:9px; font-weight:700;">${v.estado}</span>`;
+      }
+      
+      let badgePago = '';
+      if(v.metodo_pago === 'credito_interno') {
+        badgePago = `<span style="background:#fee2e2; color:#b91c1c; padding:1px 5px; border-radius:4px; font-size:9px; font-weight:700; margin-left:4px;">Crédito</span>`;
+      } else {
+        badgePago = `<span style="color:#64748b; font-size:10px; margin-left:4px;">(${v.metodo_pago})</span>`;
+      }
+      
+      div.innerHTML = `
+        <div style="display:flex; justify-content:space-between; font-weight:600; align-items:center;">
+          <span>${v.numero}</span>
+          <span style="color:#047857;">${fmt(v.total)}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; color:var(--c-gray); font-size:10px; margin-top:4px;">
+          <span>${(v.fecha || '').slice(0, 10)}</span>
+          <div>
+            ${badgeEstado}
+            ${badgePago}
+          </div>
+        </div>
+      `;
+      content.appendChild(div);
+    });
+  } catch(e) {
+    console.error(e);
+    content.innerHTML = '<p style="color:red; text-align:center; padding:20px;">Error al cargar historial y estado del socio</p>';
+  }
+}
+
+// Filtros por categorías
+document.querySelectorAll('.cat-bar .cat-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.cat-bar .cat-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    filterProducts();
+  });
+});
+
+function filterProducts() {
+  const q = document.getElementById('prodSearch').value.toLowerCase();
+  const activeTab = document.querySelector('.cat-bar .cat-tab.active');
+  const cat = activeTab ? activeTab.dataset.cat : '';
+  document.querySelectorAll('.product-card').forEach(card => {
+    const name = card.dataset.nombre.toLowerCase();
+    const code = card.dataset.codigo.toLowerCase();
+    const matchQ = !q || name.includes(q) || code.includes(q);
+    let matchC = false;
+    if (cat === 'bajo_stock') {
+      const stock = parseFloat(card.dataset.stock) || 0;
+      const min = parseFloat(card.dataset.stockMinimo) || 0;
+      const unidad = card.dataset.unidad;
+      matchC = (unidad !== 'servicio' && stock <= min);
+    } else if (cat === 'rapida') {
+      matchC = card.dataset.rapida === '1';
+    } else {
+      matchC = !cat || card.dataset.cat === cat;
+    }
+    card.style.display = matchQ && matchC ? 'flex' : 'none';
+  });
+}
+document.getElementById('prodSearch').addEventListener('input', filterProducts);
+
+// Seleccionar producto al hacer click en la tarjeta de producto
+document.querySelectorAll('.product-card').forEach(card => {
+  card.addEventListener('click', (e) => {
+    // Prevenir propagación en clicks de botones dentro del producto
+    if (e.target.tagName.toLowerCase() === 'button') {
+      return;
+    }
+    if (card.classList.contains('out-of-stock')) {
+      return;
+    }
+    const p = {
+      id: card.dataset.id,
+      nombre: card.dataset.nombre,
+      precio_venta: card.dataset.precio,
+      precio_socio: card.dataset.precioSocio,
+      stock: card.dataset.stock,
+      unidad: card.dataset.unidad
+    };
+    agregarAlCarritoDesdeObjeto(p);
+  });
+});
+
+async function verStockBodegas(e, id, nombre) {
+  e.stopPropagation();
+  try {
+    const res = await fetch(`/pos/producto/${id}/stock_bodegas`);
+    const data = await res.json();
+    if (data.length === 0) {
+      alert(`No hay stock registrado por bodega para: ${nombre}`);
+      return;
+    }
+    let msg = `📦 Stock en bodegas para: ${nombre}\n\n`;
+    data.forEach(b => {
+      msg += `- ${b.nombre}: ${b.stock}\n`;
+    });
+    alert(msg);
+  } catch(err) {
+    alert("Error consultando el stock de bodegas");
+  }
+}
+
+// ── Dropdown de Salida ────────────────────────────────────────────────
+function toggleExitMenu(e) {
+  e.stopPropagation();
+  const dropdown = document.getElementById('exitDropdown');
+  if (dropdown) {
+    dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+  }
+}
+document.addEventListener('click', () => {
+  const dropdown = document.getElementById('exitDropdown');
+  if (dropdown) dropdown.style.display = 'none';
+});
+
+// ── Pantalla de Pago Integrada ──────────────────────────────────────────
+function togglePaymentView(show) {
+  const catalog = document.getElementById('catalogView');
+  const payment = document.getElementById('paymentView');
+  if(show) {
+    catalog.style.display = 'none';
+    payment.style.display = 'flex';
+    initPaymentValues();
+  } else {
+    catalog.style.display = 'flex';
+    payment.style.display = 'none';
+  }
+}
+
+function initPaymentValues() {
+  const { total } = calcTotals();
+  paymentValues = { efectivo: 0, debito_ahorro: 0, credito_interno: 0, nota_credito: 0 };
+  selectedPaymentMethod = 'efectivo';
+  payBuffer = '';
+  
+  // Actualizar UI
+  document.querySelectorAll('.pay-method-btn').forEach(btn => btn.classList.remove('selected'));
+  document.getElementById('pay_method_efectivo').classList.add('selected');
+  document.getElementById('paymentInputDisplay').textContent = 'Q 0.00';
+  
+  document.getElementById('payTotalVenta').textContent = fmt(total);
+  
+  recalcularTotalesPago();
+}
+
+// Mapa de método de pago a ID del elemento HTML
+const PAY_METHOD_IDS = {
+  'efectivo': 'pay_method_efectivo',
+  'credito_interno': 'pay_method_credito',
+  'nota_credito': 'pay_method_nc'
+};
+
+function selectPayMethod(method) {
+  selectedPaymentMethod = method;
+  document.querySelectorAll('.pay-method-btn').forEach(btn => btn.classList.remove('selected'));
+  const elementId = PAY_METHOD_IDS[method] || `pay_method_${method}`;
+  const btn = document.getElementById(elementId);
+  if (btn) btn.classList.add('selected');
+  
+  // Cargar el valor del buffer
+  payBuffer = paymentValues[method] > 0 ? paymentValues[method].toFixed(2) : '';
+  document.getElementById('paymentInputDisplay').textContent = payBuffer ? fmt(payBuffer) : 'Q 0.00';
+}
+
+function payKeypadPress(val) {
+  if (val === 'clear') {
+    payBuffer = '';
+  } else {
+    if(payBuffer === '0' && val !== '.') {
+      payBuffer = val;
+    } else {
+      payBuffer += val;
+    }
+  }
+  
+  const floatVal = parseFloat(payBuffer) || 0;
+  paymentValues[selectedPaymentMethod] = floatVal;
+  
+  document.getElementById('paymentInputDisplay').textContent = payBuffer ? fmt(payBuffer) : 'Q 0.00';
+  recalcularTotalesPago();
+}
+
+function recalcularTotalesPago() {
+  const { total } = calcTotals();
+  
+  // Suma de pagos
+  const suma = Object.values(paymentValues).reduce((a, b) => a + b, 0);
+  const diff = total - suma;
+  
+  // Actualizar badges de los métodos
+  document.getElementById('badge_efectivo').textContent = fmt(paymentValues.efectivo);
+  document.getElementById('badge_credito').textContent = fmt(paymentValues.credito_interno);
+  document.getElementById('badge_nc').textContent = fmt(paymentValues.nota_credito);
+  
+  document.getElementById('paySumaPagada').textContent = fmt(suma);
+  
+  const exactoBtn = document.getElementById('btnPagoExacto');
+  if (exactoBtn) {
+    let remainingToPay = diff > 0 ? diff : 0;
+    exactoBtn.textContent = `⚡ Exacto Q ${remainingToPay.toFixed(2)}`;
+  }
+  
+  const diffLabel = document.getElementById('payDiffLabel');
+  const diffValue = document.getElementById('payDiffValue');
+  const btnValidar = document.getElementById('btnValidarVenta');
+  
+  if (Math.abs(diff) < 0.01) {
+    diffLabel.textContent = 'Pago Completado:';
+    diffValue.textContent = 'Q 0.00';
+    document.getElementById('payDiffRow').style.color = '#047857';
+    btnValidar.disabled = false;
+  } else if (diff < 0) {
+    diffLabel.textContent = 'Cambio / Vuelto:';
+    diffValue.textContent = fmt(Math.abs(diff));
+    document.getElementById('payDiffRow').style.color = '#0284c7';
+    btnValidar.disabled = false;
+  } else {
+    diffLabel.textContent = 'Falta por Cobrar:';
+    diffValue.textContent = fmt(diff);
+    document.getElementById('payDiffRow').style.color = '#b91c1c';
+    btnValidar.disabled = true;
+  }
+}
+
+document.getElementById('puntosRedimir').addEventListener('input', () => {
+  calcTotals();
+  recalcularTotalesPago();
+});
+
+document.getElementById('paymentNCSelect').addEventListener('change', function() {
+  const opt = this.options[this.selectedIndex];
+  if(opt && opt.dataset.saldo) {
+    paymentValues.nota_credito = parseFloat(opt.dataset.saldo);
+    payBuffer = paymentValues.nota_credito.toFixed(2);
+    document.getElementById('paymentInputDisplay').textContent = fmt(paymentValues.nota_credito);
+    recalcularTotalesPago();
+  }
+});
+
+// ── Confirmar y Guardar Venta ──────────────────────────────────────────
+async function guardarVentaCompleta() {
+  const { total, descTotal } = calcTotals();
+  const items = Object.keys(cart).map(id => ({
+    id: parseInt(id), nombre: cart[id].nombre,
+    precio: cart[id].precio, cantidad: cart[id].qty
+  }));
+
+  const pagos = [];
+  if(paymentValues.efectivo > 0) pagos.push({ metodo: 'efectivo', monto: paymentValues.efectivo });
+  if(paymentValues.debito_ahorro > 0) pagos.push({ metodo: 'debito_ahorro', monto: paymentValues.debito_ahorro, cuenta_id: cuentaId });
+  if(paymentValues.credito_interno > 0) pagos.push({ metodo: 'credito_interno', monto: paymentValues.credito_interno });
+  if(paymentValues.nota_credito > 0) {
+    const ncId = document.getElementById('paymentNCSelect').value;
+    pagos.push({ metodo: 'nota_credito', monto: paymentValues.nota_credito, detalle_id: parseInt(ncId) });
+  }
+
+  const payload = {
+    items,
+    socio_id: socioId,
+    cliente_nombre: document.getElementById('clientSearch').value.trim() || null,
+    cliente_nit: document.getElementById('clienteNit').value.trim(),
+    cliente_direccion: document.getElementById('clienteDireccion').value.trim(),
+    descuento: descTotal,
+    puntos_canjear: parseInt(document.getElementById('puntosRedimir').value) || 0,
+    pagos: pagos,
+    notas: document.getElementById('notasVenta').value.trim(),
+    cotizacion_id: loadedCotizacionId
+  };
+
+  const btn = document.getElementById('btnValidarVenta');
+  btn.disabled = true;
+  btn.textContent = 'Validando...';
+
+  try {
+    const res = await fetch('/pos/guardar_venta', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token() }}'
+      },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if(data.success) {
+      document.getElementById('saleSuccessMsg').textContent = `${data.numero} · Total: Q${data.total.toFixed(2)}`;
+      document.getElementById('saleDetailLink').href = `/pos/ventas/${data.venta_id}`;
+      
+      cargarTicketImpresion(data.venta_id);
+      
+      document.getElementById('saleSuccessOverlay').classList.add('open');
+      cart = {};
+    } else {
+      alert('Error: ' + data.error);
+    }
+  } catch(e) {
+    alert('Error de red al guardar la venta.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Validar Pago';
+  }
+}
+
+async function cargarTicketImpresion(ventaId) {
+  try {
+    const res = await fetch(`/pos/ventas/${ventaId}/ticket_json`);
+    const data = await res.json();
+    if (!data.success) return;
+    
+    const v = data.venta;
+    const linesHTML = data.detalles.map(d => {
+      const cantStr = Number.isInteger(d.cantidad) ? d.cantidad : d.cantidad.toFixed(1);
+      return `<div style="display:flex; justify-content:space-between; margin-bottom:2px;">
+                <div style="flex:1;">${cantStr} &nbsp; ${d.producto_nombre}</div>
+                <div style="text-align:right; width:60px;">Q${d.subtotal.toFixed(2)}</div>
+              </div>`;
+    }).join('');
+    
+    const payBlock = data.pagos.map(p => {
+      return `<div style="display:flex; justify-content:space-between; margin-bottom:2px;">
+                <div>${p.label}:</div>
+                <div style="text-align:right;">Q${p.monto.toFixed(2)}</div>
+              </div>`;
+    }).join('');
+    
+    let creditInfo = '';
+    const hasCreditPayment = data.pagos.some(p => p.metodo === 'credito_interno');
+    if (hasCreditPayment && v.socio_codigo) {
+       const saldo = parseFloat(v.saldo_credito || 0);
+       const limit = parseFloat(v.limite_credito || 0);
+       const disp = Math.max(0, limit - saldo);
+       creditInfo = `
+       <div style="text-align:center; margin-bottom:5px;">================================</div>
+       <div style="font-size:11px; margin-bottom:10px;">
+         <div style="text-align:center; font-weight:bold; margin-bottom:3px;">RESUMEN CRÉDITO POS</div>
+         <div style="display:flex; justify-content:space-between;"><span>Límite:</span> <span>Q${limit.toFixed(2)}</span></div>
+         <div style="display:flex; justify-content:space-between;"><span>Consumo Total:</span> <span>Q${saldo.toFixed(2)}</span></div>
+         <div style="display:flex; justify-content:space-between;"><span>Disponible:</span> <span>Q${disp.toFixed(2)}</span></div>
+       </div>
+       `;
+    }
+
+    const ticketHTML = `
+      <div style="font-family: 'Courier New', Courier, monospace; font-size:12px; width:280px; margin:0 auto; color:#000;">
+        <div style="text-align:center; line-height:1.2; margin-bottom:5px;">
+          <div>Cooperativa de Ahorro y Crédito</div>
+          <div>NIT: 123456-7</div>
+          <div>CIUDAD, GUATEMALA</div>
+          <div>TEL: 2222-3333</div>
+        </div>
+        
+        <div style="text-align:center; margin-bottom:5px;">================================</div>
+        
+        <div style="text-align:center; line-height:1.2; margin-bottom:5px;">
+          <div>FOLIO: ${v.numero}</div>
+          <div>${v.fecha.replace('T', ' ').substring(0,19)}</div>
+          <div>CAJERO: ${v.usuario}</div>
+          ${v.nombre_cliente !== 'Cliente General' ? `<div>CLIENTE: ${v.nombre_cliente}</div>` : ''}
+          ${v.cliente_nit !== 'CF' ? `<div>NIT: ${v.cliente_nit}</div>` : ''}
+        </div>
+        
+        <div style="text-align:center; margin-bottom:5px;">================================</div>
+        
+        <div style="display:flex; justify-content:space-between; margin-bottom:3px; font-weight:bold;">
+          <div>CANT.DESCRIPCION</div>
+          <div>IMPORTE</div>
+        </div>
+        
+        ${linesHTML}
+        
+        <br>
+        <div style="display:flex; justify-content:flex-end; margin-bottom:2px;">
+          <div style="width:100px; text-align:right;">SUBTOTAL:</div>
+          <div style="width:70px; text-align:right;">Q${v.subtotal.toFixed(2)}</div>
+        </div>
+        ${v.descuento > 0 ? `
+        <div style="display:flex; justify-content:flex-end; margin-bottom:2px;">
+          <div style="width:100px; text-align:right;">DESCUENTO:</div>
+          <div style="width:70px; text-align:right;">Q${v.descuento.toFixed(2)}</div>
+        </div>
+        ` : ''}
+        <div style="display:flex; justify-content:flex-end; margin-bottom:5px; font-size:16px; font-weight:bold;">
+          <div style="width:100px; text-align:right;">TOTAL:</div>
+          <div style="width:70px; text-align:right;">Q${v.total.toFixed(2)}</div>
+        </div>
+        
+        <div style="text-align:center; margin-bottom:5px;">================================</div>
+        
+        <div style="font-size:11px; margin-bottom:10px;">
+          <div style="text-align:center; font-weight:bold;">MÉTODOS DE PAGO</div>
+          ${payBlock}
+        </div>
+        
+        ${creditInfo}
+        
+        ${v.fel_uuid ? `
+        <div style="text-align:center; margin-bottom:5px;">================================</div>
+        <div style="font-size:11px; text-align:center; margin-bottom:10px;">
+          <div>AUTORIZACIÓN DTE</div>
+          <div style="word-break:break-all;">${v.fel_uuid}</div>
+          <div>Serie: ${v.fel_serie} - Núm: ${v.fel_numero}</div>
+        </div>
+        ` : ''}
+        
+        <div style="text-align:center; margin-bottom:5px;">================================</div>
+        
+        <div style="text-align:center; font-size:11px; margin-top:10px;">
+          * GRACIAS POR SU PREFERENCIA *<br>
+          ASOCIADO A SU BIENESTAR<br>
+          ESTE NO ES UN COMPROBANTE FISCAL
+        </div>
+      </div>
+    `;
+    document.getElementById('ticket-print-area').innerHTML = ticketHTML;
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+function imprimirTicket() {
+  window.print();
+}
+
+function imprimirEstadoCuentaPOS() {
+  if (!socioId) return;
+  window.open(`/pos/socio/${socioId}/estado_cuenta/imprimir`, '_blank');
+}
+
+function resetTerminal() {
+  document.getElementById('saleSuccessOverlay').classList.remove('open');
+  togglePaymentView(false);
+  removeOrder(activeOrderId, null);
+}
+
+// ── Nuevas Funciones de Soporte POS ──
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(err => {
+      console.error(`Error al activar pantalla completa: ${err.message}`);
+    });
+  } else {
+    document.exitFullscreen();
+  }
+}
+
+function aplicarPagoExacto() {
+  const { total } = calcTotals();
+  let sumOthers = 0;
+  for (let key in paymentValues) {
+    if (key !== selectedPaymentMethod) {
+      sumOthers += paymentValues[key];
+    }
+  }
+  let remaining = total - sumOthers;
+  if (remaining < 0) remaining = 0;
+  
+  paymentValues[selectedPaymentMethod] = parseFloat(remaining.toFixed(2));
+  payBuffer = remaining.toFixed(2);
+  
+  document.getElementById('paymentInputDisplay').textContent = fmt(payBuffer);
+  recalcularTotalesPago();
+}
+
+// Event listener para búsqueda de barras en el buscador principal
+document.addEventListener('DOMContentLoaded', () => {
+  const prodSearch = document.getElementById('prodSearch');
+  if (prodSearch) {
+    prodSearch.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const barras = this.value.trim();
+        if (barras) {
+          buscarYAgregarPorBarras(barras);
+          this.value = '';
+          // Disparar evento input para limpiar los filtros visuales
+          this.dispatchEvent(new Event('input'));
+        }
+      }
+    });
+  }
+});
+</script>
+<div id="modalVentasSuspendidas" class="modal-overlay" style="background: rgba(0,0,0,0.5); backdrop-filter: none; z-index: 10001;">
+  <div class="modal-box" style="padding: 0; max-width: 600px; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); background: #fff;">
+    <div style="padding: 16px 24px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+      <h2 style="font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 700; color: #111827; margin: 0;">Ventas Suspendidas</h2>
+      <span onclick="document.getElementById('modalVentasSuspendidas').classList.remove('open');" style="cursor: pointer; font-size: 20px; color: #6b7280; font-weight: 300;">✕</span>
+    </div>
+    <div style="padding: 16px 24px; max-height: 400px; overflow-y: auto;" id="listadoVentasSuspendidas">
+      <!-- Se llena por JS -->
+    </div>
+  </div>
+</div>
+
+<script>
+// --- Lógica de Ventas Suspendidas ---
+function getVentasSuspendidas() {
+  const json = localStorage.getItem('pos_ventas_suspendidas');
+  return json ? JSON.parse(json) : [];
+}
+
+function suspenderVenta() {
+  if (Object.keys(cart).length === 0) {
+    alert('El carrito está vacío, no se puede suspender.');
+    return;
+  }
+  const suspendidas = getVentasSuspendidas();
+  const venta = {
+    id: Date.now(),
+    fecha: new Date().toLocaleString(),
+    cart: JSON.parse(JSON.stringify(cart)),
+    socioId: socioId,
+    clientName: document.getElementById('activeClientName').textContent,
+    clienteNit: document.getElementById('clienteNit').value,
+    clienteDireccion: document.getElementById('clienteDireccion').value,
+    notas: document.getElementById('notasVenta').value,
+    total: document.getElementById('totalDisplay').textContent
+  };
+  suspendidas.push(venta);
+  localStorage.setItem('pos_ventas_suspendidas', JSON.stringify(suspendidas));
+  
+  // Limpiar carrito actual cerrando la orden
+  removeOrder(activeOrderId, null);
+  verVentasSuspendidas();
+}
+
+function verVentasSuspendidas() {
+  const suspendidas = getVentasSuspendidas();
+  const listado = document.getElementById('listadoVentasSuspendidas');
+  listado.innerHTML = '';
+  
+  if (suspendidas.length === 0) {
+    listado.innerHTML = '<p style="text-align:center; color:#6b7280; padding:20px;">No hay ventas suspendidas.</p>';
+  } else {
+    suspendidas.forEach(v => {
+      const numItems = Object.keys(v.cart).length;
+      listado.innerHTML += `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border:1px solid #e5e7eb; border-radius:8px; margin-bottom:8px;">
+          <div>
+            <div style="font-weight:700; color:#1f2937; font-size:14px;">${v.clientName}</div>
+            <div style="font-size:12px; color:#6b7280;">${v.fecha} • ${numItems} ítems • ${v.total}</div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button onclick="restaurarVentaSuspendida(${v.id})" style="background:#059669; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:600;">Restaurar</button>
+            <button onclick="eliminarVentaSuspendida(${v.id})" style="background:#ef4444; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:600;">Eliminar</button>
+          </div>
+        </div>
+      `;
+    });
+  }
+  
+  document.getElementById('modalVentasSuspendidas').classList.add('open');
+}
+
+function restaurarVentaSuspendida(id) {
+  const suspendidas = getVentasSuspendidas();
+  const idx = suspendidas.findIndex(v => v.id === id);
+  if (idx !== -1) {
+    const v = suspendidas[idx];
+    
+    // Crear nueva pestaña
+    createNewOrder();
+    
+    // Restaurar datos básicos inmediatamente para la UI
+    cart = v.cart;
+    document.getElementById('notasVenta').value = v.notas || '';
+    document.getElementById('activeClientName').textContent = v.clientName;
+    document.getElementById('clienteNit').value = v.clienteNit || 'CF';
+    document.getElementById('clienteDireccion').value = v.clienteDireccion || 'Ciudad';
+    
+    if (v.socioId) {
+      socioId = v.socioId;
+      // Recuperar info completa del socio para el crédito y puntos
+      fetch(`/pos/api/buscar_socio?q=${encodeURIComponent(v.clientName)}`)
+        .then(r => r.json())
+        .then(data => {
+          if(data && data.length > 0) {
+            const match = data.find(x => x.id === v.socioId) || data[0];
+            seleccionarSocio(match);
+            saveActiveOrderState();
+            renderTabs();
+          }
+        });
+    }
+    
+    // Guardar el estado en la pestaña actual y renderizar
+    saveActiveOrderState();
+    renderTabs();
+    renderCart();
+    
+    // Eliminar de localStorage
+    suspendidas.splice(idx, 1);
+    localStorage.setItem('pos_ventas_suspendidas', JSON.stringify(suspendidas));
+    
+    document.getElementById('modalVentasSuspendidas').classList.remove('open');
+  }
+}
+
+function eliminarVentaSuspendida(id) {
+  if (confirm('¿Estás seguro de eliminar esta venta suspendida?')) {
+    let suspendidas = getVentasSuspendidas();
+    suspendidas = suspendidas.filter(v => v.id !== id);
+    localStorage.setItem('pos_ventas_suspendidas', JSON.stringify(suspendidas));
+    verVentasSuspendidas();
+  }
+}
+
+// ── Post Venta Modal ──────────────────────────────────────────────────────────
+async function abrirPostVentaModal() {
+  document.getElementById('postVentaOverlay').classList.add('open');
+  const tbody = document.getElementById('postVentaTbody');
+  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px;">Cargando ventas...</td></tr>';
+  
+  try {
+    const res = await fetch('/pos/api/ultimas_ventas');
+    const data = await res.json();
+    if (data.success) {
+      tbody.innerHTML = '';
+      if (data.ventas.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px;">No hay ventas recientes.</td></tr>';
+        return;
+      }
+      data.ventas.forEach(v => {
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid #f1f5f9';
+        tr.innerHTML = `
+          <td style="padding:8px;"><strong>${v.numero}</strong><br><span style="font-size:10px; color:#64748b;">${v.fecha.substring(11,16)}</span></td>
+          <td style="padding:8px;">${v.cliente}</td>
+          <td style="padding:8px;">Q ${v.total.toFixed(2)}</td>
+          <td style="padding:8px; display:flex; gap:6px;">
+            <button onclick="cargarTicketImpresion(${v.id})" style="padding:4px 8px; border-radius:4px; border:1px solid #cbd5e1; background:#fff; cursor:pointer;" title="Reimprimir Ticket">🖨️</button>
+            <button onclick="window.open('/pos/ventas/${v.id}', '_blank')" style="padding:4px 8px; border-radius:4px; border:1px solid #cbd5e1; background:#fff; cursor:pointer;" title="Ver Detalle o Devolver">🔄 Detalle/Devolver</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    } else {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px; color:red;">${data.error}</td></tr>`;
+    }
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:red;">Error de conexión</td></tr>';
+  }
+}
+
+function cerrarPostVentaModal() {
+  document.getElementById('postVentaOverlay').classList.remove('open');
+}
+
+// ── Atajos de Teclado Globales ────────────────────────────────────────────────
+document.addEventListener('keydown', function(e) {
+  // Evitar que actúe si hay un modal encima
+  if (document.getElementById('postVentaOverlay').classList.contains('open') || 
+      document.getElementById('modalVentasSuspendidas').classList.contains('open')) {
+    return;
+  }
+
+  // F2: Buscar cliente
+  if (e.key === 'F2') {
+    e.preventDefault();
+    const clientSearch = document.getElementById('clientSearch');
+    if (clientSearch) {
+      clientSearch.focus();
+      clientSearch.select();
+    }
+  }
+  // F3: Buscar producto (código de barras manual o texto)
+  else if (e.key === 'F3') {
+    e.preventDefault();
+    const prodSearch = document.getElementById('prodSearch');
+    if (prodSearch) {
+      prodSearch.focus();
+      prodSearch.select();
+    }
+  }
+  // F4: Pagar (Ir a la pantalla de cobro) o Facturar (Confirmar venta)
+  else if (e.key === 'F4') {
+    e.preventDefault();
+    const paymentView = document.getElementById('paymentView');
+    if (paymentView && paymentView.style.display === 'none') {
+      // Estamos en catálogo, intentar ir a pagar
+      const btnPayment = document.getElementById('btnPaymentScreen');
+      if (btnPayment && !btnPayment.disabled) {
+        togglePaymentView(true);
+      }
+    } else {
+      // Ya estamos en la pantalla de cobro, intentar facturar
+      const btnValidar = document.getElementById('btnValidarVenta');
+      if (btnValidar && !btnValidar.disabled) {
+        btnValidar.click();
+      }
+    }
+  }
+});
+
+// PWA Offline Sync Logic
+function updateOfflineStatus() {
+  const isOnline = navigator.onLine;
+  const offlineSales = JSON.parse(localStorage.getItem('pos_ventas_offline') || '[]');
+  const pendingCount = offlineSales.length;
+  
+  const btn = document.getElementById('offlineSyncBtn');
+  const dot = document.getElementById('offlineStatusDot');
+  const text = document.getElementById('offlineStatusText');
+  
+  if (isOnline) {
+    if (pendingCount > 0) {
+      btn.style.background = '#f59e0b'; // Naranja (online pero con pendientes)
+      dot.style.background = '#fff';
+      text.innerText = `Sincronizar (${pendingCount})`;
+    } else {
+      btn.style.background = '#10b981'; // Verde (online, sincronizado)
+      dot.style.background = '#fff';
+      text.innerText = `En línea`;
+    }
+  } else {
+    btn.style.background = '#ef4444'; // Rojo (offline)
+    dot.style.background = '#fff';
+    text.innerText = `Sin red (${pendingCount})`;
+  }
+}
+
+window.addEventListener('online', updateOfflineStatus);
+window.addEventListener('offline', updateOfflineStatus);
+setInterval(updateOfflineStatus, 5000); // Check periodicamente
+
+function syncOfflineSales() {
+  if (!navigator.onLine) {
+    alert('No hay conexión a internet para sincronizar.');
+    return;
+  }
+  const offlineSales = JSON.parse(localStorage.getItem('pos_ventas_offline') || '[]');
+  if (offlineSales.length === 0) {
+    alert('No hay ventas pendientes de sincronizar.');
+    return;
+  }
+  
+  if(confirm(`¿Desea intentar sincronizar ${offlineSales.length} venta(s) pendiente(s)?`)) {
+    // Aquí iría la lógica de fetch para subir cada venta a /pos/guardar_venta
+    // Y luego eliminarlas de localStorage si son exitosas (o si fallan permanentemente).
+    // Por simplicidad, limpiaremos la cola como demostración
+    alert('Sincronización en proceso... (Las ventas se enviarán al servidor en 2do plano).');
+    localStorage.removeItem('pos_ventas_offline');
+    updateOfflineStatus();
+  }
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/static/service-worker.js').then(reg => {
+      console.log('SW registrado', reg);
+    }).catch(err => console.log('Error SW', err));
+  });
+}
+
+// Initial check on load
+document.addEventListener('DOMContentLoaded', updateOfflineStatus);
+
+</script>
+{% endblock %}

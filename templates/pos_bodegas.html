@@ -1,0 +1,391 @@
+{% extends 'base.html' %}
+{% block title %}Bodegas y Traslados{% endblock %}
+
+{% block content %}
+<style>
+.page-container { max-width: 1000px; margin: 0 auto; padding: 24px 20px; }
+.header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.title { font-family: 'Fraunces', serif; font-size: 28px; color: #002a50; margin: 0; }
+.data-card { background: #fff; border-radius: 12px; border: 1px solid var(--c-border); box-shadow: 0 2px 10px rgba(0,0,0,.03); overflow: hidden; margin-bottom: 24px; }
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th { background: #f8fafb; padding: 12px 16px; text-align: left; font-size: 11px; text-transform: uppercase; color: var(--c-gray); font-weight: 700; border-bottom: 1px solid var(--c-border); }
+.data-table td { padding: 12px 16px; border-bottom: 1px solid #f1f3f5; font-size: 14px; color: #212529; }
+.data-table tr:hover td { background: #fdfdfd; }
+.tabs-nav { display: flex; gap: 4px; border-bottom: 2px solid var(--c-border); margin-bottom: 24px; }
+.tab-btn { padding: 12px 24px; background: none; border: none; font-size: 14px; font-weight: 600; color: var(--c-gray); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .2s; }
+.tab-btn.active { color: var(--odoo-teal); border-bottom-color: var(--odoo-teal); }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+.modal { display: none; position: fixed; inset: 0; background: rgba(0,42,80,0.5); align-items: center; justify-content: center; z-index: 1000; }
+.modal.active { display: flex; }
+.modal-content { background: #fff; width: 100%; max-width: 500px; border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.modal-header h3 { margin: 0; font-family: 'Fraunces', serif; color: #002a50; }
+.close-modal { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--c-gray); }
+</style>
+
+<div class="page-container">
+  <div class="header-row">
+    <h1 class="title">Bodegas y Traslados</h1>
+  </div>
+
+  <div class="tabs-nav">
+    <button class="tab-btn active" onclick="switchTab('bodegas')">Gestión de Bodegas</button>
+    <button class="tab-btn" onclick="switchTab('traslados')">Traslados de Inventario</button>
+  </div>
+
+  <!-- TAB: BODEGAS -->
+  <div id="tab_bodegas" class="tab-pane active">
+    <div style="margin-bottom: 16px;">
+      <button class="btn-primary" onclick="openModal('bodegaModal')">NUEVA BODEGA</button>
+    </div>
+    <div class="data-card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Ubicación</th>
+            <th>Estado</th>
+            <th style="text-align:right;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for b in bodegas %}
+          <tr>
+            <td>{{ b.id }}</td>
+            <td><strong>{{ b.nombre }}</strong></td>
+            <td>{{ b.ubicacion }}</td>
+            <td>
+              <span style="display:inline-block; padding:4px 8px; border-radius:12px; font-size:11px; font-weight:700;
+                {% if b.estado == 'activo' %}background:#e6fcf5; color:#0ca678;{% else %}background:#fff5f5; color:#e03e2d;{% endif %}">
+                {{ b.estado|upper }}
+              </span>
+            </td>
+            <td style="text-align:right;">
+              <button class="btn-secondary" style="padding:4px 12px; font-size:12px;" onclick="editBodega({{ b.id }}, '{{ b.nombre }}', '{{ b.ubicacion }}', '{{ b.estado }}')">Editar</button>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" style="text-align:center; padding:30px; color:var(--c-gray);">No hay bodegas registradas.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: TRASLADOS -->
+  <div id="tab_traslados" class="tab-pane">
+    <div style="margin-bottom: 16px;">
+      <button class="btn-primary" onclick="openModal('trasladoModal')">NUEVO TRASLADO</button>
+    </div>
+    <div class="data-card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Número</th>
+            <th>Fecha</th>
+            <th>Origen</th>
+            <th>Destino</th>
+            <th>Usuario</th>
+            <th>Estado</th>
+            <th style="text-align:right;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in traslados %}
+          <tr>
+            <td><strong>{{ t.numero }}</strong></td>
+            <td>{{ t.fecha.split('T')[0] }}</td>
+            <td>{{ t.origen_nombre }}</td>
+            <td>{{ t.destino_nombre }}</td>
+            <td>{{ t.usuario }}</td>
+            <td><span style="color:#0ca678; font-weight:600; font-size:12px;">{{ t.estado|upper }}</span></td>
+            <td style="text-align:right;">
+              <button class="btn-secondary" style="padding:4px 12px; font-size:12px;" onclick="verDetalleTraslado({{ t.id }})">Ver Detalle</button>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" style="text-align:center; padding:30px; color:var(--c-gray);">No hay traslados registrados.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Bodega -->
+<div id="bodegaModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="bodegaModalTitle">Nueva Bodega</h3>
+      <button class="close-modal" onclick="closeModal('bodegaModal')">×</button>
+    </div>
+    <form action="{{ url_for('pos.bodegas_guardar') }}" method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" id="bodega_id" name="id">
+      
+      <div style="margin-bottom: 16px;">
+        <label style="display:block; font-size:12px; font-weight:700; color:var(--c-gray); margin-bottom:4px;">Nombre de la Bodega</label>
+        <input type="text" id="bodega_nombre" name="nombre" class="field" required>
+      </div>
+      <div style="margin-bottom: 16px;">
+        <label style="display:block; font-size:12px; font-weight:700; color:var(--c-gray); margin-bottom:4px;">Ubicación</label>
+        <input type="text" id="bodega_ubicacion" name="ubicacion" class="field">
+      </div>
+      <div style="margin-bottom: 24px;">
+        <label style="display:block; font-size:12px; font-weight:700; color:var(--c-gray); margin-bottom:4px;">Estado</label>
+        <select id="bodega_estado" name="estado" class="field">
+          <option value="activo">Activo</option>
+          <option value="inactivo">Inactivo</option>
+        </select>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:12px;">
+        <button type="button" class="btn-secondary" onclick="closeModal('bodegaModal')">Cancelar</button>
+        <button type="submit" class="btn-primary">Guardar Bodega</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Traslado -->
+<div id="trasladoModal" class="modal">
+  <div class="modal-content" style="max-width: 700px;">
+    <div class="modal-header">
+      <h3>Nuevo Traslado de Inventario</h3>
+      <button class="close-modal" onclick="closeModal('trasladoModal')">×</button>
+    </div>
+    <div style="display:flex; gap:16px; margin-bottom:16px;">
+      <div style="flex:1;">
+        <label style="display:block; font-size:12px; font-weight:700; color:var(--c-gray); margin-bottom:4px;">Bodega Origen</label>
+        <select id="tras_origen" class="field" required>
+          <option value="">Seleccione origen...</option>
+          {% for b in bodegas if b.estado == 'activo' %}
+          <option value="{{ b.id }}">{{ b.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="flex:1;">
+        <label style="display:block; font-size:12px; font-weight:700; color:var(--c-gray); margin-bottom:4px;">Bodega Destino</label>
+        <select id="tras_destino" class="field" required>
+          <option value="">Seleccione destino...</option>
+          {% for b in bodegas if b.estado == 'activo' %}
+          <option value="{{ b.id }}">{{ b.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    
+    <div style="background:#f8fafb; padding:16px; border-radius:8px; border:1px solid var(--c-border); margin-bottom:16px;">
+      <div style="display:flex; gap:12px; margin-bottom:12px;">
+        <select id="tras_producto" class="field" style="flex:1;">
+          <option value="">Seleccione producto...</option>
+          {% for p in productos %}
+          <option value="{{ p.id }}">{{ p.codigo }} - {{ p.nombre }}</option>
+          {% endfor %}
+        </select>
+        <input type="number" id="tras_cant" class="field" style="width:100px;" placeholder="Cant" min="1" step="0.01">
+        <button type="button" class="btn-secondary" onclick="addTrasladoItem()">Añadir</button>
+      </div>
+      <table class="data-table" id="tras_items_table">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th style="width:80px; text-align:right;">Cant</th>
+            <th style="width:40px;"></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div style="margin-bottom: 24px;">
+      <label style="display:block; font-size:12px; font-weight:700; color:var(--c-gray); margin-bottom:4px;">Notas</label>
+      <input type="text" id="tras_notas" class="field" placeholder="Motivo del traslado">
+    </div>
+    
+    <div style="display:flex; justify-content:flex-end; gap:12px;">
+      <button type="button" class="btn-secondary" onclick="closeModal('trasladoModal')">Cancelar</button>
+      <button type="button" class="btn-primary" onclick="guardarTraslado()">Procesar Traslado</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Detalle Traslado -->
+<div id="detalleTrasladoModal" class="modal">
+  <div class="modal-content" style="max-width: 600px;">
+    <div class="modal-header">
+      <h3 id="detalle_titulo">Detalle de Traslado</h3>
+      <button class="close-modal" onclick="closeModal('detalleTrasladoModal')">×</button>
+    </div>
+    
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:16px; font-size:13px; color:var(--c-gray);">
+      <div><strong>Origen:</strong> <span id="detalle_origen"></span></div>
+      <div><strong>Destino:</strong> <span id="detalle_destino"></span></div>
+      <div><strong>Fecha:</strong> <span id="detalle_fecha"></span></div>
+      <div><strong>Usuario:</strong> <span id="detalle_usuario"></span></div>
+    </div>
+    
+    <div style="background:#f8fafb; padding:16px; border-radius:8px; border:1px solid var(--c-border); margin-bottom:16px;">
+      <table class="data-table" id="detalle_items_table">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Producto</th>
+            <th style="text-align:right;">Cantidad</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div style="margin-bottom: 24px; font-size:13px;">
+      <strong>Notas:</strong> <span id="detalle_notas" style="color:var(--c-gray);"></span>
+    </div>
+    
+    <div style="display:flex; justify-content:flex-end; gap:12px;" class="no-print">
+      <button type="button" class="btn-secondary" onclick="closeModal('detalleTrasladoModal')">Cerrar</button>
+      <button type="button" class="btn-primary" onclick="window.print()">🖨️ Imprimir</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let trasItems = [];
+
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab_' + tabId).classList.add('active');
+}
+
+function openModal(id) {
+  document.getElementById(id).classList.add('active');
+  if(id === 'bodegaModal') {
+    document.getElementById('bodega_id').value = '';
+    document.getElementById('bodega_nombre').value = '';
+    document.getElementById('bodega_ubicacion').value = '';
+    document.getElementById('bodega_estado').value = 'activo';
+    document.getElementById('bodegaModalTitle').innerText = 'Nueva Bodega';
+  } else if(id === 'trasladoModal') {
+    trasItems = [];
+    renderTrasladoItems();
+  }
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('active');
+}
+
+function editBodega(id, nombre, ubicacion, estado) {
+  document.getElementById('bodega_id').value = id;
+  document.getElementById('bodega_nombre').value = nombre;
+  document.getElementById('bodega_ubicacion').value = ubicacion !== 'None' ? ubicacion : '';
+  document.getElementById('bodega_estado').value = estado;
+  document.getElementById('bodegaModalTitle').innerText = 'Editar Bodega';
+  document.getElementById('bodegaModal').classList.add('active');
+}
+
+function addTrasladoItem() {
+  const sel = document.getElementById('tras_producto');
+  const pid = sel.value;
+  const pName = sel.options[sel.selectedIndex].text;
+  const cant = parseFloat(document.getElementById('tras_cant').value);
+  
+  if(!pid || isNaN(cant) || cant <= 0) return alert('Seleccione un producto y cantidad válida.');
+  
+  const existing = trasItems.find(i => i.producto_id == pid);
+  if(existing) existing.cantidad += cant;
+  else trasItems.push({ producto_id: pid, nombre: pName, cantidad: cant });
+  
+  document.getElementById('tras_cant').value = '';
+  sel.value = '';
+  renderTrasladoItems();
+}
+
+function removeTrasladoItem(idx) {
+  trasItems.splice(idx, 1);
+  renderTrasladoItems();
+}
+
+function renderTrasladoItems() {
+  const tbody = document.querySelector('#tras_items_table tbody');
+  tbody.innerHTML = '';
+  trasItems.forEach((i, idx) => {
+    tbody.innerHTML += `<tr>
+      <td>${i.nombre}</td>
+      <td style="text-align:right;">${i.cantidad}</td>
+      <td style="text-align:right;"><button class="btn-secondary" style="padding:2px 6px; color:#e03e2d;" onclick="removeTrasladoItem(${idx})">×</button></td>
+    </tr>`;
+  });
+}
+
+async function guardarTraslado() {
+  const origen = document.getElementById('tras_origen').value;
+  const destino = document.getElementById('tras_destino').value;
+  const notas = document.getElementById('tras_notas').value;
+  
+  if(!origen || !destino) return alert('Seleccione bodegas origen y destino.');
+  if(origen === destino) return alert('Origen y destino no pueden ser iguales.');
+  if(trasItems.length === 0) return alert('Añada al menos un producto.');
+  
+  try {
+    const res = await fetch("{{ url_for('pos.traslados_guardar') }}", {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}'},
+      body: JSON.stringify({
+        origen_id: origen,
+        destino_id: destino,
+        notas: notas,
+        items: trasItems
+      })
+    });
+    const data = await res.json();
+    if(data.success) {
+      alert('Traslado ' + data.numero + ' procesado con éxito.');
+      window.location.reload();
+    } else {
+      alert('Error: ' + data.error);
+    }
+  } catch(e) {
+    alert('Error de conexión.');
+  }
+}
+
+async function verDetalleTraslado(id) {
+  try {
+    const res = await fetch(`/pos/api/traslados/${id}`);
+    if(!res.ok) {
+      alert('Error al obtener el detalle del traslado.');
+      return;
+    }
+    const data = await res.json();
+    
+    document.getElementById('detalle_titulo').innerText = 'Traslado ' + data.traslado.numero;
+    document.getElementById('detalle_origen').innerText = data.traslado.origen_nombre;
+    document.getElementById('detalle_destino').innerText = data.traslado.destino_nombre;
+    document.getElementById('detalle_fecha').innerText = data.traslado.fecha.split('T')[0];
+    document.getElementById('detalle_usuario').innerText = data.traslado.usuario;
+    document.getElementById('detalle_notas').innerText = data.traslado.notas || '-';
+    
+    const tbody = document.querySelector('#detalle_items_table tbody');
+    tbody.innerHTML = '';
+    data.items.forEach(i => {
+      tbody.innerHTML += `<tr>
+        <td>${i.codigo}</td>
+        <td>${i.nombre}</td>
+        <td style="text-align:right;"><strong>${i.cantidad}</strong></td>
+      </tr>`;
+    });
+    
+    openModal('detalleTrasladoModal');
+  } catch(e) {
+    console.error(e);
+    alert('Error de conexión al obtener detalles.');
+  }
+}
+</script>
+{% endblock %}

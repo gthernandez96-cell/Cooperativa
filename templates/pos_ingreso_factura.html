@@ -1,0 +1,549 @@
+{% extends 'base.html' %}
+{% block title %}Factura de proveedor — POS{% endblock %}
+{% block content %}
+<style>
+.odoo-form-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px 20px;
+  font-family: 'DM Sans', sans-serif;
+  color: #1e293b;
+}
+
+/* Action Buttons Header Bar */
+.odoo-action-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px 8px 0 0;
+  padding: 12px 20px;
+  border-bottom: none;
+}
+.odoo-buttons-group {
+  display: flex;
+  gap: 8px;
+}
+.odoo-btn-purple {
+  background: #714B67;
+  color: #fff;
+  border: none;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+.odoo-btn-purple:hover {
+  background: #5c3b53;
+}
+.odoo-btn-gray {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.odoo-btn-gray:hover {
+  background: #e2e8f0;
+}
+
+/* Status Progress bar */
+.odoo-status-bar {
+  display: flex;
+  font-size: 12px;
+  font-weight: 700;
+  color: #94a3b8;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.status-step {
+  padding: 6px 14px;
+  background: #f8fafc;
+  border-right: 1px solid #cbd5e1;
+}
+.status-step:last-child {
+  border-right: none;
+}
+.status-step.active {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+/* Main Form Sheet */
+.odoo-sheet {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0 0 8px 8px;
+  padding: 30px;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+}
+.odoo-sheet-header {
+  margin-bottom: 24px;
+}
+.rfq-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+.rfq-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.rfq-title {
+  font-size: 32px;
+  font-weight: 400;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Form Fields Grid */
+.odoo-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-bottom: 30px;
+}
+@media (max-width: 768px) {
+  .odoo-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.form-row {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.form-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+}
+.form-label.required::after {
+  content: " *";
+  color: #ef4444;
+}
+.form-input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 13px;
+  outline: none;
+  background-color: #fff;
+}
+.form-input[readonly], .form-input[disabled] {
+  background-color: #f8fafc;
+  color: #64748b;
+  border: none;
+  border-bottom: 1px solid #cbd5e1;
+  border-radius: 0;
+  padding-left: 0;
+}
+.form-input:focus:not([readonly]) {
+  border-color: #714B67;
+}
+
+/* Tab Bar */
+.odoo-tabs {
+  display: flex;
+  border-bottom: 1px solid #cbd5e1;
+  margin-bottom: 16px;
+}
+.odoo-tab {
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.odoo-tab.active {
+  color: #714B67;
+  border-bottom-color: #714B67;
+}
+
+/* Lines Table */
+.lines-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+.lines-table th {
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid #cbd5e1;
+  color: #475569;
+  font-weight: 700;
+}
+.lines-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+.badge-tax {
+  background-color: #e2e8f0;
+  color: #475569;
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Subtotal box */
+.totals-section {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  margin-top: 20px;
+}
+.totals-box {
+  width: 300px;
+  font-size: 13px;
+}
+.totals-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  color: #475569;
+}
+.totals-row.grand-total {
+  font-weight: 700;
+  font-size: 16px;
+  border-top: 1px solid #cbd5e1;
+  padding-top: 10px;
+  color: #1e293b;
+}
+</style>
+
+<form id="facturaForm" class="odoo-form-wrapper" onsubmit="enviarFactura(event)">
+  <input type="hidden" id="csrf_token" name="csrf_token" value="{{ csrf_token() }}">
+  <!-- Action Buttons Header Bar -->
+  <div class="odoo-action-header">
+    <div class="odoo-buttons-group">
+      <button type="submit" class="odoo-btn-purple">Confirmar</button>
+      <button type="button" class="odoo-btn-gray" onclick="location.href='{{ url_for('pos.compras') }}'">Cancelar</button>
+    </div>
+    <div class="odoo-status-bar">
+      <div class="status-step active">Borrador</div>
+      <div class="status-step">Publicado</div>
+    </div>
+  </div>
+
+  <!-- Form Sheet -->
+  <div class="odoo-sheet">
+    <div class="odoo-sheet-header">
+      <div class="rfq-label">Factura de proveedor</div>
+      <div class="rfq-title-row">
+        <h1 class="rfq-title">Borrador</h1>
+      </div>
+    </div>
+
+    <!-- Two Column Form Grid -->
+    <div class="odoo-form-grid">
+      <!-- Column 1 -->
+      <div>
+        <div class="form-row">
+          <label class="form-label" for="proveedor">Proveedor</label>
+          <input type="text" id="proveedor" class="form-input" value="{{ compra.proveedor_nombre }}" readonly>
+        </div>
+        <div class="form-row">
+          <label class="form-label required" for="numero_factura">Referencia de factura</label>
+          <input type="text" id="numero_factura" name="numero_factura" class="form-input" placeholder="Ej. Serie A-123" required>
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="autocompletar">Autocompletar</label>
+          <input type="text" id="autocompletar" class="form-input" placeholder="Seleccione una orden de compra o una factura antigua" disabled>
+        </div>
+        <div class="form-row" style="margin-top: 20px;">
+          <label class="form-label required" for="bodega_id">Bodega de ingreso</label>
+          <select id="bodega_id" name="bodega_id" class="form-input" required style="background-color: #fff; border-bottom: 1px solid #cbd5e1; border-radius: 4px;">
+            <option value="">Seleccionar bodega...</option>
+            {% for b in bodegas %}
+            <option value="{{ b.id }}">{{ b.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <!-- Column 2 -->
+      <div>
+        <div class="form-row">
+          <label class="form-label required" for="fecha_factura">Fecha de la factura</label>
+          <input type="date" id="fecha_factura" name="fecha_factura" class="form-input" value="{{ fecha_actual_iso }}" required>
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="fecha_contable">Fecha contable</label>
+          <input type="text" id="fecha_contable" class="form-input" value="{{ fecha_actual }}" readonly>
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="ref_pago">Referencia de pago</label>
+          <input type="text" id="ref_pago" class="form-input" value="Usar referencia de factura" readonly>
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="banco">Banco receptor</label>
+          <input type="text" id="banco" class="form-input" value="" disabled>
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="fecha_vencimiento">Fecha de vencimiento</label>
+          <input type="text" id="fecha_vencimiento" class="form-input" value="{{ fecha_vencimiento }}" readonly>
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="diario">Diario</label>
+          <input type="text" id="diario" class="form-input" value="Facturas de proveedores" readonly>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="odoo-tabs">
+      <button type="button" class="odoo-tab active">Líneas de factura</button>
+      <button type="button" class="odoo-tab">Apuntes contables</button>
+      <button type="button" class="odoo-tab">Otra información</button>
+    </div>
+
+    <!-- Lines Table -->
+    <table class="lines-table">
+      <thead>
+        <tr>
+          <th style="width: 30%;">Producto</th>
+          <th style="width: 25%;">Cuenta</th>
+          <th style="width: 10%;">Cantidad</th>
+          <th style="width: 15%;">Precio</th>
+          <th style="width: 10%;">Impuestos</th>
+          <th style="width: 5%; text-align: right;">Importe</th>
+          <th style="width: 5%;"></th>
+        </tr>
+      </thead>
+      <tbody id="linesTableBody">
+      </tbody>
+    </table>
+
+    <div style="display: flex; gap: 15px; margin-bottom: 20px; font-size: 13px;">
+      <a href="javascript:void(0)" style="color: #714B67; font-weight: 700; text-decoration: none;" onclick="agregarFilaProducto()">Agregar un producto</a>
+    </div>
+
+    <!-- Totals Section -->
+    <div class="totals-section">
+      <div class="totals-box">
+        <div class="totals-row">
+          <span>Subtotal:</span>
+          <strong><span id="lblSubtotal">0.00</span> Q</strong>
+        </div>
+        <div class="totals-row">
+          <span>IVA (Exento):</span>
+          <strong>0.00 Q</strong>
+        </div>
+        <div class="totals-row grand-total">
+          <span>Total:</span>
+          <strong><span id="lblTotal">0.00</span> Q</strong>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</form>
+
+<script>
+const terminosPago = "{{ compra.terminos_pago or 'Pago inmediato' }}";
+
+document.getElementById('fecha_factura').addEventListener('change', function(e) {
+  const invoiceDateStr = e.target.value; // YYYY-MM-DD
+  if (!invoiceDateStr) return;
+  
+  // Create date considering timezone
+  const parts = invoiceDateStr.split('-');
+  let d = new Date(parts[0], parts[1] - 1, parts[2]);
+  
+  if (terminosPago === '15 días') {
+    d.setDate(d.getDate() + 15);
+  } else if (terminosPago === '21 días') {
+    d.setDate(d.getDate() + 21);
+  } else if (terminosPago === '30 días') {
+    d.setDate(d.getDate() + 30);
+  } else if (terminosPago === '45 días') {
+    d.setDate(d.getDate() + 45);
+  } else if (terminosPago === 'Fin del siguiente mes') {
+    d.setMonth(d.getMonth() + 2, 0); // 0th day of month + 2 is last day of next month
+  } else if (terminosPago === '10 días después del fin del siguiente mes') {
+    d.setMonth(d.getMonth() + 2, 0); 
+    d.setDate(d.getDate() + 10);
+  }
+  
+  // Format to dd/mm/yyyy
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  
+  document.getElementById('fecha_vencimiento').value = `${dd}/${mm}/${yyyy}`;
+});
+
+const availableProducts = [
+  {% for pr in productos %}
+  { id: {{ pr.id }}, nombre: '{{ pr.nombre|replace("'", "\\'")|replace('"', '&quot;') }}', costo: {{ pr.costo or 0 }} },
+  {% endfor %}
+];
+
+function agregarFilaProducto(selectedProdId = null, qty = 1, cost = 0.00) {
+  const tbody = document.getElementById('linesTableBody');
+  const tr = document.createElement('tr');
+  
+  let optionsHtml = '<option value="">-- Producto --</option>';
+  availableProducts.forEach(p => {
+    const selectedAttr = (selectedProdId && p.id == selectedProdId) ? 'selected' : '';
+    optionsHtml += `<option value="${p.id}" data-costo="${p.costo}" ${selectedAttr}>${p.nombre}</option>`;
+  });
+  
+  const subtotalVal = (qty * cost).toFixed(2);
+  
+  tr.innerHTML = `
+    <td>
+      <select class="form-input prod-select" onchange="onProductChange(this)" style="padding: 4px 6px;">
+        ${optionsHtml}
+      </select>
+    </td>
+    <td style="color: #64748b;">5.1.01.01 Costos de Ventas</td>
+    <td>
+      <input type="number" class="form-input prod-qty" value="${qty}" min="1" step="1" oninput="recomputeRow(this)" style="padding: 4px 6px;">
+    </td>
+    <td>
+      <input type="number" class="form-input prod-cost" value="${parseFloat(cost).toFixed(2)}" min="0" step="0.01" oninput="recomputeRow(this)" style="padding: 4px 6px;">
+    </td>
+    <td><span class="badge-tax">Exento</span></td>
+    <td style="text-align: right; font-weight: 700;">
+      <span class="prod-subtotal">${subtotalVal}</span> Q
+    </td>
+    <td style="text-align: center;">
+      <button type="button" style="background:none; border:none; color:#ef4444; cursor:pointer;" onclick="eliminarFila(this)">✕</button>
+    </td>
+  `;
+  
+  tbody.appendChild(tr);
+  recomputeTotals();
+}
+
+function onProductChange(select) {
+  const opt = select.options[select.selectedIndex];
+  const tr = select.closest('tr');
+  const costInput = tr.querySelector('.prod-cost');
+  
+  if (opt && opt.dataset.costo) {
+    costInput.value = parseFloat(opt.dataset.costo).toFixed(2);
+  } else {
+    costInput.value = '0.00';
+  }
+  
+  recomputeRow(select);
+}
+
+function recomputeRow(inputElement) {
+  const tr = inputElement.closest('tr');
+  const qty = parseFloat(tr.querySelector('.prod-qty').value) || 0;
+  const cost = parseFloat(tr.querySelector('.prod-cost').value) || 0;
+  const subtotalSpan = tr.querySelector('.prod-subtotal');
+  
+  const subtotal = qty * cost;
+  subtotalSpan.textContent = subtotal.toFixed(2);
+  
+  recomputeTotals();
+}
+
+function eliminarFila(btn) {
+  const tr = btn.closest('tr');
+  tr.remove();
+  recomputeTotals();
+}
+
+function recomputeTotals() {
+  const rows = document.querySelectorAll('#linesTableBody tr');
+  let total = 0;
+  
+  rows.forEach(tr => {
+    const sub = parseFloat(tr.querySelector('.prod-subtotal').textContent) || 0;
+    total += sub;
+  });
+  
+  document.getElementById('lblSubtotal').textContent = total.toFixed(2);
+  document.getElementById('lblTotal').textContent = total.toFixed(2);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  {% for d in detalles %}
+  agregarFilaProducto({{ d.producto_id }}, {{ d.cantidad }}, {{ d.costo_unitario }});
+  {% endfor %}
+  
+  if ({{ detalles|length }} === 0) {
+    agregarFilaProducto();
+  }
+
+  // Desencadenar el evento change inicial para que se muestre el vencimiento correctamente basado en la fecha predeterminada
+  document.getElementById('fecha_factura').dispatchEvent(new Event('change'));
+});
+
+async function enviarFactura(e) {
+  e.preventDefault();
+  
+  const rows = document.querySelectorAll('#linesTableBody tr');
+  const items = [];
+  
+  rows.forEach(tr => {
+    const prodId = tr.querySelector('.prod-select').value;
+    const qty = parseFloat(tr.querySelector('.prod-qty').value) || 0;
+    const cost = parseFloat(tr.querySelector('.prod-cost').value) || 0;
+    
+    if (prodId && qty > 0) {
+      items.push({
+        producto_id: parseInt(prodId),
+        cantidad: qty,
+        costo: cost
+      });
+    }
+  });
+  
+  if (items.length === 0) {
+    alert('Debe agregar al menos un producto a la factura.');
+    return;
+  }
+  
+  const payload = {
+    numero_factura: document.getElementById('numero_factura').value,
+    bodega_id: document.getElementById('bodega_id').value,
+    items: items
+  };
+  
+  try {
+    const res = await fetch("{{ url_for('pos.compras_ingresar_factura', cid=compra.id) }}", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': document.getElementById('csrf_token').value
+      },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    
+    if (data.success) {
+      alert('Factura ingresada y stock actualizado correctamente.');
+      location.href = "{{ url_for('pos.compras') }}";
+    } else {
+      alert('Error: ' + data.error);
+    }
+  } catch(e) {
+    alert('Error al guardar la factura. Intente nuevamente.');
+  }
+}
+</script>
+{% endblock %}

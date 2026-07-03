@@ -725,3 +725,45 @@ def socios():
     )
 
 
+
+@bp.route('/gerencial')
+@login_required()
+def gerencial():
+    conn = get_db()
+    
+    # 1. Ventas por mes (Últimos 6 meses)
+    ventas_mes = db_fetchall(conn, '''
+        SELECT SUBSTR(fecha, 1, 7) as mes, COALESCE(SUM(total), 0) as total_ventas 
+        FROM pos_ventas 
+        WHERE estado != 'anulada' 
+          AND date(fecha) >= date('now', 'start of month', '-5 months') 
+        GROUP BY mes 
+        ORDER BY mes
+    ''')
+    
+    # 2. Nuevos socios por mes (Últimos 6 meses)
+    socios_mes = db_fetchall(conn, '''
+        SELECT SUBSTR(fecha_ingreso, 1, 7) as mes, COUNT(id) as total_socios 
+        FROM socios 
+        WHERE date(fecha_ingreso) >= date('now', 'start of month', '-5 months') 
+        GROUP BY mes 
+        ORDER BY mes
+    ''')
+    
+    # 3. Ventas por método de pago (Este año)
+    metodos_pago = db_fetchall(conn, '''
+        SELECT p.metodo_pago, SUM(p.monto) as total_monto 
+        FROM pos_venta_pagos p 
+        JOIN pos_ventas v ON v.id = p.venta_id 
+        WHERE v.estado != 'anulada' AND date(v.fecha) >= date('now', 'start of year')
+        GROUP BY p.metodo_pago
+    ''')
+    
+    conn.close()
+    
+    return render_template(
+        'reportes/dashboard_gerencial.html',
+        ventas_mes=[dict(r) for r in ventas_mes],
+        socios_mes=[dict(r) for r in socios_mes],
+        metodos_pago=[dict(r) for r in metodos_pago]
+    )

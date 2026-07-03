@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% block title %}Nomenclatura Contable{% endblock %}
+{% block content %}
+<style>
+.cont-page { max-width: 1280px; margin: 0 auto; padding: 24px 20px; }
+.g-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.filter-bar { background: var(--c-white); border-radius: 12px; border: 1.5px solid var(--c-border); padding: 14px 16px; margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; box-shadow: 0 2px 8px rgba(0,30,70,.06); }
+.filter-input { padding: 8px 12px; border: 1.5px solid var(--c-border); border-radius: 8px; font-size: 13px; font-family: inherit; outline: none; }
+.filter-input:focus { border-color: #0057a3; }
+.btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:600; border:none; cursor:pointer; font-family:inherit; text-decoration:none; }
+.btn-primary { background:#003b74; color:#fff; box-shadow:0 2px 8px rgba(0,59,116,.2); }
+.btn-primary:hover { background:#001f3d; }
+/* Tabla tipo Odoo */
+.nom-table-wrap { background: var(--c-white); border-radius: 14px; border: 1.5px solid var(--c-border); box-shadow: 0 2px 12px rgba(0,30,70,.07); overflow: hidden; }
+.nom-table { width: 100%; border-collapse: collapse; }
+.nom-table th { padding: 10px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--c-gray); font-weight: 600; text-align: left; border-bottom: 1px solid var(--c-border); background: #f8fafb; }
+.nom-table td { padding: 0; }
+.nom-row { display: grid; grid-template-columns: 160px 1fr 90px 90px 90px 110px 80px; align-items: center; gap: 0; padding: 0; border-bottom: 1px solid #f3f4f6; }
+.nom-row:hover { background: #f8fafb; }
+.nom-cell { padding: 9px 14px; font-size: 13px; }
+/* Niveles tipo Odoo */
+.nom-row[data-nivel="1"] .nom-cell.cod { font-weight: 800; font-size: 14px; color: #001f3d; }
+.nom-row[data-nivel="1"] .nom-cell.name { font-weight: 800; font-size: 14px; color: #001f3d; }
+.nom-row[data-nivel="1"] { background: #f0f4f8; }
+.nom-row[data-nivel="2"] .nom-cell.cod { font-weight: 700; color: #003b74; padding-left: 28px; }
+.nom-row[data-nivel="2"] .nom-cell.name { font-weight: 700; color: #003b74; }
+.nom-row[data-nivel="3"] .nom-cell.cod { padding-left: 50px; color: #374151; }
+.nom-row[data-nivel="3"] .nom-cell.name { color: #374151; font-weight: 500; }
+.nom-row[data-nivel="4"] .nom-cell.cod { padding-left: 70px; color: var(--c-gray); }
+.nom-row[data-nivel="4"] .nom-cell.name { color: var(--c-gray); }
+/* Tipo badges */
+.tipo-activo    { background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.tipo-pasivo    { background: #fce7f3; color: #9d174d; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.tipo-patrimonio { background: #d1fae5; color: #065f46; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.tipo-ingreso   { background: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.tipo-gasto     { background: #fee2e2; color: #b91c1c; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.saldo-pos { color: #047857; font-weight: 600; }
+.saldo-neg { color: #dc2626; font-weight: 600; }
+.saldo-zero { color: #9ca3af; }
+.action-link { font-size: 12px; color: #0057a3; text-decoration: none; font-weight: 500; }
+.action-link:hover { text-decoration: underline; }
+.nom-table-header { padding: 14px 18px; border-bottom: 1px solid var(--c-border); display: flex; justify-content: space-between; align-items: center; }
+.nom-table-title { font-family: 'Fraunces', serif; font-size: 16px; font-weight: 600; color: #002a50; }
+</style>
+
+<div class="cont-page">
+  <div class="g-header">
+    <div>
+      <h1 style="font-family:'Fraunces',serif; font-size:24px; font-weight:700; color:#002a50; margin-bottom:4px;">Nomenclatura Contable</h1>
+      <p style="color:var(--c-gray); font-size:13px;">Catálogo jerárquico de cuentas · {{ cuentas|length }} cuentas</p>
+    </div>
+    <a href="{{ url_for('contabilidad.nueva_cuenta') }}" class="btn btn-primary">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      Nueva Cuenta
+    </a>
+  </div>
+
+  <!-- Filtros -->
+  <form class="filter-bar" method="get">
+    <div>
+      <div style="font-size:11px; font-weight:600; color:var(--c-gray); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px;">Desde</div>
+      <input type="date" name="inicio" class="filter-input" value="{{ periodo_inicio }}">
+    </div>
+    <div>
+      <div style="font-size:11px; font-weight:600; color:var(--c-gray); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px;">Hasta</div>
+      <input type="date" name="fin" class="filter-input" value="{{ periodo_fin }}">
+    </div>
+    <div>
+      <div style="font-size:11px; font-weight:600; color:var(--c-gray); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px;">Tipo</div>
+      <select name="tipo" class="filter-input">
+        <option value="">Todos</option>
+        <option value="activo" {% if tipo_filtro=='activo' %}selected{% endif %}>Activo</option>
+        <option value="pasivo" {% if tipo_filtro=='pasivo' %}selected{% endif %}>Pasivo</option>
+        <option value="patrimonio" {% if tipo_filtro=='patrimonio' %}selected{% endif %}>Patrimonio</option>
+        <option value="ingreso" {% if tipo_filtro=='ingreso' %}selected{% endif %}>Ingreso</option>
+        <option value="gasto" {% if tipo_filtro=='gasto' %}selected{% endif %}>Gasto</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary" style="align-self:flex-end;">Actualizar</button>
+    <a href="{{ url_for('contabilidad.nomenclatura') }}" class="btn" style="background:#f3f4f6; color:var(--c-gray); align-self:flex-end;">Limpiar</a>
+  </form>
+
+  <!-- Tabla árbol tipo Odoo -->
+  <div class="nom-table-wrap">
+    <div class="nom-table-header">
+      <div class="nom-table-title">Plan de Cuentas</div>
+    </div>
+    <table class="nom-table" style="width:100%; border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th style="padding:10px 14px;">Código</th>
+          <th>Nombre</th>
+          <th>Tipo</th>
+          <th style="text-align:right; padding-right:14px;">Debe</th>
+          <th style="text-align:right; padding-right:14px;">Haber</th>
+          <th style="text-align:right; padding-right:14px;">Saldo</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in cuentas %}
+        <tr class="nom-row" data-nivel="{{ c.nivel }}">
+          <td class="nom-cell cod">
+            {% if c.acepta_movimientos %}<span style="font-size:9px; color:var(--c-gray); margin-right:4px;">●</span>{% endif %}
+            {{ c.codigo }}
+          </td>
+          <td class="nom-cell name" style="{% if c.nivel>1 %}padding-left:{{ (c.nivel-1)*20 + 14 }}px{% endif %}">
+            {{ c.nombre }}
+          </td>
+          <td class="nom-cell">
+            <span class="tipo-{{ c.tipo }}">{{ c.tipo[:3]|upper }}</span>
+          </td>
+          <td class="nom-cell" style="text-align:right; font-size:12px; color:var(--c-gray);">
+            {% if c.movimiento_debe and c.movimiento_debe > 0 %}{{ "%.2f"|format(c.movimiento_debe|float) }}{% endif %}
+          </td>
+          <td class="nom-cell" style="text-align:right; font-size:12px; color:var(--c-gray);">
+            {% if c.movimiento_haber and c.movimiento_haber > 0 %}{{ "%.2f"|format(c.movimiento_haber|float) }}{% endif %}
+          </td>
+          <td class="nom-cell" style="text-align:right;">
+            {% set sal = c.saldo|float %}
+            {% if sal > 0 %}<span class="saldo-pos">{{ "%.2f"|format(sal) }}</span>
+            {% elif sal < 0 %}<span class="saldo-neg">({{ "%.2f"|format(sal|abs) }})</span>
+            {% else %}<span class="saldo-zero">0.00</span>{% endif %}
+          </td>
+          <td class="nom-cell" style="text-align:right; white-space:nowrap;">
+            <a href="{{ url_for('contabilidad.editar_cuenta', cid=c.id) }}" class="action-link">Editar</a>
+            {% if c.acepta_movimientos %}
+            <a href="{{ url_for('contabilidad.libro_mayor') }}?cuenta_id={{ c.id }}" class="action-link" style="margin-left:8px;">Mayor</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" style="text-align:center; padding:32px; color:var(--c-gray);">No hay cuentas. Inicialice la base de datos.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

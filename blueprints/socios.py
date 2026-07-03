@@ -150,8 +150,8 @@ def nuevo_socio():
                        dpi,telefono,email,direccion,departamento,municipio,rol,fecha_ingreso,nit,beneficiario,
                        banco_nombre,banco_tipo_cuenta,banco_numero_cuenta,
                        frecuencia,cuota_ahorro,cuota_aportacion,cuota_inscripcion,tipo_ahorro,finca,
-                       salario,fecha_ingreso_laborar
-                   ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+                       salario,fecha_ingreso_laborar,frecuencia_credito_pos,cuota_credito_pos,limite_credito_pos
+                   ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
                 (
                     codigo, nombre, primer_nombre, segundo_nombre, tercer_nombre,
                     apellido, primer_apellido, segundo_apellido, estado_civil, apellido_casada,
@@ -169,6 +169,9 @@ def nuevo_socio():
                     request.form.get('finca', '').strip(),
                     salario_val,
                     fecha_ingreso_laborar,
+                    request.form.get('frecuencia_credito_pos', 'Quincenal').strip() or 'Quincenal',
+                    float(request.form.get('cuota_credito_pos', 0) or 0),
+                    float(request.form.get('limite_credito_pos', 500) or 500),
                 )
             )
             socio_insertado = db_fetchone(conn, 'SELECT id FROM socios WHERE codigo=?', (codigo,))
@@ -288,6 +291,8 @@ def editar_socio(sid):
         estado_civil = request.form.get('estado_civil', socio_dict.get('estado_civil') or 'Soltero').strip() or 'Soltero'
         apellido_casada = request.form.get('apellido_casada', '').strip() if estado_civil == 'Casado' else ''
         frecuencia = request.form.get('frecuencia', socio_dict.get('frecuencia') or 'Quincenal')
+        frecuencia_credito_pos = request.form.get('frecuencia_credito_pos', socio_dict.get('frecuencia_credito_pos') or 'Quincenal')
+        cuota_credito_pos = float(request.form.get('cuota_credito_pos', socio_dict.get('cuota_credito_pos') or 0) or 0)
         cuota_ahorro = float(request.form.get('cuota_ahorro', socio_dict.get('cuota_ahorro') or 0) or 0)
         cuota_aportacion = float(request.form.get('cuota_aportacion', socio_dict.get('cuota_aportacion') or 0) or 0)
         cuota_inscripcion = float(request.form.get('cuota_inscripcion', socio_dict.get('cuota_inscripcion') or 0) or 0)
@@ -341,7 +346,7 @@ def editar_socio(sid):
                                   dpi=?, telefono=?, email=?, direccion=?, departamento=?, municipio=?,
                                   rol=?, fecha_ingreso=?, frecuencia=?, cuota_ahorro=?, cuota_aportacion=?, cuota_inscripcion=?, tipo_ahorro=?,
                                   nit=?, beneficiario=?, finca=?, banco_nombre=?, banco_tipo_cuenta=?, banco_numero_cuenta=?, foto=?,
-                                  salario=?, fecha_ingreso_laborar=?
+                                  salario=?, fecha_ingreso_laborar=?, frecuencia_credito_pos=?, cuota_credito_pos=?
                 WHERE id=?
             ''', (
                   codigo, nombre, primer_nombre, segundo_nombre, tercer_nombre,
@@ -350,7 +355,7 @@ def editar_socio(sid):
                   'Asociado', fecha_ingreso_cooperativa, frecuencia, cuota_ahorro, cuota_aportacion, cuota_inscripcion, tipo_ahorro,
                   nit, resumen_beneficiarios(beneficiarios), finca,
                   banco_nombre, banco_tipo_cuenta, banco_numero_cuenta, ruta_foto,
-                  salario_val, fecha_ingreso_laborar, sid))
+                  salario_val, fecha_ingreso_laborar, frecuencia_credito_pos, cuota_credito_pos, sid))
             
             # Apertura automática de cuentas si no existen
             asegurar_cuentas_socio(conn, sid)
@@ -392,6 +397,8 @@ def editar_socio(sid):
                 'rol': 'Asociado',
                 'fecha_ingreso': fecha_ingreso_cooperativa,
                 'frecuencia': frecuencia,
+                'frecuencia_credito_pos': frecuencia_credito_pos,
+                'cuota_credito_pos': cuota_credito_pos,
                 'cuota_ahorro': cuota_ahorro,
                 'cuota_aportacion': cuota_aportacion,
                 'cuota_inscripcion': cuota_inscripcion,

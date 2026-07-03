@@ -1,0 +1,380 @@
+{% extends 'base.html' %}
+{% block title %}Control de Caja y Turnos{% endblock %}
+{% block content %}
+<style>
+.caja-page { max-width: 1100px; margin: 0 auto; padding: 8px 12px; }
+.g-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.g-title { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 700; color: #002a50; margin: 0; }
+.card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+@media (max-width: 768px) { .card-grid { grid-template-columns: 1fr; } }
+.c-card { background: #fff; border: 1px solid var(--c-border); border-radius: 8px; padding: 12px; box-shadow: 0 1px 4px rgba(0,20,50,.02); }
+.c-title { font-size: 14px; font-weight: 700; color: #002a50; margin-top: 0; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.badge { padding: 2px 6px; border-radius: 8px; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+.badge-success { background: #d1fae5; color: #065f46; }
+.badge-secondary { background: #e5e7eb; color: #374151; }
+
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+.form-control { width: 100%; padding: 10px 14px; border: 1.5px solid var(--c-border); border-radius: 8px; font-family: inherit; font-size: 14px; outline: none; transition: border-color .15s; }
+.form-control:focus { border-color: #0057a3; }
+
+.btn-primary { padding: 10px 20px; border-radius: 8px; border: none; font-size: 14px; font-weight: 600; color: #fff; background: #003b74; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: background .15s; }
+.btn-primary:hover { background: #002a50; }
+.btn-danger { padding: 10px 20px; border-radius: 8px; border: none; font-size: 14px; font-weight: 600; color: #fff; background: #dc2626; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: background .15s; }
+.btn-danger:hover { background: #b91c1c; }
+
+.stats-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; }
+.stat-row { display: flex; flex-direction: column; font-size: 12px; background: #f8fafc; padding: 6px 8px; border-radius: 6px; border: 1px solid #e2e8f0; }
+.stat-row span { font-size: 10px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 2px; }
+.stat-row strong { font-size: 13px; color: #0f172a; }
+.stat-row.total { grid-column: 1 / -1; background: #ecfdf5; border-color: #a7f3d0; flex-direction: row; justify-content: space-between; align-items: center; }
+.stat-row.total span { color: #065f46; margin-bottom: 0; }
+.stat-row.total strong { font-size: 16px; color: #047857; }
+
+.table-responsive { overflow-x: auto; background: #fff; border: 1.5px solid var(--c-border); border-radius: 12px; }
+.table { width: 100%; border-collapse: collapse; font-size: 14px; text-align: left; }
+.table th { background: #f8fafc; padding: 12px 16px; font-weight: 600; color: #475569; border-bottom: 1.5px solid var(--c-border); }
+.table td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+.table tr:last-child td { border-bottom: none; }
+</style>
+
+<div class="caja-page">
+  <div class="g-header">
+    <h1 class="g-title">💼 Sesiones de Caja</h1>
+    <div>
+      <a href="{{ url_for('pos.dashboard') }}" class="btn-primary" style="background:#f3f4f6; color:#374151; border: 1.5px solid #d1d5db;">Volver al Dashboard</a>
+    </div>
+  </div>
+
+  {% if not sesion_activa %}
+  <!-- NO HAY SESIÓN ACTIVA - FORMULARIO DE APERTURA -->
+  <div style="display: flex; justify-content: center; margin-top: 20px;">
+    <div class="modal-box" style="padding: 0; max-width: 500px; width: 100%; border-radius: 6px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); background: #fff; position: relative;">
+      <div style="padding: 16px 24px; border-bottom: 1px solid #e5e7eb;">
+        <h2 style="font-family: 'DM Sans', sans-serif; font-size: 18px; font-weight: 700; color: #1f2937; margin: 0;">Control de apertura</h2>
+      </div>
+      <form action="{{ url_for('pos.cajas_abrir') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="next" value="{{ url_for('pos.cajas') }}">
+        <div style="padding: 24px;">
+          <div style="margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
+              <label style="font-size: 13px; font-weight: 600; color: #6b7280; margin: 0;">Caja Asignada</label>
+              <span style="font-size: 12px; color: #9ca3af;">Bodega: <strong style="color:#6b7280;">{{ bodega_asignada }}</strong></span>
+            </div>
+            <select name="caja_id" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 14px; outline: none; background: #fff;" required>
+              {% for c in cajas %}
+              <option value="{{ c.id }}">{{ c.nombre }}</option>
+              {% else %}
+              <option value="">No hay cajas configuradas</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div style="margin-bottom: 20px;">
+            <label style="display: block; font-size: 13px; font-weight: 600; color: #6b7280; margin-bottom: 8px;">Efectivo de apertura</label>
+            <div style="display: flex; gap: 8px;">
+              <div style="position: relative; flex: 1;">
+                <input type="number" id="saldo_apertura_input" name="saldo_apertura" step="0.01" value="0.00" style="width: 100%; padding: 10px 32px 10px 12px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 15px; outline: none;">
+                <span style="position: absolute; right: 10px; top: 10px; cursor: pointer; color: #9ca3af; font-size: 12px; font-weight: bold;" onclick="document.getElementById('saldo_apertura_input').value='0.00'; calcularArqueo();">✖</span>
+              </div>
+              <button type="button" onclick="document.getElementById('arqueoModal').classList.add('open');" style="padding: 0 16px; border: 1px solid #d1d5db; border-radius: 4px; background: #f3f4f6; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px;" title="Detalle de arqueo">💵</button>
+            </div>
+          </div>
+          <div style="margin-bottom: 10px;">
+            <label style="display: block; font-size: 13px; font-weight: 600; color: #6b7280; margin-bottom: 8px;">Nota de apertura</label>
+            <textarea name="notas" placeholder="Agregar una nota de apertura..." style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 14px; outline: none; resize: vertical; min-height: 80px;"></textarea>
+          </div>
+        </div>
+        <div style="padding: 16px 24px; border-top: 1px solid #e5e7eb; display: flex; gap: 12px;">
+          <button type="submit" style="background: #714B67; color: white; border: none; padding: 10px 20px; font-size: 14px; font-weight: 600; border-radius: 4px; cursor: pointer; transition: background 0.2s;">Abrir caja registradora</button>
+          <button type="button" onclick="window.location.href='{{ url_for('pos.dashboard') }}'" style="background: #e5e7eb; color: #374151; border: none; padding: 10px 20px; font-size: 14px; font-weight: 600; border-radius: 4px; cursor: pointer; transition: background 0.2s;">Descartar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de Arqueo -->
+  <div id="arqueoModal" class="modal-overlay" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 10001; display: none; align-items: center; justify-content: center;">
+    <div class="modal-box" style="padding: 0; max-width: 600px; width: 90%; border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); background: #fff;">
+      <div style="padding: 16px 24px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 600; color: #111827; margin: 0;">Monedas/billetes</h2>
+        <span onclick="document.getElementById('arqueoModal').classList.remove('open'); document.getElementById('arqueoModal').style.display='none';" style="cursor: pointer; font-size: 20px; color: #6b7280; font-weight: 300;">✕</span>
+      </div>
+      <div style="padding: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+        <!-- Left Column: Billetes -->
+        <div style="display: flex; flex-direction: column;">
+          {% for val in [200, 100, 50, 20, 10, 5, 2] %}
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: 16px; margin-bottom: 16px;">
+            <div style="display: flex; border: 1px solid #d1d5db; border-radius: 4px; overflow: hidden; background: #fff;">
+              <button type="button" onclick="decrement(this)" style="padding: 8px 14px; background: #f3f4f6; border: none; border-right: 1px solid #d1d5db; cursor: pointer; font-weight: 800; color: #374151;">−</button>
+              <input type="text" class="cuadre-input" data-valor="{{ val }}" value="0" style="width: 50px; text-align: center; border: none; font-size: 14px; outline: none; padding: 0;">
+              <button type="button" onclick="increment(this)" style="padding: 8px 14px; background: #f3f4f6; border: none; border-left: 1px solid #d1d5db; cursor: pointer; font-weight: 800; color: #374151;">+</button>
+            </div>
+            <span style="width: 70px; font-size: 14px; color: #4b5563;">{{ "%.2f"|format(val) }} Q</span>
+          </div>
+          {% endfor %}
+        </div>
+        <!-- Right Column: Monedas -->
+        <div style="display: flex; flex-direction: column;">
+          {% for val in [1, 0.50, 0.25, 0.20, 0.10, 0.05] %}
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: 16px; margin-bottom: 16px;">
+            <div style="display: flex; border: 1px solid #d1d5db; border-radius: 4px; overflow: hidden; background: #fff;">
+              <button type="button" onclick="decrement(this)" style="padding: 8px 14px; background: #f3f4f6; border: none; border-right: 1px solid #d1d5db; cursor: pointer; font-weight: 800; color: #374151;">−</button>
+              <input type="text" class="cuadre-input" data-valor="{{ val }}" value="0" style="width: 50px; text-align: center; border: none; font-size: 14px; outline: none; padding: 0;">
+              <button type="button" onclick="increment(this)" style="padding: 8px 14px; background: #f3f4f6; border: none; border-left: 1px solid #d1d5db; cursor: pointer; font-weight: 800; color: #374151;">+</button>
+            </div>
+            <span style="width: 70px; font-size: 14px; color: #4b5563;">{{ "%.2f"|format(val) }} Q</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div style="padding: 16px 24px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" onclick="document.getElementById('arqueoModal').classList.remove('open'); document.getElementById('arqueoModal').style.display='none';" style="background: #714B67; color: white; border: none; padding: 10px 20px; font-size: 14px; font-weight: 600; border-radius: 4px; cursor: pointer; transition: background 0.2s;">Confirmar</button>
+        <span id="arqueoTotalLabel" style="font-size: 16px; font-weight: 600; color: #111827;">Total 0.00 Q</span>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Sobrescribir lógica para mostrar modal ya que no estamos en terminal
+    document.querySelector('button[title="Detalle de arqueo"]').onclick = function() {
+      document.getElementById('arqueoModal').style.display = 'flex';
+      document.getElementById('arqueoModal').classList.add('open');
+    };
+    function increment(btn) {
+      let input = btn.previousElementSibling;
+      input.value = (parseInt(input.value) || 0) + 1;
+      calcularArqueo();
+    }
+    function decrement(btn) {
+      let input = btn.nextElementSibling;
+      let val = (parseInt(input.value) || 0) - 1;
+      input.value = val < 0 ? 0 : val;
+      calcularArqueo();
+    }
+    function calcularArqueo() {
+      let total = 0;
+      document.querySelectorAll('.cuadre-input').forEach(input => {
+        let cant = parseInt(input.value) || 0;
+        let valor = parseFloat(input.dataset.valor) || 0;
+        total += cant * valor;
+      });
+      document.getElementById('saldo_apertura_input').value = total.toFixed(2);
+      document.getElementById('arqueoTotalLabel').innerText = 'Total ' + total.toFixed(2) + ' Q';
+    }
+    document.querySelectorAll('.cuadre-input').forEach(input => {
+      input.addEventListener('input', calcularArqueo);
+    });
+  </script>
+  {% else %}
+  <!-- SESIÓN ACTIVA - ARQUEO Y MOVIMIENTOS -->
+  <div class="card-grid">
+    <!-- PANEL DE MOVIMIENTOS DE CAJA CHICA (Movido a la izquierda) -->
+    <div class="c-card" style="display:flex; flex-direction:column;">
+      <h2 class="c-title">💵 Movimientos de Efectivo</h2>
+      <form action="{{ url_for('pos.cajas_movimiento') }}" method="POST" style="margin-bottom: 20px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+          <div>
+            <select name="tipo" class="form-control" required style="padding: 8px 12px;">
+              <option value="entrada">📥 Ingreso (Entrada)</option>
+              <option value="salida">📤 Egreso (Salida)</option>
+            </select>
+          </div>
+          <div>
+            <input type="number" name="monto" class="form-control" min="0.01" step="0.01" placeholder="Monto Q" required style="padding: 8px 12px;">
+          </div>
+        </div>
+        <div class="form-group">
+          <input type="text" name="motivo" class="form-control" placeholder="Motivo / Concepto del movimiento..." required style="padding: 8px 12px;">
+        </div>
+        <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; padding: 8px;">Registrar Movimiento</button>
+      </form>
+
+      <h3 style="font-size: 13px; font-weight: 700; color: #002a50; margin-bottom: 6px;">Historial de Turno</h3>
+      <div style="flex:1; overflow-y:auto; max-height: 80px; border:1px solid var(--c-border); border-radius:8px; padding:6px; background:#f8fafc;">
+        {% for m in movimientos %}
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; padding:4px 6px; background:#fff; border:1px solid var(--c-border); border-radius:4px; margin-bottom:4px;">
+          <div>
+            <div style="font-weight:600; color:#002a50;">
+              {% if m.tipo == 'entrada' %}📥 Ingreso{% else %}📤 Egreso{% endif %}
+            </div>
+            <div style="color:var(--c-gray); font-size:11px;">{{ m.motivo }}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-weight:700; color:{% if m.tipo == 'entrada' %}#047857{% else %}#dc2626{% endif %};">
+              {% if m.tipo == 'entrada' %}+{% else %}-{% endif %}Q{{ "%.2f"|format(m.monto) }}
+            </div>
+            <div style="color:var(--c-gray); font-size:10px;">{{ m.fecha[11:16] }}</div>
+          </div>
+        </div>
+        {% else %}
+        <div style="text-align:center; padding:20px; color:var(--c-gray); font-size:13px;">No hay movimientos manuales en este turno.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- PANEL DE RESUMEN Y ARQUEO (Movido a la derecha) -->
+    <div class="c-card">
+      <h2 class="c-title" style="display: flex; justify-content: space-between; align-items: center;">
+        <span>Sesión Abierta: {{ sesion_activa.caja_nombre }}</span>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <a href="{{ url_for('pos.cajas_sesion_reporte', sid=sesion_activa.id) }}" target="_blank" style="font-size: 11px; text-decoration: none; padding: 4px 8px; border-radius: 12px; background: #e0f2fe; color: #0369a1; font-weight: 700; border: 1.5px solid #bae6fd;">🖨️ Reporte</a>
+          <span class="badge badge-success">Activa</span>
+        </div>
+      </h2>
+      <div class="stats-list">
+        <div class="stat-row"><span>Cajero</span><strong>{{ sesion_activa.usuario_apertura }}</strong></div>
+        <div class="stat-row"><span>Apertura</span><strong>{{ sesion_activa.fecha_apertura[:16].replace('T', ' ') }}</strong></div>
+        <div class="stat-row"><span>Monto Inicial</span><strong>Q{{ "%.2f"|format(sesion_activa.saldo_apertura) }}</strong></div>
+        <div class="stat-row"><span>Ventas (Efectivo)</span><strong>Q{{ "%.2f"|format(saldo_esperado - sesion_activa.saldo_apertura - (movimientos|selectattr('tipo', 'equalto', 'entrada')|sum(attribute='monto')) + (movimientos|selectattr('tipo', 'equalto', 'salida')|sum(attribute='monto'))) }}</strong></div>
+        <div class="stat-row" style="background: #eef2ff; border-color: #c7d2fe;"><span>Ingresos (Caja Chica)</span><strong style="color: #4338ca;">+Q{{ "%.2f"|format(movimientos|selectattr('tipo', 'equalto', 'entrada')|sum(attribute='monto')) }}</strong></div>
+        <div class="stat-row" style="background: #fef2f2; border-color: #fecaca;"><span>Egresos (Caja Chica)</span><strong style="color: #b91c1c;">-Q{{ "%.2f"|format(movimientos|selectattr('tipo', 'equalto', 'salida')|sum(attribute='monto')) }}</strong></div>
+        <div class="stat-row total"><span>SALDO ESPERADO EN CAJA</span><strong>Q{{ "%.2f"|format(saldo_esperado) }}</strong></div>
+      </div>
+
+      <hr style="border:none; border-top:1px dashed var(--c-border); margin: 12px 0;">
+
+      <h3 style="font-size: 14px; font-weight: 800; color: #0f172a; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+        <span>🔒</span> Cierre y Arqueo de Caja
+      </h3>
+      <form action="{{ url_for('pos.cajas_cerrar') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
+        <div style="background: linear-gradient(145deg, #ffffff, #f8fafc); padding: 12px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border: 1px solid rgba(226, 232, 240, 0.8); margin-bottom: 12px;">
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <!-- Billetes -->
+            <div>
+              <h4 style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 4px; margin-top: 0; border-bottom: 1px solid #f1f5f9; padding-bottom: 2px;">Billetes</h4>
+              <div style="display: grid; grid-template-columns: repeat(6, min-content 1fr); gap: 4px 8px; align-items: center;">
+                <label style="font-size: 10px; font-weight:700;">Q200</label> <input type="number" class="form-control cuadre-cierre-input" data-valor="200" min="0" placeholder="0" style="padding: 1px 4px; font-size: 11px; text-align: center; height: 20px;">
+                <label style="font-size: 10px; font-weight:700;">Q100</label> <input type="number" class="form-control cuadre-cierre-input" data-valor="100" min="0" placeholder="0" style="padding: 1px 4px; font-size: 11px; text-align: center; height: 20px;">
+                <label style="font-size: 10px; font-weight:700;">Q50</label>  <input type="number" class="form-control cuadre-cierre-input" data-valor="50" min="0" placeholder="0" style="padding: 1px 4px; font-size: 11px; text-align: center; height: 20px;">
+                <label style="font-size: 10px; font-weight:700;">Q20</label>  <input type="number" class="form-control cuadre-cierre-input" data-valor="20" min="0" placeholder="0" style="padding: 1px 4px; font-size: 11px; text-align: center; height: 20px;">
+                <label style="font-size: 10px; font-weight:700;">Q10</label>  <input type="number" class="form-control cuadre-cierre-input" data-valor="10" min="0" placeholder="0" style="padding: 1px 4px; font-size: 11px; text-align: center; height: 20px;">
+                <label style="font-size: 10px; font-weight:700;">Q5</label>   <input type="number" class="form-control cuadre-cierre-input" data-valor="5" min="0" placeholder="0" style="padding: 1px 4px; font-size: 11px; text-align: center; height: 20px;">
+              </div>
+            </div>
+            <!-- Monedas -->
+            <div>
+              <h4 style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 4px; margin-top: 0; border-bottom: 1px solid #f1f5f9; padding-bottom: 2px;">Monedas</h4>
+              <div style="display: grid; grid-template-columns: repeat(5, min-content 1fr); gap: 4px 8px; align-items: center;">
+                <label style="font-size: 10px; font-weight:700;">Q1</label>     <input type="number" class="form-control cuadre-cierre-input" data-valor="1" min="0" placeholder="0" style="padding: 1px 4px; font-size: 11px; text-align: center; height: 20px;">
+                <label style="font-size: 10px; font-weight:700;">Q0.50</label>  <input type="number" class="form-control cuadre-cierre-input" data-valor="0.50" min="0" placeholder="0" style="padding: 1px 4px; font-size: 11px; text-align: center; height: 20px;">
+                <label style="font-size: 10px; font-weight:700;">Q0.25</label>  <input type="number" class="form-control cuadre-cierre-input" data-valor="0.25" min="0" placeholder="0" style="padding: 1px 4px; font-size: 11px; text-align: center; height: 20px;">
+                <label style="font-size: 10px; font-weight:700;">Q0.10</label>  <input type="number" class="form-control cuadre-cierre-input" data-valor="0.10" min="0" placeholder="0" style="padding: 1px 4px; font-size: 11px; text-align: center; height: 20px;">
+                <label style="font-size: 10px; font-weight:700;">Q0.05</label>  <input type="number" class="form-control cuadre-cierre-input" data-valor="0.05" min="0" placeholder="0" style="padding: 1px 4px; font-size: 11px; text-align: center; height: 20px;">
+              </div>
+            </div>
+          </div>
+          
+          <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; background: #fff1f2; padding: 10px 16px; border-radius: 8px; border: 1px solid #fecdd3;">
+            <label style="font-size: 14px; font-weight: 800; color: #9f1239; margin: 0;">TOTAL EFECTIVO (FÍSICO)</label>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 16px; font-weight: 800; color: #be123c;">Q</span>
+              <input type="number" id="saldo_cierre" name="saldo_cierre" style="width: 120px; text-align: right; font-size: 18px; font-weight: 800; color: #be123c; background: transparent; border: none; outline: none; padding: 0;" value="0.00" readonly required>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label for="notas_cierre" style="font-size: 12px; color: #64748b; font-weight: 700; text-transform: uppercase;">Notas / Diferencias del Arqueo</label>
+          <input type="text" id="notas_cierre" name="notas" class="form-control" style="border-radius: 8px; padding: 8px; border: 1.5px solid #e2e8f0; font-size: 14px;" placeholder="Ej. Faltante por dar mal cambio...">
+        </div>
+        
+        <button type="submit" class="btn-danger" style="width: 100%; justify-content: center; padding: 12px; font-size: 14px; font-weight: 800; border-radius: 8px; background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%); box-shadow: 0 4px 10px rgba(185, 28, 28, 0.2); transition: all 0.2s;">🔒 CERRAR CAJA Y REGISTRAR ARQUEO</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- HISTORIAL DE SESIONES PASADAS -->
+  <div style="margin-top: 24px;">
+    <h2 class="c-title" style="margin-bottom: 16px;">📜 Historial de Sesiones</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;">
+      {% for h in historial %}
+      <div style="background: #ffffff; border-radius: 12px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; position: relative;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 12px;">
+          <div>
+            <div style="font-size: 15px; font-weight: 800; color: #0f172a;">{{ h.caja_nombre }}</div>
+            <div style="font-size: 12px; color: #64748b; margin-top: 2px;">{{ h.usuario_apertura }}</div>
+          </div>
+          <span class="badge {% if h.estado == 'abierta' %}badge-success{% else %}badge-secondary{% endif %}" style="font-size: 10px; padding: 4px 8px; border-radius: 12px;">
+            {{ h.estado|upper }}
+          </span>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+          <div>
+            <div style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Apertura</div>
+            <div style="font-size: 12px; color: #334155;">{{ h.fecha_apertura[:16].replace('T', ' ') }}</div>
+            <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-top: 2px;">Q{{ "%.2f"|format(h.saldo_apertura) }}</div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Cierre</div>
+            <div style="font-size: 12px; color: #334155;">{{ h.fecha_cierre[:16].replace('T', ' ') if h.fecha_cierre else '—' }}</div>
+            <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-top: 2px;">Q{{ "%.2f"|format(h.saldo_cierre) if h.saldo_cierre is not none else '—' }}</div>
+          </div>
+        </div>
+
+        <div style="background: #f8fafc; padding: 10px 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #f1f5f9;">
+          <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Diferencia</span>
+          {% if h.saldo_cierre is not none and h.saldo_esperado is not none %}
+            {% set dif = h.saldo_cierre - h.saldo_esperado %}
+            <span style="font-weight: 800; font-size: 14px; color:{% if dif == 0 %}#047857{% elif dif > 0 %}#0284c7{% else %}#dc2626{% endif %};">
+              {% if dif > 0 %}+{% endif %}Q{{ "%.2f"|format(dif) }}
+            </span>
+          {% else %}
+            <span style="font-size: 13px; color: #94a3b8;">—</span>
+          {% endif %}
+        </div>
+        <div style="margin-top: 12px; text-align: right;">
+          <a href="{{ url_for('pos.cajas_sesion_reporte', sid=h.id) }}" target="_blank" style="font-size: 11px; text-decoration: none; padding: 4px 8px; border-radius: 8px; background: #f1f5f9; color: #475569; font-weight: 600; border: 1px solid #cbd5e1; display: inline-flex; align-items: center; gap: 4px;">🖨️ Ver Corte</a>
+        </div>
+      </div>
+      {% else %}
+      <div style="grid-column: 1 / -1; text-align: center; padding: 40px; background: #fff; border-radius: 12px; border: 1px dashed #cbd5e1; color: #64748b;">
+        No hay registros de sesiones.
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Para apertura
+  const inputsApertura = document.querySelectorAll('.cuadre-input');
+  const saldoAperturaOutput = document.getElementById('saldo_apertura');
+  
+  if (inputsApertura.length > 0 && saldoAperturaOutput) {
+    function calcularTotalApertura() {
+      let total = 0;
+      inputsApertura.forEach(input => {
+        const cant = parseInt(input.value) || 0;
+        const valor = parseFloat(input.dataset.valor) || 0;
+        total += cant * valor;
+      });
+      saldoAperturaOutput.value = total.toFixed(2);
+    }
+    inputsApertura.forEach(input => input.addEventListener('input', calcularTotalApertura));
+  }
+
+  // Para cierre
+  const inputsCierre = document.querySelectorAll('.cuadre-cierre-input');
+  const saldoCierreOutput = document.getElementById('saldo_cierre');
+  
+  if (inputsCierre.length > 0 && saldoCierreOutput) {
+    function calcularTotalCierre() {
+      let total = 0;
+      inputsCierre.forEach(input => {
+        const cant = parseInt(input.value) || 0;
+        const valor = parseFloat(input.dataset.valor) || 0;
+        total += cant * valor;
+      });
+      saldoCierreOutput.value = total.toFixed(2);
+    }
+    inputsCierre.forEach(input => input.addEventListener('input', calcularTotalCierre));
+  }
+});
+</script>
+{% endblock %}

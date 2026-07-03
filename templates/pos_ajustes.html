@@ -1,0 +1,458 @@
+{% extends 'base.html' %}
+{% block title %}Ajustes de Inventario{% endblock %}
+{% block content %}
+<style>
+.ajuste-page { max-width: 1100px; margin: 0 auto; padding: 24px 20px; }
+.g-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.g-title { font-family: 'Fraunces', serif; font-size: 28px; font-weight: 700; color: #002a50; margin: 0; }
+.btn-primary { padding: 10px 20px; border-radius: 8px; border: none; font-size: 14px; font-weight: 600; color: #fff; background: #003b74; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: background .15s; text-decoration: none; }
+.btn-primary:hover { background: #002a50; }
+
+.table-responsive { overflow-x: auto; background: #fff; border: 1.5px solid var(--c-border); border-radius: 12px; margin-bottom: 30px; }
+.table { width: 100%; border-collapse: collapse; font-size: 14px; text-align: left; }
+.table th { background: #f8fafc; padding: 12px 16px; font-weight: 600; color: #475569; border-bottom: 1.5px solid var(--c-border); }
+.table td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+.table tr:last-child td { border-bottom: none; }
+
+/* Modal overlay */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,23,44,.5); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .2s; }
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal-box { background: #fff; border-radius: 20px; padding: 30px; max-width: 650px; width: 90%; box-shadow: 0 25px 60px rgba(0,32,68,.22); transform: scale(.95); transition: transform .25s; display: flex; flex-direction: column; max-height: 90vh; }
+.modal-overlay.open .modal-box { transform: scale(1); }
+.modal-title { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 700; color: #002a50; margin-top: 0; margin-bottom: 20px; }
+
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+.form-control { width: 100%; padding: 8px 12px; border: 1.5px solid var(--c-border); border-radius: 8px; font-family: inherit; font-size: 14px; outline: none; }
+.form-control:focus { border-color: #0057a3; }
+
+.tabs-nav { display: flex; gap: 4px; border-bottom: 2px solid var(--c-border); margin-bottom: 24px; }
+.tab-btn { padding: 12px 24px; background: none; border: none; font-size: 14px; font-weight: 600; color: var(--c-gray); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .2s; }
+.tab-btn.active { color: #003b74; border-bottom-color: #003b74; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+
+<div class="ajuste-page">
+  <div class="g-header">
+    <h1 class="g-title">⚙️ Ajustes y Configuración</h1>
+    <div style="display: flex; gap: 10px;">
+      <a href="{{ url_for('pos.dashboard') }}" class="btn-primary" style="background:#f3f4f6; color:#374151; border: 1.5px solid #d1d5db;">Dashboard</a>
+    </div>
+  </div>
+
+  <div class="tabs-nav">
+    <button class="tab-btn active" id="btn_tab_ajustes" onclick="switchTab('ajustes')">Ajustes de Inventario</button>
+    <button class="tab-btn" id="btn_tab_bodegas" onclick="switchTab('bodegas')">Gestión de Bodegas</button>
+    <button class="tab-btn" id="btn_tab_usuarios" onclick="switchTab('usuarios')">Bodegas por Usuario</button>
+    <button class="tab-btn" id="btn_tab_fel" onclick="switchTab('fel')">Certificación FEL</button>
+  </div>
+
+  <!-- TAB: AJUSTES -->
+  <div id="tab_ajustes" class="tab-pane active">
+    <div style="margin-bottom: 16px;">
+      <button class="btn-primary" onclick="abrirModal()">➕ Registrar Ajuste</button>
+    </div>
+
+  <!-- LISTADO DE AJUSTES -->
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Número</th>
+          <th>Tipo Ajuste</th>
+          <th>Fecha Registro</th>
+          <th>Usuario</th>
+          <th>Notas / Observaciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in ajustes %}
+        <tr>
+          <td><strong>{{ a.numero }}</strong></td>
+          <td>
+            <span style="font-weight:600; text-transform:uppercase; font-size:12px;">
+              {% if a.tipo == 'fisico' %}📋 Inventario Físico
+              {% elif a.tipo == 'perdida' %}❌ Pérdida
+              {% else %}⚠️ Merma / Mermas{% endif %}
+            </span>
+          </td>
+          <td>{{ a.fecha[:16].replace('T', ' ') }}</td>
+          <td>{{ a.usuario }}</td>
+          <td>{{ a.notas or a.notes or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" style="text-align:center; padding:40px; color:var(--c-gray);">No hay ajustes registrados.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  </div>
+
+  <!-- TAB: BODEGAS -->
+  <div id="tab_bodegas" class="tab-pane">
+    <div style="margin-bottom: 16px;">
+      <button class="btn-primary" onclick="openModalBodega()">➕ NUEVA BODEGA</button>
+    </div>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Ubicación</th>
+            <th>Estado</th>
+            <th style="text-align:right;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for b in bodegas %}
+          <tr>
+            <td>{{ b.id }}</td>
+            <td><strong>{{ b.nombre }}</strong></td>
+            <td>{{ b.ubicacion }}</td>
+            <td>
+              <span style="display:inline-block; padding:4px 8px; border-radius:12px; font-size:11px; font-weight:700;
+                {% if b.estado == 'activo' %}background:#e6fcf5; color:#0ca678;{% else %}background:#fff5f5; color:#e03e2d;{% endif %}">
+                {{ b.estado|upper }}
+              </span>
+            </td>
+            <td style="text-align:right;">
+              <button class="btn-primary" style="background:#f3f4f6; color:#374151; border: 1px solid #d1d5db; padding:4px 12px; font-size:12px;" onclick="editBodega({{ b.id }}, '{{ b.nombre }}', '{{ b.ubicacion }}', '{{ b.estado }}')">Editar</button>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" style="text-align:center; padding:30px; color:var(--c-gray);">No hay bodegas registradas.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: USUARIOS BODEGAS -->
+  <div id="tab_usuarios" class="tab-pane">
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th>Bodega Asignada</th>
+            <th>Asignar Nueva Bodega</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in usuarios %}
+          <tr>
+            <td><strong>{{ u.username }}</strong></td>
+            <td>{{ u.bodega_nombre or 'Ninguna (Sin Asignar)' }}</td>
+            <td>
+              <form action="{{ url_for('pos.ajustes_asignar_bodega') }}" method="POST" style="display:flex; gap:8px;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="usuario_id" value="{{ u.id }}">
+                <select name="bodega_id" class="form-control" style="width: auto; padding: 4px 8px;">
+                  <option value="">-- Quitar Asignación --</option>
+                  {% for b in bodegas if b.estado == 'activo' %}
+                  <option value="{{ b.id }}" {% if b.id == u.bodega_id %}selected{% endif %}>{{ b.nombre }}</option>
+                  {% endfor %}
+                </select>
+                <button type="submit" class="btn-primary" style="padding: 4px 12px; font-size: 12px;">Asignar</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="3" style="text-align:center; padding:30px; color:var(--c-gray);">No hay usuarios activos.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: CONFIGURACION FEL -->
+  <div id="tab_fel" class="tab-pane">
+    <div style="background: #ffffff; border-radius: 16px; padding: 24px; border: 1px solid var(--c-border); max-width: 600px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); margin-bottom: 30px;">
+      <h3 style="font-family: 'Fraunces', serif; font-size: 20px; font-weight: 700; color: #002a50; margin-top: 0; margin-bottom: 20px;">Configuración Factura Electrónica (FEL)</h3>
+      <form action="{{ url_for('pos.ajustes_guardar_fel') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
+        <div class="form-group">
+          <label>Certificador de Factura Electrónica</label>
+          <select name="fel_certificador" class="form-control">
+            <option value="MOCK" {% if fel_certificador == 'MOCK' %}selected{% endif %}>Simulado (MOCK)</option>
+            <option value="MEGAPRINT" {% if fel_certificador == 'MEGAPRINT' %}selected{% endif %}>Megaprint</option>
+            <option value="INFILE" {% if fel_certificador == 'INFILE' %}selected{% endif %}>Infile</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Usuario del Certificador (feel_user)</label>
+          <input type="text" name="fel_user" class="form-control" value="{{ fel_user }}" placeholder="Ej. USUARIO_API_FEL">
+        </div>
+
+        <div class="form-group">
+          <label>Contraseña / Token del Certificador</label>
+          <input type="password" name="fel_password" class="form-control" value="{{ fel_password }}" placeholder="••••••••••••">
+        </div>
+
+        <div class="form-group">
+          <label>NIT Emisor</label>
+          <input type="text" name="fel_nit" class="form-control" value="{{ fel_nit }}" placeholder="Ej. 12345678">
+        </div>
+
+        <div class="form-group">
+          <label>URL de API del Certificador</label>
+          <input type="text" name="fel_api_url" class="form-control" value="{{ fel_api_url }}" placeholder="Ej. https://api.megaprint.com">
+        </div>
+
+        <button type="submit" class="btn-primary" style="margin-top: 15px; width: 100%; justify-content: center; height: 42px;">Guardar Configuración FEL</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PARA NUEVO AJUSTE -->
+<div class="modal-overlay" id="ajusteModal">
+  <div class="modal-box">
+    <h2 class="modal-title">Registrar Ajuste de Stock</h2>
+    <div style="overflow-y: auto; flex: 1; padding-right: 5px;">
+      <div class="form-group">
+        <label for="aju_tipo">Tipo de Ajuste *</label>
+        <select id="aju_tipo" class="form-control" required>
+          <option value="fisico">📋 Regularización / Físico</option>
+          <option value="perdida">❌ Pérdida / Robo</option>
+          <option value="merma">⚠️ Merma / Vencimiento</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="background: #f8fafc; padding: 12px; border-radius: 10px; border: 1.5px solid var(--c-border); margin-bottom: 20px;">
+        <label style="margin-bottom: 8px;">Añadir Producto a Ajustar</label>
+        <div style="display: grid; grid-template-columns: 1fr 120px auto; gap: 8px; align-items: center;">
+          <div>
+            <select id="add_prod" class="form-control" style="padding: 7px 10px;">
+              <option value="">-- Producto --</option>
+              {% for pr in productos %}
+              <option value="{{ pr.id }}" data-stock="{{ pr.stock }}">{{ pr.nombre }} (Stock actual: {{ pr.stock|int }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <input type="number" id="add_cant" class="form-control" placeholder="Nueva Cant" min="0" style="padding: 7px 10px;">
+          </div>
+          <div>
+            <button type="button" class="btn-primary" onclick="agregarProducto()" style="padding: 8px 12px;">➕</button>
+          </div>
+        </div>
+      </div>
+
+      <h3 style="font-size: 14px; font-weight: 700; color: #002a50; margin-bottom: 10px;">Detalles de Ajustes</h3>
+      <div class="table-responsive" style="max-height: 200px; border-radius: 8px;">
+        <table class="table" style="font-size: 13px;">
+          <thead>
+            <tr style="background: #f1f5f9;">
+              <th>Producto</th>
+              <th>Cantidad Anterior</th>
+              <th>Cantidad Nueva</th>
+              <th>Diferencia</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="adjustment_lines">
+            <tr>
+              <td colspan="5" style="text-align: center; color: var(--c-gray); padding: 20px;">No hay productos agregados.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="form-group" style="margin-top: 15px;">
+        <label for="aju_notas">Notas / Razón del Ajuste</label>
+        <textarea id="aju_notas" class="form-control" rows="2" placeholder="Ej. Inventario físico anual, mermas por vencimiento de bolígrafos..."></textarea>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+      <button class="btn-primary" style="background:#f3f4f6; color:#374151; border: 1.5px solid #d1d5db;" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn-primary" onclick="guardarAjuste()" id="btnGuardarA" disabled>Guardar Ajuste</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL BODEGA -->
+<div class="modal-overlay" id="bodegaModal">
+  <div class="modal-box" style="max-width: 500px;">
+    <h2 class="modal-title" id="bodegaModalTitle">Nueva Bodega</h2>
+    <form action="{{ url_for('pos.bodegas_guardar') }}" method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" id="bodega_id" name="id">
+      
+      <div class="form-group">
+        <label>Nombre de la Bodega</label>
+        <input type="text" id="bodega_nombre" name="nombre" class="form-control" required>
+      </div>
+      <div class="form-group">
+        <label>Ubicación</label>
+        <input type="text" id="bodega_ubicacion" name="ubicacion" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Estado</label>
+        <select id="bodega_estado" name="estado" class="form-control">
+          <option value="activo">Activo</option>
+          <option value="inactivo">Inactivo</option>
+        </select>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:12px; margin-top: 20px;">
+        <button type="button" class="btn-primary" style="background:#f3f4f6; color:#374151; border: 1.5px solid #d1d5db;" onclick="closeModalBodega()">Cancelar</button>
+        <button type="submit" class="btn-primary">Guardar Bodega</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+let ajuItems = [];
+
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('btn_tab_' + tabId).classList.add('active');
+  document.getElementById('tab_' + tabId).classList.add('active');
+}
+
+// Cargar pestaña por defecto si viene en la URL
+document.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  const tab = params.get('tab');
+  if (tab && document.getElementById('tab_' + tab)) {
+    switchTab(tab);
+  }
+});
+
+function abrirModal() {
+  document.getElementById('ajusteModal').classList.add('open');
+  ajuItems = [];
+  renderLines();
+}
+
+function cerrarModal() {
+  document.getElementById('ajusteModal').classList.remove('open');
+}
+
+function openModalBodega() {
+  document.getElementById('bodega_id').value = '';
+  document.getElementById('bodega_nombre').value = '';
+  document.getElementById('bodega_ubicacion').value = '';
+  document.getElementById('bodega_estado').value = 'activo';
+  document.getElementById('bodegaModalTitle').innerText = 'Nueva Bodega';
+  document.getElementById('bodegaModal').classList.add('open');
+}
+
+function editBodega(id, nombre, ubicacion, estado) {
+  document.getElementById('bodega_id').value = id;
+  document.getElementById('bodega_nombre').value = nombre;
+  document.getElementById('bodega_ubicacion').value = ubicacion !== 'None' ? ubicacion : '';
+  document.getElementById('bodega_estado').value = estado;
+  document.getElementById('bodegaModalTitle').innerText = 'Editar Bodega';
+  document.getElementById('bodegaModal').classList.add('open');
+}
+
+function closeModalBodega() {
+  document.getElementById('bodegaModal').classList.remove('open');
+}
+
+function agregarProducto() {
+  const select = document.getElementById('add_prod');
+  const prodId = select.value;
+  const prodName = select.options[select.selectedIndex].text.split(' (Stock actual:')[0];
+  const stockAnterior = parseFloat(select.options[select.selectedIndex].dataset.stock) || 0;
+  const cantNueva = parseFloat(document.getElementById('add_cant').value);
+
+  if(!prodId || isNaN(cantNueva) || cantNueva < 0) {
+    alert('Por favor especifique producto y una cantidad nueva válida.');
+    return;
+  }
+
+  // Verificar si ya existe en la lista
+  const exist = ajuItems.find(i => i.producto_id === prodId);
+  if(exist) {
+    exist.cantidad_nueva = cantNueva;
+  } else {
+    ajuItems.push({ producto_id: prodId, nombre: prodName, cantidad_anterior: stockAnterior, cantidad_nueva: cantNueva });
+  }
+
+  renderLines();
+  select.value = '';
+  document.getElementById('add_cant').value = '';
+}
+
+function removerLinea(idx) {
+  ajuItems.splice(idx, 1);
+  renderLines();
+}
+
+function renderLines() {
+  const tbody = document.getElementById('adjustment_lines');
+  tbody.innerHTML = '';
+
+  if(ajuItems.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--c-gray); padding: 20px;">No hay productos agregados.</td></tr>';
+    document.getElementById('btnGuardarA').disabled = true;
+    return;
+  }
+
+  ajuItems.forEach((item, idx) => {
+    const diff = item.cantidad_nueva - item.cantidad_anterior;
+    const diffText = diff > 0 ? `+${diff}` : diff;
+    const diffColor = diff === 0 ? '#475569' : diff > 0 ? '#047857' : '#dc2626';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${item.nombre}</strong></td>
+      <td>${item.cantidad_anterior}</td>
+      <td>${item.cantidad_nueva}</td>
+      <td style="color:${diffColor}; font-weight:700;">${diffText}</td>
+      <td><button type="button" class="btn-primary" style="background:#fee2e2; color:#b91c1c; padding:4px 8px; font-size:11px;" onclick="removerLinea(${idx})">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('btnGuardarA').disabled = false;
+}
+
+async function guardarAjuste() {
+  const payload = {
+    tipo: document.getElementById('aju_tipo').value,
+    notas: document.getElementById('aju_notas').value,
+    items: ajuItems
+  };
+
+  const btn = document.getElementById('btnGuardarA');
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+
+  try {
+    const res = await fetch('/pos/ajustes/guardar', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token() }}'
+      },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if(data.success) {
+      alert(`Ajuste guardado correctamente con correlativo: ${data.numero}`);
+      location.reload();
+    } else {
+      alert('Error: ' + data.error);
+    }
+  } catch(e) {
+    alert('Error de red. Intente nuevamente.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Guardar Ajuste';
+  }
+}
+</script>
+{% endblock %}

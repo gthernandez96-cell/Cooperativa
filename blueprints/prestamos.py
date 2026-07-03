@@ -1714,8 +1714,9 @@ def obtener_estadisticas_cobranza():
             """
             SELECT COALESCE(SUM(monto),0)
             FROM pagos_prestamo
-            WHERE strftime('%Y-%m', fecha) = strftime('%Y-%m', 'now')
-            """
+            WHERE SUBSTR(fecha, 1, 7) = ?
+            """,
+            (datetime.now().strftime('%Y-%m'),)
         )[0]
         acciones_pendientes = db_fetchone(
             conn,

@@ -1,0 +1,544 @@
+{% extends 'base.html' %}
+{% block title %}Nueva Solicitud de Cotización — POS{% endblock %}
+{% block content %}
+<style>
+.odoo-form-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px 20px;
+  font-family: 'DM Sans', sans-serif;
+  color: #1e293b;
+}
+
+/* Action Buttons Header Bar */
+.odoo-action-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px 8px 0 0;
+  padding: 12px 20px;
+  border-bottom: none;
+}
+.odoo-buttons-group {
+  display: flex;
+  gap: 8px;
+}
+.odoo-btn-purple {
+  background: #714B67;
+  color: #fff;
+  border: none;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+.odoo-btn-purple:hover {
+  background: #5c3b53;
+}
+.odoo-btn-gray {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.odoo-btn-gray:hover {
+  background: #e2e8f0;
+}
+
+/* Status Progress bar */
+.odoo-status-bar {
+  display: flex;
+  font-size: 12px;
+  font-weight: 700;
+  color: #94a3b8;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.status-step {
+  padding: 6px 14px;
+  background: #f8fafc;
+  border-right: 1px solid #cbd5e1;
+}
+.status-step:last-child {
+  border-right: none;
+}
+.status-step.active {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+/* Main Form Sheet */
+.odoo-sheet {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0 0 8px 8px;
+  padding: 30px;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+}
+.odoo-sheet-header {
+  margin-bottom: 24px;
+}
+.rfq-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.rfq-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.rfq-star {
+  font-size: 24px;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+.rfq-star.active {
+  color: #eab308;
+}
+.rfq-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+/* Form Fields Grid */
+.odoo-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-bottom: 30px;
+}
+@media (max-width: 768px) {
+  .odoo-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.form-row {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.form-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+}
+.form-label.required::after {
+  content: " *";
+  color: #ef4444;
+}
+.form-input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 13px;
+  outline: none;
+}
+.form-input:focus {
+  border-color: #714B67;
+}
+
+/* Tab Bar */
+.odoo-tabs {
+  display: flex;
+  border-bottom: 1px solid #cbd5e1;
+  margin-bottom: 16px;
+}
+.odoo-tab {
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.odoo-tab.active {
+  color: #714B67;
+  border-bottom-color: #714B67;
+}
+
+/* Lines Table */
+.lines-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+.lines-table th {
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid #cbd5e1;
+  color: #475569;
+  font-weight: 700;
+}
+.lines-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+.btn-delete-row {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* Subtotal box */
+.totals-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-top: 20px;
+}
+.terms-textarea {
+  width: 450px;
+  max-width: 90vw;
+  height: 80px;
+  padding: 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+.totals-box {
+  width: 300px;
+  font-size: 14px;
+}
+.totals-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+}
+.totals-row.grand-total {
+  font-weight: 700;
+  font-size: 16px;
+  border-top: 1px solid #cbd5e1;
+  padding-top: 10px;
+  color: #1e293b;
+}
+</style>
+
+<div class="odoo-form-wrapper">
+  <!-- Action Buttons Header Bar -->
+  <div class="odoo-action-header">
+    <div class="odoo-buttons-group">
+      <button type="button" class="odoo-btn-gray" onclick="enviarOrdenCompra()">Confirmar orden</button>
+      <button type="button" class="odoo-btn-gray" onclick="location.href='{{ url_for('pos.compras') }}'">Cancelar</button>
+    </div>
+    <div class="odoo-status-bar">
+      <div class="status-step active">Solicitud de cotización</div>
+      <div class="status-step">Solicitud de cotización enviada</div>
+      <div class="status-step">Orden de compra</div>
+    </div>
+  </div>
+
+  <!-- Form Sheet -->
+  <div class="odoo-sheet">
+    <div class="odoo-sheet-header">
+      <div class="rfq-label">Solicitud de cotización</div>
+      <div class="rfq-title-row">
+        <span class="rfq-star" onclick="this.classList.toggle('active')">☆</span>
+        <h1 class="rfq-title">{% if compra %}Editar {{ compra.numero }}{% else %}Nuevo{% endif %}</h1>
+      </div>
+    </div>
+
+    <!-- Two Column Form Grid -->
+    <div class="odoo-form-grid">
+      <!-- Column 1 -->
+      <div>
+        <div class="form-row">
+          <label class="form-label required" for="proveedor_id">Proveedor</label>
+          <select id="proveedor_id" class="form-input" onchange="onSupplierChange()" required>
+            <option value="">Nombre, NIT, correo electrónico o referencia</option>
+            {% for p in proveedores %}
+            <option value="{{ p.id }}" {% if compra and compra.proveedor_id == p.id %}selected{% endif %}>{{ p.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="referencia_proveedor">Referencia de proveedor</label>
+          <input type="text" id="referencia_proveedor" class="form-input" placeholder="Referencia externa...">
+        </div>
+      </div>
+
+      <!-- Column 2 -->
+      <div>
+        <div class="form-row">
+          <label class="form-label" for="fecha_limite">Fecha límite de la orden</label>
+          <input type="text" id="fecha_limite" class="form-input" value="{{ fecha_actual }}" readonly>
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="entrega_esperada">Entrega esperada</label>
+          <input type="date" id="entrega_esperada" class="form-input">
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="bodega_id">Entregar a</label>
+          <select id="bodega_id" class="form-input">
+            <option value="">Seleccionar bodega de entrega...</option>
+            {% for b in bodegas %}
+            <option value="{{ b.id }}">{{ b.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="proyecto">Proyecto</label>
+          <input type="text" id="proyecto" class="form-input" placeholder="Nombre de proyecto o código...">
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="odoo-tabs">
+      <button type="button" class="odoo-tab active">Productos</button>
+      <button type="button" class="odoo-tab" onclick="alert('Apartado informativo de compras.')">Otra información</button>
+    </div>
+
+    <!-- Lines Table -->
+    <table class="lines-table" id="linesTable">
+      <thead>
+        <tr>
+          <th style="width: 40%;">Producto</th>
+          <th style="width: 15%;">Cantidad</th>
+          <th style="width: 20%;">Precio unitario</th>
+          <th style="width: 15%;">Impuestos</th>
+          <th style="width: 10%; text-align: right;">Importe</th>
+          <th style="width: 5%;"></th>
+        </tr>
+      </thead>
+      <tbody id="linesTableBody">
+        <!-- Rows added dynamically -->
+      </tbody>
+    </table>
+
+    <div style="display: flex; gap: 15px; margin-bottom: 20px; font-size: 13px;">
+      <a href="javascript:void(0)" style="color: #714B67; font-weight: 700; text-decoration: none;" onclick="agregarFilaProducto()">Agregar un producto</a>
+      <span style="color: #cbd5e1;">|</span>
+      <a href="javascript:void(0)" style="color: #714B67; font-weight: 700; text-decoration: none;" onclick="location.href='{{ url_for('pos.productos') }}'">Catálogo</a>
+    </div>
+
+    <!-- Totals Section -->
+    <div class="totals-section">
+      <div>
+        <textarea id="comp_notas" class="terms-textarea" placeholder="Defina sus términos y condiciones...">{% if compra %}{{ compra.notas or '' }}{% endif %}</textarea>
+      </div>
+      <div class="totals-box">
+        <div class="totals-row">
+          <span>Subtotal:</span>
+          <strong>Q <span id="lblSubtotal">0.00</span></strong>
+        </div>
+        <div class="totals-row grand-total">
+          <span>Total:</span>
+          <strong>Q <span id="lblTotal">0.00</span></strong>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// JSON array containing all products to build select options
+const availableProducts = [
+  {% for pr in productos %}
+  { id: {{ pr.id }}, nombre: '{{ pr.nombre|replace("'", "\\'")|replace('"', '&quot;') }}', costo: {{ pr.costo or 0 }}, proveedor_id: {{ pr.proveedor_id or 'null' }}, stock_maximo: {{ pr.stock_maximo or 0 }} },
+  {% endfor %}
+];
+
+function agregarFilaProducto(selectedProdId = null, qty = 1, cost = 0.00) {
+  const tbody = document.getElementById('linesTableBody');
+  const tr = document.createElement('tr');
+  
+  let optionsHtml = '<option value="">-- Seleccionar Producto --</option>';
+  availableProducts.forEach(p => {
+    const selectedAttr = (selectedProdId && p.id == selectedProdId) ? 'selected' : '';
+    optionsHtml += `<option value="${p.id}" data-costo="${p.costo}" ${selectedAttr}>${p.nombre}</option>`;
+  });
+  
+  const subtotalVal = (qty * cost).toFixed(2);
+  
+  tr.innerHTML = `
+    <td>
+      <select class="form-input prod-select" onchange="onProductChange(this)" style="padding: 4px 6px;">
+        ${optionsHtml}
+      </select>
+    </td>
+    <td>
+      <input type="number" class="form-input prod-qty" value="${qty}" min="1" step="1" oninput="recomputeRow(this)" style="padding: 4px 6px;">
+    </td>
+    <td>
+      <input type="number" class="form-input prod-cost" value="${parseFloat(cost).toFixed(2)}" min="0" step="0.01" oninput="recomputeRow(this)" style="padding: 4px 6px;">
+    </td>
+    <td>
+      <span style="color: #64748b; font-size: 12px; font-weight: 600;">Exento (0%)</span>
+    </td>
+    <td style="text-align: right; font-weight: 700;">
+      Q <span class="prod-subtotal">${subtotalVal}</span>
+    </td>
+    <td style="text-align: center;">
+      <button type="button" class="btn-delete-row" onclick="eliminarFila(this)">✕</button>
+    </td>
+  `;
+  
+  tbody.appendChild(tr);
+  recomputeTotals();
+}
+
+function onSupplierChange() {
+  const provId = document.getElementById('proveedor_id').value;
+  const tbody = document.getElementById('linesTableBody');
+  tbody.innerHTML = ''; // Clear existing rows
+  
+  if (!provId) {
+    agregarFilaProducto();
+    return;
+  }
+  
+  const matchingProducts = availableProducts.filter(p => p.proveedor_id == provId);
+  if (matchingProducts.length > 0) {
+    matchingProducts.forEach(p => {
+      const qty = p.stock_maximo > 0 ? p.stock_maximo : 1;
+      agregarFilaProducto(p.id, qty, p.costo);
+    });
+  } else {
+    agregarFilaProducto();
+  }
+}
+
+function onProductChange(select) {
+  const opt = select.options[select.selectedIndex];
+  const tr = select.closest('tr');
+  const costInput = tr.querySelector('.prod-cost');
+  
+  if (opt && opt.dataset.costo) {
+    costInput.value = parseFloat(opt.dataset.costo).toFixed(2);
+  } else {
+    costInput.value = '0.00';
+  }
+  
+  recomputeRow(select);
+}
+
+function recomputeRow(inputElement) {
+  const tr = inputElement.closest('tr');
+  const qty = parseFloat(tr.querySelector('.prod-qty').value) || 0;
+  const cost = parseFloat(tr.querySelector('.prod-cost').value) || 0;
+  const subtotalSpan = tr.querySelector('.prod-subtotal');
+  
+  const subtotal = qty * cost;
+  subtotalSpan.textContent = subtotal.toFixed(2);
+  
+  recomputeTotals();
+}
+
+function eliminarFila(btn) {
+  const tr = btn.closest('tr');
+  tr.remove();
+  recomputeTotals();
+}
+
+function recomputeTotals() {
+  const rows = document.querySelectorAll('#linesTableBody tr');
+  let total = 0;
+  
+  rows.forEach(tr => {
+    const sub = parseFloat(tr.querySelector('.prod-subtotal').textContent) || 0;
+    total += sub;
+  });
+  
+  document.getElementById('lblSubtotal').textContent = total.toFixed(2);
+  document.getElementById('lblTotal').textContent = total.toFixed(2);
+}
+
+async function enviarOrdenCompra() {
+  const provId = document.getElementById('proveedor_id').value;
+  if (!provId) {
+    alert('Por favor seleccione un proveedor.');
+    return;
+  }
+  
+  const rows = document.querySelectorAll('#linesTableBody tr');
+  const items = [];
+  
+  rows.forEach(tr => {
+    const prodId = tr.querySelector('.prod-select').value;
+    const qty = parseFloat(tr.querySelector('.prod-qty').value) || 0;
+    const cost = parseFloat(tr.querySelector('.prod-cost').value) || 0;
+    
+    if (prodId && qty > 0) {
+      items.push({
+        producto_id: parseInt(prodId),
+        cantidad: qty,
+        costo: cost
+      });
+    }
+  });
+  
+  if (items.length === 0) {
+    alert('Debe agregar al menos un producto a la solicitud.');
+    return;
+  }
+  
+  const payload = {
+    proveedor_id: parseInt(provId),
+    items: items,
+    notas: document.getElementById('comp_notas').value
+  };
+  
+  {% if compra %}
+  payload.compra_id = {{ compra.id }};
+  {% endif %}
+  
+  try {
+    const res = await fetch('/pos/compras/guardar', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': window._csrfToken
+      },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    
+    if (data.success) {
+      alert(`Solicitud de cotización creada exitosamente con la referencia: ${data.numero}`);
+      location.href = "{{ url_for('pos.compras') }}";
+    } else {
+      alert('Error: ' + data.error);
+    }
+  } catch(e) {
+    alert('Error al guardar la cotización. Intente nuevamente.');
+  }
+}
+
+// Pre-fill existing items or empty row
+document.addEventListener('DOMContentLoaded', function() {
+    {% if compra and compra['items'] %}
+        {% for item in compra['items'] %}
+            agregarFilaProducto({{ item.producto_id }}, {{ item.cantidad }}, {{ item.costo_unitario }});
+        {% endfor %}
+    {% else %}
+        agregarFilaProducto();
+    {% endif %}
+});
+</script>
+{% endblock %}

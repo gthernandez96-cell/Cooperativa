@@ -1,0 +1,405 @@
+{% extends 'base.html' %}
+{% block title %}Productos — POS{% endblock %}
+{% block content %}
+<style>
+.odoo-header { background: #fff; padding: 12px 20px; border-bottom: 1px solid var(--c-border); display: flex; gap: 24px; font-size: 14px; color: #4b5563; font-weight: 500; }
+.odoo-header a { color: inherit; text-decoration: none; }
+.odoo-header a.active { color: #000; font-weight: 600; border-bottom: 2px solid #714B67; padding-bottom: 12px; margin-bottom: -13px; }
+
+.kanban-container { background: #f3f4f6; min-height: calc(100vh - 100px); padding: 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+.k-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+.k-toolbar-left { display: flex; align-items: center; gap: 16px; }
+.k-title { font-size: 18px; font-weight: 600; color: #111827; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.k-search { display: flex; align-items: center; background: #fff; border: 1px solid #d1d5db; border-radius: 4px; padding: 4px 8px; width: 350px; }
+.k-search input { border: none; outline: none; width: 100%; font-size: 13px; padding: 4px; }
+.k-toolbar-right { display: flex; align-items: center; gap: 16px; font-size: 13px; color: #4b5563; }
+.k-views { display: flex; border: 1px solid #d1d5db; border-radius: 4px; overflow: hidden; }
+.k-views button { background: #fff; border: none; padding: 6px 10px; cursor: pointer; color: #6b7280; display: flex; align-items: center; justify-content: center; transition: all 0.1s; }
+.k-views button.active { background: #e5e7eb; color: #111827; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1); }
+.k-views button:hover:not(.active) { background: #f9fafb; }
+
+.btn-nuevo { background: #714B67; color: #fff; border: none; padding: 6px 16px; border-radius: 4px; font-weight: 600; font-size: 13px; cursor: pointer; transition: background 0.1s; }
+.btn-nuevo:hover { background: #5a3c52; }
+
+/* Autocomplete Custom */
+.autocomplete-wrapper { position: relative; width: 100%; }
+.autocomplete-items { position: absolute; border: 1px solid #d1d5db; border-radius: 4px; background-color: #fff; z-index: 99; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: none; margin-top: 4px; }
+.autocomplete-items div { padding: 8px 12px; cursor: pointer; background-color: #fff; border-bottom: 1px solid #f3f4f6; color: #111827; font-size: 13px; }
+.autocomplete-items div:hover { background-color: #f9fafb; }
+.autocomplete-items div:last-child { border-bottom: none; }
+
+.kanban-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.k-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 4px; padding: 12px; display: flex; cursor: pointer; transition: box-shadow 0.2s, transform 0.1s; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.k-card:hover { box-shadow: 0 4px 6px rgba(0,0,0,0.1); transform: translateY(-1px); }
+.k-card-content { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.k-card-top { display: flex; gap: 8px; align-items: flex-start; }
+.k-star { color: #d1d5db; font-size: 16px; cursor: pointer; user-select: none; }
+.k-star.active { color: #fbbf24; }
+.k-name { font-size: 14px; font-weight: 600; color: #111827; line-height: 1.3; }
+.k-code { font-size: 12px; color: #6b7280; font-family: monospace; margin-top: 2px; }
+.k-price { font-size: 13px; color: #374151; margin-top: 6px; }
+.k-stock { font-size: 12px; color: #6b7280; margin-top: 2px; }
+.k-card-img-wrap { width: 72px; height: 72px; margin-left: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.k-card-img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+/* Modal */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.4); backdrop-filter:blur(2px); z-index:9999; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .2s; }
+.modal-overlay.open { opacity:1; pointer-events:all; }
+.modal-box { background:#fff; border-radius:8px; padding:24px; width:600px; max-width:95vw; box-shadow:0 20px 25px -5px rgba(0,0,0,.1), 0 10px 10px -5px rgba(0,0,0,.04); transform:scale(.98); transition:transform .2s; max-height:90vh; overflow-y:auto; }
+.modal-overlay.open .modal-box { transform:scale(1); }
+.modal-title { font-size:18px; font-weight:600; color:#111827; margin-bottom:20px; }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+.form-group { display:flex; flex-direction:column; gap:6px; }
+.form-label { font-size:12px; font-weight:600; color:#374151; }
+.form-control { padding:8px 12px; border:1px solid #d1d5db; border-radius:4px; font-size:13px; font-family:inherit; outline:none; transition:border-color .15s; }
+.form-control:focus { border-color:#714B67; box-shadow: 0 0 0 2px rgba(113, 75, 103, 0.2); }
+.modal-actions { display:flex; gap:12px; justify-content:flex-end; margin-top:24px; padding-top:16px; border-top: 1px solid #e5e7eb; }
+.btn-outline { background: transparent; border: 1px solid #d1d5db; color: #374151; padding: 6px 16px; border-radius: 4px; font-size: 13px; cursor: pointer; }
+.btn-outline:hover { background: #f9fafb; }
+.btn-primary { background: #714B67; color: #fff; border: none; padding: 6px 16px; border-radius: 4px; font-size: 13px; cursor: pointer; }
+.btn-primary:hover { background: #5a3c52; }
+</style>
+
+<div class="odoo-header">
+  <a href="#">Inventario</a>
+  <a href="#">Información general</a>
+  <a href="#">Operaciones</a>
+  <a href="#" class="active">Productos</a>
+  <a href="#">Reportes</a>
+  <a href="#">Configuración</a>
+</div>
+
+<div class="kanban-container">
+  <div class="k-toolbar">
+    <div class="k-toolbar-left">
+      <a href="{{ url_for('pos.producto_form') }}" class="btn-nuevo" style="text-decoration:none; display:inline-block;">Nuevo</a>
+      <div class="k-title" onclick="openCategoriasModal()" title="Gestionar Categorías">
+        Productos
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color: #6b7280;"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      </div>
+    </div>
+    
+    <div class="k-toolbar-right">
+      <form class="k-search" onsubmit="return false;">
+        <svg width="16" height="16" fill="none" stroke="#6b7280" stroke-width="2" viewBox="0 0 24 24" style="margin-right: 6px;"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <div class="autocomplete-wrapper">
+          <input type="text" id="searchInput" placeholder="Buscar producto..." autocomplete="off">
+          <div id="autocomplete-list" class="autocomplete-items"></div>
+        </div>
+      </form>
+      
+      <div id="productCount">1-{{ productos|length }} / {{ productos|length }}</div>
+      
+      <div class="k-views">
+        <button class="active" title="Kanban"><svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M3 3h8v8H3V3zm0 10h8v8H3v-8zm10-10h8v8h-8V3zm0 10h8v8h-8v-8z"/></svg></button>
+        <button title="Lista"><svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M3 4h18v2H3V4zm0 7h18v2H3v-2zm0 7h18v2H3v-2z"/></svg></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="kanban-grid">
+    {% for p in productos %}
+    <div class="k-card" onclick="window.location.href='{{ url_for('pos.producto_form', id=p.id) }}'">
+      <div class="k-card-content">
+        <div class="k-card-top">
+          <div class="k-star {% if loop.index is divisibleby(3) %}active{% endif %}" onclick="event.stopPropagation(); this.classList.toggle('active');">☆</div>
+          <div>
+            <div class="k-name">{{ p.nombre }}</div>
+            <div class="k-code">
+              {% if p.codigo %}[{{ p.codigo }}]{% endif %}
+              {% if p.proveedor_nombre %} - {{ p.proveedor_nombre }}{% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="k-price">Precio: {{ "%.2f"|format(p.precio_venta|float) }} Q</div>
+        {% if p.unidad != 'servicio' %}
+        <div class="k-stock">A la mano: {{ "%.2f"|format(p.stock|float) }} Unidades</div>
+        {% endif %}
+      </div>
+      <div class="k-card-img-wrap">
+        {% if p.imagen %}
+        <img src="{{ url_for('static', filename=p.imagen) }}" class="k-card-img" alt="{{ p.nombre }}">
+        {% else %}
+        <svg width="32" height="32" fill="#d1d5db" viewBox="0 0 24 24"><path d="M4 4h16v16H4V4zm2 2v12h12V6H6zm2 8l3-3 2 2 4-5 3 6H8z"/></svg>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #6b7280;">No hay productos encontrados.</div>
+    {% endfor %}
+  </div>
+</div>
+
+</div>
+
+<!-- Modal Categorías -->
+<div class="modal-overlay" id="categoriasModal">
+  <div class="modal-box" style="width: 580px; max-width: 95vw;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--c-border); padding-bottom: 10px;">
+      <div class="modal-title" style="margin: 0;">Gestionar Categorías</div>
+      <button type="button" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--c-gray);" onclick="closeCategoriasModal()">✕</button>
+    </div>
+    
+    <!-- Formulario para agregar/editar categoría -->
+    <form method="post" action="{{ url_for('pos.guardar_categoria') }}" id="catForm" style="background: #f8fafb; border: 1.5px solid var(--c-border); padding: 16px; border-radius: 10px; margin-bottom: 20px;">
+      <input type="hidden" name="id" id="cat_id">
+      <div style="font-weight: 600; font-size: 13px; color: var(--c-gray); margin-bottom: 12px; text-transform: uppercase; letter-spacing: .5px;" id="catFormTitle">Nueva Categoría</div>
+      <div class="form-row" style="margin-bottom: 8px;">
+        <div class="form-group">
+          <label class="form-label">Nombre *</label>
+          <input type="text" name="nombre" id="cat_nombre" class="form-control" required placeholder="Ej: Bebidas">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descripción</label>
+          <input type="text" name="descripcion" id="cat_descripcion" class="form-control" placeholder="Ej: Gaseosas, jugos...">
+        </div>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+        <button type="button" class="btn btn-outline" onclick="cancelarCatEdit()" style="padding: 6px 12px; font-size:12px;">Limpiar</button>
+        <button type="submit" class="btn btn-primary" style="padding: 6px 12px; font-size:12px;">Guardar</button>
+      </div>
+    </form>
+
+    <!-- Listado de categorías -->
+    <div style="max-height: 40vh; overflow-y: auto;">
+      <table class="g-table" style="width: 100%;">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Descripción</th>
+            <th style="text-align: right;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in categorias %}
+          <tr>
+            <td><strong>{{ c.nombre }}</strong></td>
+            <td><span style="color: var(--c-gray); font-size: 12px;">{{ c.descripcion or '—' }}</span></td>
+            <td style="text-align: right; display: flex; justify-content: flex-end; gap: 6px; align-items: center;">
+              <button type="button" class="btn btn-outline" style="padding: 4px 8px; font-size: 11px;" 
+                onclick='editarCategoria({{ c|tojson }})'>Editar</button>
+              <form method="post" action="{{ url_for('pos.eliminar_categoria', id=c.id) }}" style="display: inline;" onsubmit="return confirm('¿Está seguro de eliminar esta categoría?')">
+                <button type="submit" class="btn btn-outline" style="padding: 4px 8px; font-size: 11px; color: #ef4444; border-color: #fee2e2;">Eliminar</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Kárdex -->
+<div class="modal-overlay" id="kardexModal">
+  <div class="modal-box" style="width: 800px; max-width: 95vw;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--c-border); padding-bottom: 10px;">
+      <div class="modal-title" id="kardexTitle" style="margin: 0;">Kárdex de Producto</div>
+      <button type="button" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--c-gray);" onclick="closeKardexModal()">✕</button>
+    </div>
+    
+    <div style="max-height: 50vh; overflow-y: auto;">
+      <table class="g-table" style="width: 100%;">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Tipo</th>
+            <th>Referencia</th>
+            <th style="text-align: right;">Cantidad</th>
+            <th style="text-align: right;">Valor Unitario</th>
+            <th>Usuario</th>
+          </tr>
+        </thead>
+        <tbody id="kardexTableBody">
+          <tr>
+            <td colspan="6" style="text-align: center; color: var(--c-gray); padding: 20px;">Cargando movimientos...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="modal-actions" style="margin-top: 20px;">
+      <button type="button" class="btn btn-primary" onclick="closeKardexModal()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const searchInput = document.getElementById('searchInput');
+  const autocompleteList = document.getElementById('autocomplete-list');
+  const cards = document.querySelectorAll('.k-card');
+  const countDisplay = document.getElementById('productCount');
+  
+  if (searchInput) {
+    searchInput.addEventListener('input', function(e) {
+      const term = e.target.value.toLowerCase();
+      let visibleCount = 0;
+      let suggestions = 0;
+      
+      autocompleteList.innerHTML = '';
+      
+      cards.forEach(card => {
+        const nameElem = card.querySelector('.k-name');
+        const name = nameElem ? nameElem.textContent.toLowerCase() : '';
+        const rawName = nameElem ? nameElem.textContent : '';
+        const codeElem = card.querySelector('.k-code');
+        const code = codeElem ? codeElem.textContent.toLowerCase() : '';
+        
+        if (name.includes(term) || code.includes(term)) {
+          card.style.display = 'flex';
+          visibleCount++;
+          
+          if (term && name.includes(term) && suggestions < 8) {
+            const div = document.createElement('div');
+            div.textContent = rawName;
+            div.addEventListener('click', function() {
+              searchInput.value = rawName;
+              searchInput.dispatchEvent(new Event('input'));
+              autocompleteList.style.display = 'none';
+            });
+            autocompleteList.appendChild(div);
+            suggestions++;
+          }
+        } else {
+          card.style.display = 'none';
+        }
+      });
+      
+      if (term && suggestions > 0) {
+        autocompleteList.style.display = 'block';
+      } else {
+        autocompleteList.style.display = 'none';
+      }
+      
+      countDisplay.textContent = visibleCount > 0 ? `1-${visibleCount} / ${visibleCount}` : `0 / 0`;
+    });
+    
+    document.addEventListener('click', function(e) {
+      if (e.target !== searchInput) {
+        autocompleteList.style.display = 'none';
+      }
+    });
+  }
+});
+
+function openModal(prod) {
+  const m = document.getElementById('prodModal');
+  if (prod) {
+    document.getElementById('modalTitle').textContent = 'Editar Producto';
+    document.getElementById('f_id').value = prod.id;
+    document.getElementById('f_codigo').value = prod.codigo;
+    document.getElementById('f_nombre').value = prod.nombre;
+    document.getElementById('f_desc').value = prod.descripcion || '';
+    document.getElementById('f_precio').value = prod.precio_venta;
+    document.getElementById('f_precio_socio').value = prod.precio_socio || 0;
+    document.getElementById('f_costo').value = prod.costo;
+    document.getElementById('f_stock').value = prod.stock;
+    document.getElementById('f_stk_min').value = prod.stock_minimo;
+    document.getElementById('f_unidad').value = prod.unidad;
+    document.getElementById('f_estado').value = prod.estado;
+    document.getElementById('f_cat').value = prod.categoria_id || '';
+    document.getElementById('f_barras').value = prod.codigo_barras || '';
+    document.getElementById('f_ref').value = prod.referencia_proveedor || '';
+    document.getElementById('f_proveedor_id').value = prod.proveedor_id || '';
+    document.getElementById('f_stock_maximo').value = prod.stock_maximo || 0;
+  } else {
+    document.getElementById('modalTitle').textContent = 'Nuevo Producto';
+    document.querySelector('#prodModal form').reset();
+    document.getElementById('f_id').value = '';
+    document.getElementById('f_proveedor_id').value = '';
+    document.getElementById('f_stock_maximo').value = '0';
+  }
+  m.classList.add('open');
+}
+function closeModal() {
+  document.getElementById('prodModal').classList.remove('open');
+}
+document.getElementById('prodModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('prodModal')) closeModal();
+});
+
+function openCategoriasModal() {
+  document.getElementById('categoriasModal').classList.add('open');
+}
+
+function closeCategoriasModal() {
+  document.getElementById('categoriasModal').classList.remove('open');
+  cancelarCatEdit();
+}
+
+function editarCategoria(cat) {
+  document.getElementById('catFormTitle').textContent = 'Editar Categoría';
+  document.getElementById('cat_id').value = cat.id;
+  document.getElementById('cat_nombre').value = cat.nombre;
+  document.getElementById('cat_descripcion').value = cat.descripcion || '';
+}
+
+function cancelarCatEdit() {
+  document.getElementById('catFormTitle').textContent = 'Nueva Categoría';
+  document.getElementById('cat_id').value = '';
+  document.getElementById('catForm').reset();
+}
+
+document.getElementById('categoriasModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('categoriasModal')) closeCategoriasModal();
+});
+
+function closeKardexModal() {
+  document.getElementById('kardexModal').classList.remove('open');
+}
+document.getElementById('kardexModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('kardexModal')) closeKardexModal();
+});
+
+async function verKardex(productoId, productoNombre) {
+  document.getElementById('kardexTitle').textContent = `Kárdex: ${productoNombre}`;
+  const tbody = document.getElementById('kardexTableBody');
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--c-gray); padding: 20px;">Cargando movimientos...</td></tr>';
+  
+  document.getElementById('kardexModal').classList.add('open');
+  
+  try {
+    const res = await fetch(`/pos/api/kardex/${productoId}`);
+    const data = await res.json();
+    tbody.innerHTML = '';
+    
+    if (data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--c-gray); padding: 20px;">No hay movimientos registrados para este producto.</td></tr>';
+      return;
+    }
+    
+    data.forEach(m => {
+      const tr = document.createElement('tr');
+      const cant = parseFloat(m.cantidad) || 0;
+      const cantStr = cant > 0 ? `+${cant}` : `${cant}`;
+      const cantStyle = cant > 0 ? 'color: #047857; font-weight: 700;' : 'color: #dc2626; font-weight: 700;';
+      
+      tr.innerHTML = `
+        <td style="font-size: 12px; color: var(--c-gray);">${(m.fecha || '').replace('T', ' ').slice(0, 19)}</td>
+        <td>
+          <span style="display:inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; 
+            ${m.tipo === 'Compra' ? 'background: #e0f2fe; color: #0369a1;' : ''}
+            ${m.tipo === 'Venta' ? 'background: #f3e8ff; color: #6b21a8;' : ''}
+            ${m.tipo === 'Devolución' ? 'background: #fef3c7; color: #92400e;' : ''}
+            ${m.tipo.includes('Ajuste') ? 'background: #f1f5f9; color: #334155;' : ''}
+          ">
+            ${m.tipo}
+          </span>
+        </td>
+        <td><code>${m.referencia || '—'}</code></td>
+        <td style="text-align: right; ${cantStyle}">${cantStr}</td>
+        <td style="text-align: right; color: var(--c-gray);">Q${(parseFloat(m.precio_valor) || 0).toFixed(2)}</td>
+        <td><span style="font-size: 12px; color: var(--c-gray);">${m.usuario || 'sistema'}</span></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch(e) {
+    console.error(e);
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: red; padding: 20px;">Error al cargar el kárdex.</td></tr>';
+  }
+}
+</script>
+{% endblock %}

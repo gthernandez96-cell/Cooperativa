@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% block title %}Libro Mayor{% endblock %}
+{% block content %}
+<style>
+.lm-page { max-width: 1100px; margin: 0 auto; padding: 24px 20px; }
+.g-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.filter-bar { background: var(--c-white); border-radius: 12px; border: 1.5px solid var(--c-border); padding: 14px 16px; margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; box-shadow: 0 2px 8px rgba(0,30,70,.06); }
+.filter-input { padding: 8px 12px; border: 1.5px solid var(--c-border); border-radius: 8px; font-size: 13px; font-family: inherit; outline: none; min-width: 160px; }
+.filter-input:focus { border-color: #0057a3; }
+.btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:600; border:none; cursor:pointer; font-family:inherit; text-decoration:none; }
+.btn-primary { background:#003b74; color:#fff; box-shadow:0 2px 8px rgba(0,59,116,.2); }
+.btn-primary:hover { background:#001f3d; }
+/* Cuenta info */
+.cuenta-banner {
+  background: linear-gradient(90deg, #001f3d, #003b74); color: #fff;
+  border-radius: 12px; padding: 16px 20px; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 16px;
+}
+.cuenta-banner-cod { font-size: 22px; font-weight: 800; font-family: monospace; }
+.cuenta-banner-name { font-family: 'Fraunces', serif; font-size: 17px; font-weight: 600; }
+.cuenta-banner-meta { font-size: 12px; opacity: .8; }
+.lm-table-wrap { background: var(--c-white); border-radius: 14px; border: 1.5px solid var(--c-border); overflow: hidden; box-shadow: 0 2px 12px rgba(0,30,70,.07); }
+.lm-table { width: 100%; border-collapse: collapse; }
+.lm-table th { padding: 9px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--c-gray); font-weight: 600; border-bottom: 1px solid var(--c-border); text-align: left; background: #f8fafb; }
+.lm-table td { padding: 10px 14px; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+.lm-table tfoot td { border-top: 2px solid var(--c-border); font-weight: 700; background: #f0f4f8; }
+.saldo-pos { color: #047857; font-weight: 700; }
+.saldo-neg { color: #dc2626; font-weight: 700; }
+.saldo-ant-row { background: #f0f6ff !important; }
+.saldo-ant-row td { color: #003b74; font-style: italic; font-size: 12px; }
+.num-right { text-align: right; font-family: monospace; }
+</style>
+
+<div class="lm-page">
+  <div class="g-header">
+    <div>
+      <h1 style="font-family:'Fraunces',serif; font-size:24px; font-weight:700; color:#002a50; margin-bottom:4px;">Libro Mayor</h1>
+      <p style="color:var(--c-gray); font-size:13px;">Movimientos y saldos por cuenta contable</p>
+    </div>
+  </div>
+
+  <form class="filter-bar" method="get">
+    <div>
+      <div style="font-size:11px; font-weight:600; color:var(--c-gray); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px;">Cuenta</div>
+      <select name="cuenta_id" class="filter-input" style="min-width:240px;">
+        <option value="">Seleccionar cuenta…</option>
+        {% for c in cuentas %}
+        <option value="{{ c.id }}" {% if cuenta_id|string == c.id|string %}selected{% endif %}>{{ c.codigo }} — {{ c.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <div style="font-size:11px; font-weight:600; color:var(--c-gray); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px;">Desde</div>
+      <input type="date" name="fecha_desde" class="filter-input" value="{{ fecha_desde }}">
+    </div>
+    <div>
+      <div style="font-size:11px; font-weight:600; color:var(--c-gray); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px;">Hasta</div>
+      <input type="date" name="fecha_hasta" class="filter-input" value="{{ fecha_hasta }}">
+    </div>
+    <button type="submit" class="btn btn-primary" style="align-self:flex-end;">Consultar</button>
+  </form>
+
+  {% if cuenta_sel %}
+  <div class="cuenta-banner">
+    <div class="cuenta-banner-cod">{{ cuenta_sel.codigo }}</div>
+    <div>
+      <div class="cuenta-banner-name">{{ cuenta_sel.nombre }}</div>
+      <div class="cuenta-banner-meta">{{ cuenta_sel.tipo|capitalize }} · Naturaleza {{ cuenta_sel.naturaleza }}</div>
+    </div>
+  </div>
+
+  <div class="lm-table-wrap">
+    <table class="lm-table">
+      <thead>
+        <tr>
+          <th>Fecha</th><th>Partida</th><th>Descripción</th><th class="num-right" style="padding-right:14px;">Debe</th><th class="num-right" style="padding-right:14px;">Haber</th><th class="num-right" style="padding-right:14px;">Saldo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Saldo anterior -->
+        <tr class="saldo-ant-row">
+          <td>{{ fecha_desde }}</td>
+          <td>—</td>
+          <td>Saldo anterior al período</td>
+          <td class="num-right"></td>
+          <td class="num-right"></td>
+          <td class="num-right {% if saldo_anterior >= 0 %}saldo-pos{% else %}saldo-neg{% endif %}">
+            {% if saldo_anterior < 0 %}({% endif %}{{ "%.2f"|format(saldo_anterior|abs) }}{% if saldo_anterior < 0 %}){% endif %}
+          </td>
+        </tr>
+
+        {% set total_debe = namespace(v=0) %}
+        {% set total_haber = namespace(v=0) %}
+        {% for m in movimientos %}
+        {% set total_debe.v = total_debe.v + m.debe %}
+        {% set total_haber.v = total_haber.v + m.haber %}
+        <tr>
+          <td style="color:var(--c-gray);">{{ m.fecha }}</td>
+          <td>
+            <a href="{{ url_for('contabilidad.detalle_asiento', pid=m.partida_id) }}" style="font-weight:600; color:#002a50; text-decoration:none;">{{ m.partida_numero }}</a>
+          </td>
+          <td>{{ m.descripcion or m.partida_desc }}</td>
+          <td class="num-right" style="color:#003b74; font-family:monospace;">
+            {% if m.debe > 0 %}{{ "%.2f"|format(m.debe|float) }}{% endif %}
+          </td>
+          <td class="num-right" style="color:#047857; font-family:monospace;">
+            {% if m.haber > 0 %}{{ "%.2f"|format(m.haber|float) }}{% endif %}
+          </td>
+          <td class="num-right {% if m.saldo >= 0 %}saldo-pos{% else %}saldo-neg{% endif %}">
+            {% if m.saldo < 0 %}({% endif %}{{ "%.2f"|format(m.saldo|abs) }}{% if m.saldo < 0 %}){% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" style="text-align:center; padding:24px; color:var(--c-gray);">No hay movimientos asentados en el período.</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="3">TOTALES DEL PERÍODO</td>
+          <td class="num-right">{{ "%.2f"|format(total_debe.v) }}</td>
+          <td class="num-right">{{ "%.2f"|format(total_haber.v) }}</td>
+          <td class="num-right {% if movimientos %}{% set last = movimientos[-1] %}{% if last.saldo >= 0 %}saldo-pos{% else %}saldo-neg{% endif %}{% endif %}">
+            {% if movimientos %}
+              {% set last_saldo = movimientos[-1].saldo %}
+              {% if last_saldo < 0 %}({% endif %}{{ "%.2f"|format(last_saldo|abs) }}{% if last_saldo < 0 %}){% endif %}
+            {% else %}
+              {{ "%.2f"|format(saldo_anterior) }}
+            {% endif %}
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  {% else %}
+  <div style="background:var(--c-white); border-radius:14px; border:1.5px solid var(--c-border); padding:48px; text-align:center; color:var(--c-gray);">
+    <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto 12px; display:block; opacity:.4;"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+    <p>Seleccione una cuenta contable para ver sus movimientos.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

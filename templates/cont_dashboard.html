@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% block title %}Contabilidad — Dashboard{% endblock %}
+{% block content %}
+<style>
+.cont-dash { max-width: 1280px; margin: 0 auto; padding: 24px 20px; }
+.kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+.kpi-card { background: var(--c-white); border-radius: 14px; padding: 22px 20px; box-shadow: 0 2px 12px rgba(0,30,70,.07); border: 1.5px solid var(--c-border); }
+.kpi-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: var(--c-gray); margin-bottom: 6px; }
+.kpi-value { font-family: 'Fraunces', serif; font-size: 26px; font-weight: 700; color: #002a50; }
+.kpi-sub { font-size: 12px; color: var(--c-gray); margin-top: 4px; }
+.kpi-card.green .kpi-value { color: #047857; }
+.kpi-card.gold .kpi-value { color: #92400e; }
+.kpi-card.red .kpi-value { color: #dc2626; }
+.kpi-card.blue .kpi-value { color: #003b74; }
+.cont-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+.panel { background: var(--c-white); border-radius: 14px; border: 1.5px solid var(--c-border); box-shadow: 0 2px 12px rgba(0,30,70,.07); overflow: hidden; }
+.panel-hdr { padding: 16px 20px; border-bottom: 1px solid var(--c-border); display: flex; justify-content: space-between; align-items: center; }
+.panel-title { font-family: 'Fraunces', serif; font-size: 16px; font-weight: 600; color: #002a50; }
+.c-table { width: 100%; border-collapse: collapse; }
+.c-table th { padding: 9px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--c-gray); font-weight: 600; border-bottom: 1px solid var(--c-border); text-align: left; background: #f8fafb; }
+.c-table td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #f3f4f6; }
+.c-table tr:hover td { background: #f8fafb; }
+.badge-borrador { background: #fef3c7; color: #92400e; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.badge-asentado { background: #d1fae5; color: #047857; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.badge-anulado { background: #fee2e2; color: #dc2626; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.balance-sheet { padding: 16px; }
+.bs-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+.bs-row.total { font-weight: 700; border-top: 2px solid var(--c-border); border-bottom: none; padding-top: 12px; margin-top: 4px; font-size: 15px; }
+.bs-label { color: var(--c-gray); font-weight: 500; }
+.bs-val { font-weight: 700; color: #002a50; }
+.bs-val.green { color: #047857; }
+.bs-val.red { color: #dc2626; }
+.btn-cont { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:600; text-decoration:none; border:none; cursor:pointer; font-family:inherit; }
+.btn-cont-primary { background:#003b74; color:#fff; box-shadow:0 2px 8px rgba(0,59,116,.2); }
+.btn-cont-primary:hover { background:#001f3d; }
+@media(max-width:900px){ .kpi-row{grid-template-columns:repeat(2,1fr);} .cont-grid{grid-template-columns:1fr;} }
+</style>
+
+<div class="cont-dash">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+    <div>
+      <h1 style="font-family:'Fraunces',serif; font-size:26px; font-weight:700; color:#002a50; margin-bottom:4px;">Contabilidad General</h1>
+      <p style="color:var(--c-gray); font-size:14px;">Resumen del período actual</p>
+    </div>
+    <a href="{{ url_for('contabilidad.nuevo_asiento') }}" class="btn-cont btn-cont-primary">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      Nuevo Asiento
+    </a>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi-card blue">
+      <div class="kpi-label">Total Activo</div>
+      <div class="kpi-value">Q{{ "%.2f"|format(total_activo|float) }}</div>
+      <div class="kpi-sub">Recursos controlados</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Total Pasivo</div>
+      <div class="kpi-value">Q{{ "%.2f"|format(total_pasivo|float) }}</div>
+      <div class="kpi-sub">Obligaciones</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Patrimonio</div>
+      <div class="kpi-value">Q{{ "%.2f"|format(total_patrimonio|float) }}</div>
+      <div class="kpi-sub">Capital neto</div>
+    </div>
+    <div class="kpi-card {% if utilidad_anio >= 0 %}green{% else %}red{% endif %}">
+      <div class="kpi-label">Utilidad del año</div>
+      <div class="kpi-value">Q{{ "%.2f"|format(utilidad_anio|float) }}</div>
+      <div class="kpi-sub">Ingresos − Gastos</div>
+    </div>
+  </div>
+
+  <div class="cont-grid">
+    <div class="panel">
+      <div class="panel-hdr">
+        <div class="panel-title">Últimas Partidas</div>
+        <a href="{{ url_for('contabilidad.asientos') }}" style="font-size:13px; color:#0057a3; text-decoration:none; font-weight:500;">Ver todas →</a>
+      </div>
+      <table class="c-table">
+        <thead><tr><th>#</th><th>Descripción</th><th>Fecha</th><th>Origen</th><th>Estado</th></tr></thead>
+        <tbody>
+          {% for p in ultimas_partidas %}
+          <tr>
+            <td><a href="{{ url_for('contabilidad.detalle_asiento', pid=p.id) }}" style="font-weight:600; color:#002a50; text-decoration:none;">{{ p.numero }}</a></td>
+            <td>{{ p.descripcion }}</td>
+            <td style="font-size:12px; color:var(--c-gray);">{{ p.fecha }}</td>
+            <td style="font-size:12px; color:var(--c-gray);">{{ p.origen_tipo or 'manual' }}</td>
+            <td>
+              {% if p.estado=='asentado' %}<span class="badge-asentado">Asentado</span>
+              {% elif p.estado=='borrador' %}<span class="badge-borrador">Borrador</span>
+              {% else %}<span class="badge-anulado">Anulado</span>{% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" style="text-align:center; color:var(--c-gray); padding:24px;">No hay partidas aún.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:16px;">
+      <div class="panel">
+        <div class="panel-hdr"><div class="panel-title">Posición Financiera</div></div>
+        <div class="balance-sheet">
+          <div class="bs-row"><span class="bs-label">Ingresos (año)</span><span class="bs-val green">Q{{ "%.2f"|format(ingresos_anio|float) }}</span></div>
+          <div class="bs-row"><span class="bs-label">Gastos (año)</span><span class="bs-val red">Q{{ "%.2f"|format(gastos_anio|float) }}</span></div>
+          <div class="bs-row total">
+            <span>Resultado</span>
+            <span class="bs-val {% if utilidad_anio>=0 %}green{% else %}red{% endif %}">Q{{ "%.2f"|format(utilidad_anio|float) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-hdr"><div class="panel-title">Partidas Pendientes</div></div>
+        <div class="balance-sheet">
+          <div class="bs-row"><span class="bs-label">En Borrador</span><span class="bs-val" style="color:#92400e;">{{ partidas_borrador }}</span></div>
+          <div class="bs-row"><span class="bs-label">Asentadas</span><span class="bs-val green">{{ partidas_asentadas }}</span></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-hdr"><div class="panel-title">Acceso rápido</div></div>
+        <div style="padding:16px; display:flex; flex-direction:column; gap:8px;">
+          <a href="{{ url_for('contabilidad.nomenclatura') }}" class="btn-cont btn-cont-primary" style="justify-content:center;">📋 Nomenclatura</a>
+          <a href="{{ url_for('contabilidad.asientos') }}" class="btn-cont" style="background:#f3f4f6; color:#002a50; justify-content:center;">📝 Asientos</a>
+          <a href="{{ url_for('contabilidad.libro_mayor') }}" class="btn-cont" style="background:#f3f4f6; color:#002a50; justify-content:center;">📖 Libro Mayor</a>
+          <a href="{{ url_for('contabilidad.balanza') }}" class="btn-cont" style="background:#f3f4f6; color:#002a50; justify-content:center;">⚖️ Balanza</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

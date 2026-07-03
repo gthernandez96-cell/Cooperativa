@@ -2,136 +2,6 @@
 {% block title %}Nuevo Asociado — {{ cooperativa_nombre }}{% endblock %}
 
 {% block extra_head %}
-<style>
-/* ── Form styling ────────────────────────────────────────────── */
-.form-container {
-  max-width: 1000px;
-  margin: 0 auto;
-}
-
-.form-section {
-  background: #ffffff;
-  border-radius: 16px;
-  border: 1px solid rgba(229, 231, 235, 0.9);
-  padding: 24px;
-  box-shadow: 0 4px 12px rgba(0, 32, 68, 0.02);
-  margin-bottom: 24px;
-}
-
-.form-section-title {
-  font-family: 'Fraunces', serif;
-  font-size: 16px;
-  font-weight: 700;
-  color: #003b74;
-  margin-bottom: 18px;
-  border-bottom: 1px solid #f1f5f9;
-  padding-bottom: 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.form-section-title svg {
-  color: #4a7ebf;
-}
-
-/* Premium Form Group */
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 4px;
-}
-
-.form-group label {
-  font-size: 11px;
-  font-weight: 700;
-  color: #4b5563;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.form-group input, .form-group select, .form-group textarea {
-  min-height: 42px;
-  padding: 10px 14px;
-  border: 1.5px solid #e5e7eb;
-  border-radius: 10px;
-  font-size: 13.5px;
-  color: #1a1a1a;
-  background: #ffffff;
-  transition: all 0.2s ease;
-  width: 100%;
-  font-family: inherit;
-}
-
-.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-  outline: none;
-  border-color: #003b74;
-  box-shadow: 0 0 0 3px rgba(0, 59, 116, 0.08);
-}
-
-.form-group input::placeholder {
-  color: #9ca3af;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-}
-
-/* Beneficiaries row styling */
-.beneficiary-row {
-  display: grid;
-  grid-template-columns: 2fr 1.3fr 1fr 0.8fr auto;
-  gap: 12px;
-  align-items: flex-end;
-  background: #ffffff;
-  padding: 12px;
-  border-radius: 10px;
-  border: 1px solid #e5e7eb;
-  margin-bottom: 8px;
-}
-
-@media (max-width: 768px) {
-  .beneficiary-row {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-  .beneficiary-row button {
-    width: 100%;
-    margin-top: 4px;
-  }
-}
-
-/* Real-time progress indicators */
-.pct-indicator-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.pct-total-text {
-  font-size: 13px;
-  font-weight: 700;
-  color: #4b5563;
-}
-
-.pct-progress-track {
-  width: 100%;
-  background: #e5e7eb;
-  height: 8px;
-  border-radius: 99px;
-  overflow: hidden;
-  margin-bottom: 16px;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
-}
-
-.pct-progress-fill {
-  height: 100%;
-  width: 0%;
-  border-radius: 99px;
   transition: all 0.3s ease;
   background: #e11d48; /* Default warning color */
 }
@@ -417,6 +287,21 @@
             <option value="Quincenal" {% if request.form.get('frecuencia', 'Quincenal') == 'Quincenal' %}selected{% endif %}>Quincenal</option>
             <option value="Catorcenal" {% if request.form.get('frecuencia') == 'Catorcenal' %}selected{% endif %}>Catorcenal</option>
           </select>
+        </div>
+        <div class="form-group">
+          <label>Frecuencia de Crédito POS</label>
+          <select name="frecuencia_credito_pos">
+            <option value="Quincenal" {% if request.form.get('frecuencia_credito_pos', 'Quincenal') == 'Quincenal' %}selected{% endif %}>Quincenal</option>
+            <option value="Catorcenal" {% if request.form.get('frecuencia_credito_pos') == 'Catorcenal' %}selected{% endif %}>Catorcenal</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Cuota Crédito POS</label>
+          <input name="cuota_credito_pos" type="number" step="0.01" min="0" value="{{ request.form.get('cuota_credito_pos', '0') }}">
+        </div>
+        <div class="form-group">
+          <label>Límite Crédito POS (Máx)</label>
+          <input name="limite_credito_pos" type="number" step="0.01" min="0" value="{{ request.form.get('limite_credito_pos', '500.0') }}">
         </div>
         <div class="form-group">
           <label>Finca</label>

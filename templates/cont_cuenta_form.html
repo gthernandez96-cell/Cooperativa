@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Editar' if cuenta else 'Nueva' }} Cuenta Contable{% endblock %}
+{% block content %}
+<style>
+.form-page { max-width: 680px; margin: 32px auto; padding: 0 20px; }
+.form-card { background: var(--c-white); border-radius: 16px; border: 1.5px solid var(--c-border); box-shadow: 0 2px 16px rgba(0,30,70,.08); overflow: hidden; }
+.form-card-header { padding: 20px 28px; border-bottom: 1px solid var(--c-border); background: linear-gradient(90deg, #001f3d, #003b74); color: #fff; }
+.form-card-title { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 700; }
+.form-body { padding: 28px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group.full { grid-column: 1/-1; }
+.form-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--c-gray); }
+.form-control { padding: 10px 12px; border: 1.5px solid var(--c-border); border-radius: 8px; font-size: 13px; font-family: inherit; outline: none; transition: border-color .15s; }
+.form-control:focus { border-color: #0057a3; }
+.form-actions { display: flex; gap: 12px; justify-content: flex-end; padding-top: 8px; border-top: 1px solid var(--c-border); margin-top: 20px; }
+.btn { display:inline-flex; align-items:center; gap:6px; padding:10px 20px; border-radius:8px; font-size:13px; font-weight:600; border:none; cursor:pointer; font-family:inherit; text-decoration:none; }
+.btn-primary { background:#003b74; color:#fff; box-shadow:0 2px 8px rgba(0,59,116,.2); }
+.btn-primary:hover { background:#001f3d; }
+.btn-outline { background:transparent; border:1.5px solid var(--c-border); color:var(--c-gray); }
+.help-text { font-size:11px; color:var(--c-gray); margin-top:2px; }
+</style>
+
+<div class="form-page">
+  <div style="margin-bottom:16px;">
+    <a href="{{ url_for('contabilidad.nomenclatura') }}" style="font-size:13px; color:#0057a3; text-decoration:none;">← Volver a Nomenclatura</a>
+  </div>
+
+  <div class="form-card">
+    <div class="form-card-header">
+      <div class="form-card-title">{{ 'Editar Cuenta' if cuenta else 'Nueva Cuenta Contable' }}</div>
+    </div>
+    <div class="form-body">
+      <form method="post">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Código *</label>
+            <input type="text" name="codigo" class="form-control" required
+                   value="{{ cuenta.codigo if cuenta else '' }}"
+                   {% if cuenta %}readonly style="background:#f8fafb;"{% endif %}
+                   placeholder="ej. 110101">
+            <div class="help-text">Código único jerárquico (ej: 1, 11, 1101, 110101)</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cuenta Padre</label>
+            <select name="parent_id" class="form-control" {% if cuenta %}disabled{% endif %}>
+              <option value="">— Sin padre (nivel raíz) —</option>
+              {% for c in cuentas %}
+              <option value="{{ c.id }}"
+                {% if cuenta and cuenta.parent_id == c.id %}selected{% endif %}>
+                {{ c.codigo }} — {{ c.nombre }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group full" style="margin-bottom:16px;">
+          <label class="form-label">Nombre *</label>
+          <input type="text" name="nombre" class="form-control" required
+                 value="{{ cuenta.nombre if cuenta else '' }}" placeholder="Nombre descriptivo de la cuenta">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Tipo *</label>
+            <select name="tipo" class="form-control" {% if cuenta %}disabled{% endif %}>
+              {% for t in ['activo','pasivo','patrimonio','ingreso','gasto'] %}
+              <option value="{{ t }}" {% if cuenta and cuenta.tipo==t %}selected{% endif %}>{{ t|capitalize }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Naturaleza *</label>
+            <select name="naturaleza" class="form-control">
+              <option value="deudora" {% if not cuenta or cuenta.naturaleza=='deudora' %}selected{% endif %}>Deudora (activos/gastos)</option>
+              <option value="acreedora" {% if cuenta and cuenta.naturaleza=='acreedora' %}selected{% endif %}>Acreedora (pasivos/ingresos)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Estado</label>
+            <select name="estado" class="form-control">
+              <option value="activa" {% if not cuenta or cuenta.estado=='activa' %}selected{% endif %}>Activa</option>
+              <option value="inactiva" {% if cuenta and cuenta.estado=='inactiva' %}selected{% endif %}>Inactiva</option>
+            </select>
+          </div>
+          <div class="form-group" style="justify-content:flex-end; padding-top:20px;">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; font-weight:500; color:#002a50;">
+              <input type="checkbox" name="acepta_movimientos" value="1"
+                     {% if cuenta and cuenta.acepta_movimientos %}checked{% endif %}
+                     style="width:16px; height:16px; accent-color:#003b74;">
+              Acepta movimientos (cuenta de detalle)
+            </label>
+            <div class="help-text">Marca si esta cuenta puede registrar apuntes directamente.</div>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Descripción</label>
+          <textarea name="descripcion" class="form-control" rows="2" placeholder="Descripción opcional de la cuenta">{{ cuenta.descripcion if cuenta else '' }}</textarea>
+        </div>
+
+        <div class="form-actions">
+          <a href="{{ url_for('contabilidad.nomenclatura') }}" class="btn btn-outline">Cancelar</a>
+          <button type="submit" class="btn btn-primary">
+            {{ 'Actualizar Cuenta' if cuenta else 'Crear Cuenta' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

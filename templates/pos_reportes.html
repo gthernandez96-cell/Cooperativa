@@ -1,0 +1,267 @@
+{% extends 'base.html' %}
+{% block title %}Reportes POS{% endblock %}
+
+{% block content %}
+<style>
+.report-page { max-width: 1000px; margin: 0 auto; padding: 24px 20px; }
+.report-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px; }
+.report-title { font-family: 'Fraunces', serif; font-size: 28px; color: #002a50; margin: 0; }
+.filters-card { background: #fff; padding: 16px 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.04); border: 1px solid var(--c-border); margin-bottom: 24px; display: flex; gap: 16px; align-items: flex-end; }
+.filter-group { display: flex; flex-direction: column; gap: 4px; }
+.filter-label { font-size: 11px; font-weight: 700; color: var(--c-gray); text-transform: uppercase; }
+
+/* Tabs */
+.tabs-nav { display: flex; gap: 4px; border-bottom: 2px solid var(--c-border); margin-bottom: 24px; }
+.tab-btn { padding: 12px 24px; background: none; border: none; font-size: 14px; font-weight: 600; color: var(--c-gray); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .2s; }
+.tab-btn:hover { color: #002a50; }
+.tab-btn.active { color: var(--odoo-teal); border-bottom-color: var(--odoo-teal); }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Cards & Tables */
+.data-card { background: #fff; border-radius: 12px; border: 1px solid var(--c-border); box-shadow: 0 2px 10px rgba(0,0,0,.03); overflow: hidden; margin-bottom: 24px; }
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th { background: #f8fafb; padding: 12px 16px; text-align: left; font-size: 11px; text-transform: uppercase; color: var(--c-gray); font-weight: 700; border-bottom: 1px solid var(--c-border); }
+.data-table td { padding: 12px 16px; border-bottom: 1px solid #f1f3f5; font-size: 14px; color: #212529; }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: #fdfdfd; }
+.data-table th.right, .data-table td.right { text-align: right; }
+.total-row { background: #f8fafb; font-weight: 800; font-size: 16px; }
+.total-row td { color: #002a50; border-top: 2px solid var(--c-border); }
+
+/* KPI Cards */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.kpi-card { background: #fff; border-radius: 12px; border: 1px solid var(--c-border); padding: 16px; border-left: 4px solid var(--odoo-teal); box-shadow: 0 2px 6px rgba(0,0,0,.02); }
+.kpi-label { font-size: 12px; color: var(--c-gray); font-weight: 600; text-transform: uppercase; margin-bottom: 8px; }
+.kpi-val { font-size: 24px; font-weight: 800; color: #002a50; }
+</style>
+
+<div class="report-page">
+  <div class="report-header">
+    <h1 class="report-title">Reportes POS</h1>
+    <button onclick="window.print()" class="btn-primary" style="background:#fff; color:#002a50; border:1px solid #dee2e6;">🖨️ Imprimir</button>
+  </div>
+
+  <form class="filters-card" method="get">
+    <div class="filter-group">
+      <label class="filter-label">Desde</label>
+      <input type="date" name="fecha_desde" class="field" value="{{ fecha_desde }}">
+    </div>
+    <div class="filter-group">
+      <label class="filter-label">Hasta</label>
+      <input type="date" name="fecha_hasta" class="field" value="{{ fecha_hasta }}">
+    </div>
+    <div class="filter-group" style="flex:1;">
+      <button type="submit" class="btn-primary" style="height:38px; padding:0 24px;">Filtrar</button>
+    </div>
+  </form>
+
+  <div class="tabs-nav">
+    <button class="tab-btn active" onclick="switchTab('corte')">Corte de Caja</button>
+    <button class="tab-btn" onclick="switchTab('categorias')">Ventas por Categoría</button>
+    <button class="tab-btn" onclick="switchTab('utilidades')">Utilidades y Márgenes</button>
+    <button class="tab-btn" onclick="switchTab('stock_bajo')">⚠️ Inventario Bajo Mínimo</button>
+  </div>
+
+  <!-- TAB: CORTE DE CAJA -->
+  <div id="tab_corte" class="tab-pane active">
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Ingresos Totales (Rango)</div>
+        <div class="kpi-val">Q{{ "%.2f"|format(totales_caja|float) }}</div>
+      </div>
+      <div class="kpi-card" style="border-left-color:var(--odoo-purple);">
+        <div class="kpi-label">Días Seleccionados</div>
+        <div class="kpi-val" style="color:var(--odoo-purple);">{{ fecha_desde }} al {{ fecha_hasta }}</div>
+      </div>
+    </div>
+
+    <div class="data-card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Método de Pago</th>
+            <th class="right">Cant. Transacciones</th>
+            <th class="right">Total Ingresado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in corte_caja %}
+          <tr>
+            <td>
+              {% if r.metodo_pago == 'efectivo' %}💵 Efectivo
+              {% elif r.metodo_pago == 'debito_ahorro' %}🏦 Débito Ahorro
+              {% elif r.metodo_pago == 'credito_interno' %}📝 Crédito Interno
+              {% elif r.metodo_pago == 'nota_credito' %}🔄 Nota de Crédito
+              {% else %}💳 {{ r.metodo_pago|title }}
+              {% endif %}
+            </td>
+            <td class="right">{{ r.num_ventas }}</td>
+            <td class="right" style="font-weight:600; color:var(--odoo-teal);">Q{{ "%.2f"|format(r.total|float) }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="3" style="text-align:center; color:var(--c-gray); padding:30px;">No hay ventas registradas en este período.</td></tr>
+          {% endfor %}
+          {% if corte_caja %}
+          <tr class="total-row">
+            <td>TOTAL GENERAL</td>
+            <td class="right">{{ corte_caja|map(attribute='num_ventas')|sum }}</td>
+            <td class="right">Q{{ "%.2f"|format(totales_caja|float) }}</td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: VENTAS POR CATEGORÍA -->
+  <div id="tab_categorias" class="tab-pane">
+    <div class="data-card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Categoría</th>
+            <th class="right">Cantidad Vendida (Unidades)</th>
+            <th class="right">Monto Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in ventas_categoria %}
+          <tr>
+            <td><strong>{{ c.categoria or 'Sin Categoría' }}</strong></td>
+            <td class="right">{{ c.total_cantidad|int if c.total_cantidad == c.total_cantidad|int else c.total_cantidad }}</td>
+            <td class="right" style="font-weight:600;">Q{{ "%.2f"|format(c.total_monto|float) }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="3" style="text-align:center; color:var(--c-gray); padding:30px;">No hay ventas registradas en este período.</td></tr>
+          {% endfor %}
+          {% if ventas_categoria %}
+          <tr class="total-row">
+            <td>TOTAL</td>
+            <td class="right">{{ ventas_categoria|map(attribute='total_cantidad')|sum|int }}</td>
+            <td class="right">Q{{ "%.2f"|format(totales_cat|float) }}</td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: UTILIDADES Y MÁRGENES -->
+  <div id="tab_utilidades" class="tab-pane">
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Utilidad Bruta (Rango)</div>
+        <div class="kpi-val" style="color:var(--odoo-teal);">Q{{ "%.2f"|format(total_utilidad_neta|float) }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Margen Global Promedio</div>
+        <div class="kpi-val">{{ "%.1f"|format(margen_global|float) }}%</div>
+      </div>
+    </div>
+
+    <div class="data-card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Categoría</th>
+            <th class="right">Cant. Vendida</th>
+            <th class="right">Ingresos</th>
+            <th class="right">Costo Estimado</th>
+            <th class="right">Utilidad</th>
+            <th class="right">Margen (%)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in utilidades %}
+          <tr>
+            <td><strong>{{ r.producto }}</strong></td>
+            <td><span style="font-size:12px; color:var(--c-gray); background:#f1f3f5; padding:2px 6px; border-radius:4px;">{{ r.categoria }}</span></td>
+            <td class="right">{{ r.cantidad|int if r.cantidad == r.cantidad|int else r.cantidad }}</td>
+            <td class="right">Q{{ "%.2f"|format(r.ingreso|float) }}</td>
+            <td class="right" style="color:#e03e2d;">Q{{ "%.2f"|format(r.costo|float) }}</td>
+            <td class="right" style="font-weight:600; color:var(--odoo-teal);">Q{{ "%.2f"|format(r.utilidad|float) }}</td>
+            <td class="right">
+              <span style="display:inline-block; padding:4px 8px; border-radius:12px; font-size:11px; font-weight:700; 
+                {% if r.margen >= 30 %}background:#e6fcf5; color:#0ca678;
+                {% elif r.margen >= 10 %}background:#fff3cd; color:#f59f00;
+                {% else %}background:#fff5f5; color:#e03e2d;{% endif %}">
+                {{ "%.1f"|format(r.margen|float) }}%
+              </span>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" style="text-align:center; color:var(--c-gray); padding:30px;">No hay datos de utilidades en este período.</td></tr>
+          {% endfor %}
+          {% if utilidades %}
+          <tr class="total-row">
+            <td colspan="2">TOTAL GLOBAL</td>
+            <td class="right">{{ utilidades|map(attribute='cantidad')|sum|int }}</td>
+            <td class="right">Q{{ "%.2f"|format(total_ingresos_utilidad|float) }}</td>
+            <td class="right" style="color:#e03e2d;">Q{{ "%.2f"|format(total_costos_utilidad|float) }}</td>
+            <td class="right" style="color:var(--odoo-teal);">Q{{ "%.2f"|format(total_utilidad_neta|float) }}</td>
+            <td class="right">{{ "%.1f"|format(margen_global|float) }}%</td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: INVENTARIO BAJO MÍNIMO -->
+  <div id="tab_stock_bajo" class="tab-pane">
+    <div class="kpi-grid">
+      <div class="kpi-card" style="border-left-color:#e03e2d;">
+        <div class="kpi-label">Productos con Stock Crítico</div>
+        <div class="kpi-val" style="color:#e03e2d;">{{ bajo_stock|length }}</div>
+      </div>
+    </div>
+
+    <div class="data-card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Producto</th>
+            <th>Categoría</th>
+            <th class="right">Stock Mínimo</th>
+            <th class="right">Stock Actual</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in bajo_stock %}
+          <tr>
+            <td><code>{{ p.codigo or 'N/A' }}</code></td>
+            <td><strong>{{ p.nombre }}</strong></td>
+            <td><span style="font-size:12px; color:var(--c-gray); background:#f1f3f5; padding:2px 6px; border-radius:4px;">{{ p.categoria or 'Sin Categoría' }}</span></td>
+            <td class="right" style="font-weight:600; color:var(--c-gray);">{{ p.stock_minimo|int }}</td>
+            <td class="right" style="font-weight:700; color:#e03e2d;">{{ p.stock|int }}</td>
+            <td>
+              <span style="display:inline-block; padding:4px 8px; border-radius:12px; font-size:11px; font-weight:700; background:#fff5f5; color:#e03e2d;">
+                ⚠️ Stock Bajo
+              </span>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" style="text-align:center; color:var(--c-gray); padding:30px;">Todo el inventario está por encima de los límites mínimos.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  
+  event.target.classList.add('active');
+  document.getElementById('tab_' + tabId).classList.add('active');
+}
+</script>
+{% endblock %}

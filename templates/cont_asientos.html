@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% block title %}Asientos Contables{% endblock %}
+{% block content %}
+<style>
+.cont-page { max-width: 1200px; margin: 0 auto; padding: 24px 20px; }
+.g-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.filter-bar { background: var(--c-white); border-radius: 12px; border: 1.5px solid var(--c-border); padding: 14px 16px; margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; box-shadow: 0 2px 8px rgba(0,30,70,.06); }
+.filter-input { padding: 8px 12px; border: 1.5px solid var(--c-border); border-radius: 8px; font-size: 13px; font-family: inherit; outline: none; }
+.filter-input:focus { border-color: #0057a3; }
+.btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:600; border:none; cursor:pointer; font-family:inherit; text-decoration:none; }
+.btn-primary { background:#003b74; color:#fff; box-shadow:0 2px 8px rgba(0,59,116,.2); }
+.btn-primary:hover { background:#001f3d; }
+.btn-sm { padding:5px 10px; font-size:11px; }
+.g-table-wrap { background: var(--c-white); border-radius: 14px; border: 1.5px solid var(--c-border); overflow: hidden; box-shadow: 0 2px 12px rgba(0,30,70,.07); }
+.g-table { width: 100%; border-collapse: collapse; }
+.g-table th { padding: 10px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--c-gray); font-weight: 600; text-align: left; border-bottom: 1px solid var(--c-border); background: #f8fafb; }
+.g-table td { padding: 11px 14px; font-size: 13px; border-bottom: 1px solid #f3f4f6; }
+.g-table tr:hover td { background: #f8fafb; }
+.badge-borrador { background: #fef3c7; color: #92400e; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.badge-asentado { background: #d1fae5; color: #047857; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.badge-anulado { background: #fee2e2; color: #dc2626; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.badge-pos { background: #d1fae5; color: #047857; font-size:10px; padding:2px 6px; border-radius:10px; }
+.badge-ahorro { background: #dbeafe; color: #1e40af; font-size:10px; padding:2px 6px; border-radius:10px; }
+.badge-manual { background: #f3f4f6; color: var(--c-gray); font-size:10px; padding:2px 6px; border-radius:10px; }
+</style>
+
+<div class="cont-page">
+  <div class="g-header">
+    <div>
+      <h1 style="font-family:'Fraunces',serif; font-size:24px; font-weight:700; color:#002a50; margin-bottom:4px;">Asientos Contables</h1>
+      <p style="color:var(--c-gray); font-size:13px;">Registro de partidas de partida doble</p>
+    </div>
+    <a href="{{ url_for('contabilidad.nuevo_asiento') }}" class="btn btn-primary">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      Nuevo Asiento
+    </a>
+  </div>
+
+  <form class="filter-bar" method="get">
+    <div>
+      <div style="font-size:11px; font-weight:600; color:var(--c-gray); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px;">Desde</div>
+      <input type="date" name="fecha_desde" class="filter-input" value="{{ fecha_desde }}">
+    </div>
+    <div>
+      <div style="font-size:11px; font-weight:600; color:var(--c-gray); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px;">Hasta</div>
+      <input type="date" name="fecha_hasta" class="filter-input" value="{{ fecha_hasta }}">
+    </div>
+    <div>
+      <div style="font-size:11px; font-weight:600; color:var(--c-gray); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px;">Estado</div>
+      <select name="estado" class="filter-input">
+        <option value="">Todos</option>
+        <option value="borrador" {% if estado_filtro=='borrador' %}selected{% endif %}>Borrador</option>
+        <option value="asentado" {% if estado_filtro=='asentado' %}selected{% endif %}>Asentado</option>
+        <option value="anulado" {% if estado_filtro=='anulado' %}selected{% endif %}>Anulado</option>
+      </select>
+    </div>
+    <div>
+      <div style="font-size:11px; font-weight:600; color:var(--c-gray); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px;">Origen</div>
+      <select name="origen" class="filter-input">
+        <option value="">Todos</option>
+        <option value="manual" {% if origen_filtro=='manual' %}selected{% endif %}>Manual</option>
+        <option value="pos" {% if origen_filtro=='pos' %}selected{% endif %}>POS</option>
+        <option value="ahorro" {% if origen_filtro=='ahorro' %}selected{% endif %}>Ahorro</option>
+      </select>
+    </div>
+    <div>
+      <div style="font-size:11px; font-weight:600; color:var(--c-gray); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px;">Buscar</div>
+      <input type="text" name="q" class="filter-input" placeholder="# partida, descripción…" value="{{ q }}">
+    </div>
+    <button type="submit" class="btn btn-primary" style="align-self:flex-end;">Filtrar</button>
+  </form>
+
+  <div class="g-table-wrap">
+    <table class="g-table">
+      <thead>
+        <tr><th>#</th><th>Descripción</th><th>Fecha</th><th>Debe</th><th>Haber</th><th>Origen</th><th>Estado</th><th>Acciones</th></tr>
+      </thead>
+      <tbody>
+        {% for p in partidas %}
+        <tr>
+          <td><a href="{{ url_for('contabilidad.detalle_asiento', pid=p.id) }}" style="font-weight:600; color:#002a50; text-decoration:none;">{{ p.numero }}</a></td>
+          <td>{{ p.descripcion }}</td>
+          <td style="font-size:12px; color:var(--c-gray);">{{ p.fecha }}</td>
+          <td style="font-family:monospace; font-size:12px; color:#003b74;">{{ "%.2f"|format(p.total_debe|float) }}</td>
+          <td style="font-family:monospace; font-size:12px; color:#047857;">{{ "%.2f"|format(p.total_haber|float) }}</td>
+          <td>
+            {% if p.origen_tipo == 'pos' %}<span class="badge-pos">POS</span>
+            {% elif p.origen_tipo in ['ahorro','prestamo'] %}<span class="badge-ahorro">{{ p.origen_tipo|capitalize }}</span>
+            {% else %}<span class="badge-manual">Manual</span>{% endif %}
+          </td>
+          <td>
+            {% if p.estado=='asentado' %}<span class="badge-asentado">Asentado</span>
+            {% elif p.estado=='borrador' %}<span class="badge-borrador">Borrador</span>
+            {% else %}<span class="badge-anulado">Anulado</span>{% endif %}
+          </td>
+          <td style="white-space:nowrap;">
+            <a href="{{ url_for('contabilidad.detalle_asiento', pid=p.id) }}" style="font-size:12px; color:#0057a3; text-decoration:none; margin-right:6px;">Ver</a>
+            {% if p.estado=='borrador' %}
+            <form method="post" action="{{ url_for('contabilidad.asentar_partida', pid=p.id) }}" style="display:inline;">
+              <button type="submit" class="btn btn-primary btn-sm">Asentar</button>
+            </form>
+            {% endif %}
+            {% if p.estado in ['borrador','asentado'] %}
+            <form method="post" action="{{ url_for('contabilidad.anular_partida', pid=p.id) }}" style="display:inline;"
+                  data-confirm="¿Anular la partida {{ p.numero }}?">
+              <button type="submit" class="btn btn-sm" style="background:#fef2f2; color:#dc2626; border:1.5px solid #fca5a5;">Anular</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" style="text-align:center; padding:32px; color:var(--c-gray);">No hay partidas en el período seleccionado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

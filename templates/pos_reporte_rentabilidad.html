@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% block title %}Reporte de Rentabilidad{% endblock %}
+
+{% block content %}
+<style>
+.page-container { max-width: 1000px; margin: 0 auto; padding: 24px 20px; }
+.header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.title { font-family: 'Fraunces', serif; font-size: 28px; color: #002a50; margin: 0; }
+.filters-card { background: #fff; padding: 16px; border-radius: 12px; border: 1px solid var(--c-border); margin-bottom: 24px; box-shadow: 0 2px 10px rgba(0,0,0,.02); display: flex; gap: 16px; align-items: flex-end; }
+.data-card { background: #fff; border-radius: 12px; border: 1px solid var(--c-border); box-shadow: 0 2px 10px rgba(0,0,0,.03); overflow: hidden; margin-bottom: 24px; }
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th { background: #f8fafb; padding: 12px 16px; text-align: left; font-size: 11px; text-transform: uppercase; color: var(--c-gray); font-weight: 700; border-bottom: 1px solid var(--c-border); }
+.data-table td { padding: 12px 16px; border-bottom: 1px solid #f1f3f5; font-size: 13px; color: #212529; }
+.data-table tr:hover td { background: #fdfdfd; }
+.totals-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+.total-card { background: #fff; border: 1px solid var(--c-border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,.02); }
+.total-label { font-size: 12px; font-weight: 700; color: var(--c-gray); text-transform: uppercase; margin-bottom: 8px; }
+.total-value { font-size: 24px; font-weight: 800; color: #002a50; font-family: 'Fraunces', serif; }
+.value-green { color: #0ca678; }
+.value-red { color: #e03e2d; }
+@media print {
+  body * { visibility: hidden; }
+  .page-container, .page-container * { visibility: visible; }
+  .page-container { position: absolute; left: 0; top: 0; width: 100%; }
+  .no-print { display: none !important; }
+}
+</style>
+
+<div class="page-container">
+  <div class="header-row">
+    <h1 class="title">Reporte de Rentabilidad</h1>
+    <button class="btn-secondary no-print" onclick="window.print()">🖨️ Imprimir</button>
+  </div>
+
+  <div class="filters-card no-print">
+    <form action="{{ url_for('pos.reporte_rentabilidad') }}" method="GET" style="display:flex; gap:16px; width:100%; align-items:flex-end;">
+      <div style="flex:1;">
+        <label style="display:block; font-size:12px; font-weight:700; color:var(--c-gray); margin-bottom:4px;">Fecha Inicio</label>
+        <input type="date" name="fecha_inicio" value="{{ fecha_inicio }}" class="field" required>
+      </div>
+      <div style="flex:1;">
+        <label style="display:block; font-size:12px; font-weight:700; color:var(--c-gray); margin-bottom:4px;">Fecha Fin</label>
+        <input type="date" name="fecha_fin" value="{{ fecha_fin }}" class="field" required>
+      </div>
+      <div>
+        <button type="submit" class="btn-primary">Filtrar</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="totals-grid">
+    <div class="total-card">
+      <div class="total-label">Ingresos Totales</div>
+      <div class="total-value">Q {{ "%.2f"|format(totales.ingresos) }}</div>
+    </div>
+    <div class="total-card">
+      <div class="total-label">Costo de Ventas</div>
+      <div class="total-value" style="color: #6c757d;">Q {{ "%.2f"|format(totales.costos) }}</div>
+    </div>
+    <div class="total-card">
+      <div class="total-label">Ganancia Neta (Margen {{ "%.1f"|format(totales.margen_porcentaje) }}%)</div>
+      <div class="total-value {% if totales.ganancia > 0 %}value-green{% elif totales.ganancia < 0 %}value-red{% endif %}">
+        Q {{ "%.2f"|format(totales.ganancia) }}
+      </div>
+    </div>
+  </div>
+
+  <div class="data-card no-print" style="padding: 20px; margin-bottom: 24px;">
+    <h3 style="font-family: 'Fraunces', serif; color: #002a50; margin-bottom: 16px;">Ganancia por Producto</h3>
+    <canvas id="rentabilidadChart" height="100"></canvas>
+  </div>
+
+  <div class="data-card">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Producto</th>
+          <th style="text-align:center;">Cant. Vendida</th>
+          <th style="text-align:right;">Ingresos</th>
+          <th style="text-align:right;">Costo Total</th>
+          <th style="text-align:right;">Ganancia Neta</th>
+          <th style="text-align:right;">Margen %</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in resultados %}
+        <tr>
+          <td><span style="font-size:11px; color:var(--c-gray); font-family:monospace;">{{ r.codigo }}</span></td>
+          <td><strong>{{ r.nombre }}</strong></td>
+          <td style="text-align:center;">{{ r.total_vendido|int }}</td>
+          <td style="text-align:right; color:var(--odoo-teal); font-weight:600;">Q {{ "%.2f"|format(r.ingresos_totales) }}</td>
+          <td style="text-align:right; color:#6c757d;">Q {{ "%.2f"|format(r.costo_total) }}</td>
+          <td style="text-align:right; font-weight:700; {% if r.ganancia > 0 %}color:#0ca678;{% elif r.ganancia < 0 %}color:#e03e2d;{% endif %}">
+            Q {{ "%.2f"|format(r.ganancia) }}
+          </td>
+          <td style="text-align:right;">
+            <span style="background:#f8fafb; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:600; border:1px solid var(--c-border);">
+              {{ "%.1f"|format(r.margen_porcentaje) }}%
+            </span>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" style="text-align:center; padding:30px; color:var(--c-gray);">
+            No hay datos de ventas en este período.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('rentabilidadChart').getContext('2d');
+    
+    const labels = [];
+    const data = [];
+    const backgroundColors = [];
+    
+    {% for r in resultados %}
+        labels.push("{{ r.nombre }}");
+        data.push({{ r.ganancia }});
+        backgroundColors.push({{ r.ganancia }} >= 0 ? 'rgba(12, 166, 120, 0.7)' : 'rgba(224, 62, 45, 0.7)');
+    {% endfor %}
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Ganancia Neta (Q)',
+                data: data,
+                backgroundColor: backgroundColors,
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

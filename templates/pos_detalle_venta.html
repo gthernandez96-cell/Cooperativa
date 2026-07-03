@@ -1,0 +1,331 @@
+{% extends 'base.html' %}
+{% block title %}Detalle de Venta {{ venta.numero }}{% endblock %}
+{% block content %}
+<style>
+.venta-page { max-width: 780px; margin: 0 auto; padding: 24px 20px; }
+.venta-card { background: var(--c-white); border-radius: 14px; border: 1.5px solid var(--c-border); box-shadow: 0 2px 12px rgba(0,30,70,.07); overflow: hidden; }
+.venta-header { padding: 20px 24px; background: linear-gradient(90deg, #001f3d, #003b74); color: #fff; }
+.venta-num { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 700; }
+.venta-meta { font-size: 13px; opacity: .8; margin-top: 4px; }
+.venta-body { padding: 20px 24px; }
+.venta-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+.info-block { background: #f8fafb; border-radius: 8px; padding: 12px; }
+.info-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--c-gray); margin-bottom: 4px; }
+.info-val { font-size: 14px; font-weight: 500; color: #002a50; }
+.venta-table { width: 100%; border-collapse: collapse; }
+.venta-table th { padding: 9px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--c-gray); font-weight: 600; border-bottom: 2px solid var(--c-border); text-align: left; }
+.venta-table td { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+.venta-totals { margin-top: 16px; border-top: 2px solid var(--c-border); padding-top: 16px; }
+.totals-row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
+.totals-row.final { font-weight: 700; font-size: 18px; color: #002a50; }
+.badge-completada { background: #d1fae5; color: #047857; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.badge-anulada { background: #fee2e2; color: #dc2626; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+
+@media print {
+  body * { visibility: hidden; }
+  #ticket-print-area, #ticket-print-area * { visibility: visible; }
+  #ticket-print-area { 
+    position: absolute; left: 0; top: 0; width: 80mm; 
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
+    font-size: 12px; color: #000; background: #fff; padding: 0 5mm; 
+  }
+  .no-print { display: none !important; }
+}
+</style>
+
+<div class="venta-page no-print">
+  <div style="margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
+    <a href="{{ url_for('pos.historial') }}" style="font-size:13px; color:#0057a3; text-decoration:none;">← Volver al Historial</a>
+    <button onclick="imprimirTicketDesdeDetalle()" class="btn-primary" style="background:var(--odoo-teal); border:none; padding:8px 14px; border-radius:8px; color:#fff; font-weight:700; cursor:pointer;">🖨️ Imprimir Ticket</button>
+  </div>
+
+  <div class="venta-card">
+    <div class="venta-header">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div>
+          <div class="venta-num">{{ venta.numero }}</div>
+          <div class="venta-meta">{{ venta.fecha[:16] }} · por {{ venta.usuario or '—' }}</div>
+        </div>
+        {% if venta.estado=='completada' %}<span class="badge-completada">Completada</span>
+        {% else %}<span class="badge-anulada">Anulada</span>{% endif %}
+      </div>
+    </div>
+
+    <div class="venta-body">
+      <div class="venta-info-grid">
+        <div class="info-block">
+          <div class="info-label">Cliente</div>
+          <div class="info-val">{{ venta.nombre_cliente }}</div>
+          {% if venta.socio_codigo %}<div style="font-size:11px; color:var(--c-gray);">{{ venta.socio_codigo }}</div>{% endif %}
+          {% if venta.cliente_nit and venta.cliente_nit != 'CF' %}<div style="font-size:11px; color:var(--c-gray);">NIT: {{ venta.cliente_nit }}</div>{% endif %}
+        </div>
+        <div class="info-block">
+          <div class="info-label">Desglose de Pago</div>
+          <div class="info-val" style="font-size:13px; line-height:1.4;">
+            {% if pagos %}
+              {% for p in pagos %}
+                <div style="margin-bottom:3px;">
+                  {% if p.metodo_pago=='efectivo' %}💵 Efectivo
+                  {% elif p.metodo_pago=='debito_ahorro' %}🏦 Débito de Ahorro
+                  {% elif p.metodo_pago=='credito_interno' %}📝 Crédito Interno
+                  {% elif p.metodo_pago=='nota_credito' %}🔄 Nota de Crédito
+                  {% else %}💳 Tarjeta{% endif %}: 
+                  <strong>Q{{ "%.2f"|format(p.monto) }}</strong>
+                </div>
+              {% endfor %}
+            {% else %}
+              {% if venta.metodo_pago=='efectivo' %}💵 Efectivo
+              {% elif venta.metodo_pago=='debito_ahorro' %}🏦 Débito de Ahorro
+              {% elif venta.metodo_pago=='credito_interno' %}📝 Crédito Interno
+              {% elif venta.metodo_pago=='nota_credito' %}🔄 Nota de Crédito
+              {% else %}💳 Tarjeta{% endif %}: 
+              <strong>Q{{ "%.2f"|format(venta.total) }}</strong>
+            {% endif %}
+          </div>
+        </div>
+        {% if venta.notas %}
+        <div class="info-block" style="grid-column:1/-1;">
+          <div class="info-label">Notas</div>
+          <div class="info-val" style="font-size:13px;">{{ venta.notas }}</div>
+        </div>
+        {% endif %}
+
+        {% if venta.fel_uuid %}
+        <div class="info-block" style="grid-column:1/-1; border-left: 4px solid #10b981; background: #ecfdf5;">
+          <div class="info-label" style="color: #047857;">Documento Tributario Electrónico (FEL)</div>
+          <div class="info-val" style="font-size:13px; line-height: 1.5;">
+            <strong>NIT:</strong> {{ venta.cliente_nit }} &nbsp;|&nbsp; <strong>Dirección:</strong> {{ venta.cliente_direccion }} <br>
+            <strong>Autorización (UUID):</strong> <span style="font-family: monospace;">{{ venta.fel_uuid }}</span> <br>
+            <strong>Serie:</strong> {{ venta.fel_serie }} &nbsp;|&nbsp; <strong>Número:</strong> {{ venta.fel_numero }} <br>
+            <strong>Fecha Certificación:</strong> {{ venta.fel_fecha_certificacion[:19].replace('T', ' ') }}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <table class="venta-table" id="tableVentaItems">
+        <thead>
+          <tr><th>Producto</th><th>Código</th><th style="text-align:center;">Cant.</th><th style="text-align:right;">P.Unit.</th><th style="text-align:right;">Subtotal</th></tr>
+        </thead>
+        <tbody>
+          {% for d in detalles %}
+          <tr data-prod-id="{{ d.producto_id }}" data-cant-comprada="{{ d.cantidad }}" data-nombre="{{ d.producto_nombre }}">
+            <td><strong>{{ d.producto_nombre }}</strong></td>
+            <td style="color:var(--c-gray); font-size:12px;">{{ d.producto_codigo }}</td>
+            <td style="text-align:center;">{{ d.cantidad|int if d.cantidad == d.cantidad|int else d.cantidad }}</td>
+            <td style="text-align:right;">Q{{ "%.2f"|format(d.precio_unitario|float) }}</td>
+            <td style="text-align:right; font-weight:600;">Q{{ "%.2f"|format(d.subtotal|float) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div class="venta-totals">
+        <div class="totals-row"><span>Subtotal</span><span>Q{{ "%.2f"|format(venta.subtotal|float) }}</span></div>
+        {% if venta.descuento and venta.descuento > 0 %}
+        <div class="totals-row" style="color:#dc2626;"><span>Descuento</span><span>− Q{{ "%.2f"|format(venta.descuento|float) }}</span></div>
+        {% endif %}
+        <div class="totals-row final"><span>TOTAL</span><span>Q{{ "%.2f"|format(venta.total|float) }}</span></div>
+      </div>
+
+      {% if devoluciones %}
+      <div style="margin-top:20px; background:#fff8f8; border:1px solid #fecaca; border-radius:10px; padding:12px;">
+        <h4 style="margin:0 0 8px; color:#b91c1c; font-size:13px;">🔄 Devoluciones Realizadas</h4>
+        <ul style="margin:0; padding-left:20px; font-size:12px; color:#374151;">
+          {% for dev in devoluciones %}
+            <li>
+              <strong>{{ dev.numero }}</strong>: Reembolso de Q{{ "%.2f"|format(dev.total_reembolsado) }} el {{ dev.fecha[:10] }} ({{ dev.motivo }})
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      {% if venta.estado=='completada' %}
+      <div style="margin-top:20px; display:flex; justify-content:space-between; align-items:center; gap:10px;">
+        <button type="button" onclick="mostrarDevolucionForm()" style="padding:8px 18px; border-radius:8px; border:1.5px solid #bae6fd; background:#e0f2fe; color:#0369a1; font-size:13px; font-weight:600; cursor:pointer;">
+          🔄 Registrar Devolución
+        </button>
+        
+        <form method="post" action="{{ url_for('pos.anular_venta', vid=venta.id) }}"
+              onsubmit="return confirm('¿Anular la venta {{ venta.numero }}? Se revertirán todos los efectos.');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" style="padding:8px 18px; border-radius:8px; border:1.5px solid #fca5a5; background:#fef2f2; color:#dc2626; font-size:13px; font-weight:600; cursor:pointer;">
+            Anular Venta Completa
+          </button>
+        </form>
+      </div>
+
+      <!-- Formulario de Devolución Dinámica -->
+      <div id="devolucionSection" style="display:none; margin-top:20px; background:#f8fafc; border:1.5px solid var(--c-border); border-radius:12px; padding:15px;">
+        <h3 style="font-size:15px; font-weight:700; color:#002a50; margin-top:0; margin-bottom:12px;">Crear Devolución Parcial/Total</h3>
+        <div id="devolucionItemsList"></div>
+        <div style="margin-top:10px;">
+          <input type="text" id="devMotivo" class="field" placeholder="Motivo de la devolución..." style="font-size:13px;">
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
+          <button type="button" class="btn-edit" onclick="cancelarDevolucion()">Cancelar</button>
+          <button type="button" class="btn-primary" style="background:#047857;" onclick="guardarDevolucion()">Procesar Reembolso</button>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- ÁREA DE IMPRESIÓN DEL TICKET -->
+<div id="ticket-print-area" class="visible-print" style="display:none;"></div>
+
+<script>
+function imprimirTicketDesdeDetalle() {
+  const num = "{{ venta.numero }}";
+  const date = "{{ venta.fecha }}".replace('T', ' ').substring(0, 19);
+  const client = "{{ venta.nombre_cliente }}";
+  const nit = "{{ venta.cliente_nit or 'CF' }}";
+  const user = "{{ venta.usuario or 'Sistema' }}";
+  const fel_uuid = "{{ venta.fel_uuid or '' }}";
+  const fel_serie = "{{ venta.fel_serie or '' }}";
+  const fel_numero = "{{ venta.fel_numero or '' }}";
+  const subtotal = "Q{{ '%.2f'|format(venta.subtotal|float) }}";
+  const descuento = "{{ venta.descuento }}";
+  const tot = "Q{{ '%.2f'|format(venta.total|float) }}";
+  
+  let linesHTML = "";
+  {% for d in detalles %}
+    linesHTML += `<tr><td>{{ d.cantidad|int if d.cantidad == d.cantidad|int else d.cantidad }}</td><td>{{ d.producto_nombre }}</td><td style="text-align:right;">Q{{ '%.2f'|format(d.subtotal|float) }}</td></tr>`;
+  {% endfor %}
+  
+  let payMethodsHTML = "";
+  {% if pagos %}
+    {% for p in pagos %}
+      payMethodsHTML += `<div style="margin-bottom:3px;">{{ p.metodo_pago|replace('_', ' ')|title }}: Q{{ "%.2f"|format(p.monto) }}</div>`;
+    {% endfor %}
+  {% else %}
+    payMethodsHTML += `<div style="margin-bottom:3px;">{{ venta.metodo_pago|replace('_', ' ')|title }}: Q{{ "%.2f"|format(venta.total) }}</div>`;
+  {% endif %}
+  
+  const ticketHTML = `
+    <div style="text-align:center; margin-bottom:10px;">
+      <h2 style="margin:0; font-size:16px;">COOPAHORRO</h2>
+      <div style="font-size:11px;">Cooperativa de Ahorro y Crédito</div>
+      <div style="font-size:11px;">NIT: 123456-7</div>
+    </div>
+    <div style="border-bottom:1px dashed #000; margin-bottom:5px;"></div>
+    <div style="font-size:11px; margin-bottom:10px;">
+      <div><strong>Ticket:</strong> ${num}</div>
+      <div><strong>Fecha:</strong> ${date}</div>
+      <div><strong>Cliente:</strong> ${client}</div>
+      <div><strong>NIT:</strong> ${nit}</div>
+      <div><strong>Cajero:</strong> ${user}</div>
+    </div>
+    <div style="border-bottom:1px dashed #000; margin-bottom:5px;"></div>
+    <table style="width:100%; font-size:11px; margin-bottom:5px; text-align:left; border-collapse:collapse;">
+      <thead>
+        <tr><th style="padding-bottom:3px; width:20px;">C.</th><th style="padding-bottom:3px;">Descripción</th><th style="text-align:right; padding-bottom:3px;">Sub</th></tr>
+      </thead>
+      <tbody>
+        ${linesHTML}
+      </tbody>
+    </table>
+    <div style="border-bottom:1px dashed #000; margin-bottom:5px;"></div>
+    <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:14px; margin-bottom:5px;">
+      <span>TOTAL:</span><span>${tot}</span>
+    </div>
+    <div style="font-size:11px; margin-bottom:15px; border-top:1px dashed #000; padding-top:5px;">
+      <div style="margin-bottom:3px;"><strong>Pagos:</strong></div>
+      ${payMethodsHTML}
+    </div>
+      ${fel_uuid ? `
+      <div style="font-size:11px; margin-bottom:15px; border-top:1px dashed #000; padding-top:5px; text-align:center;">
+        <div><strong>DTE Autorización (UUID)</strong></div>
+        <div style="font-size:9px; word-break:break-all;">${fel_uuid}</div>
+        <div>Serie: ${fel_serie} - Núm: ${fel_numero}</div>
+      </div>
+      ` : ''}
+      <div style="text-align:center; font-size:11px; margin-top:10px;">
+        ¡Gracias por su compra!<br>
+        <strong>Asociado a su Bienestar</strong>
+      </div>
+  `;
+  
+  document.getElementById('ticket-print-area').innerHTML = ticketHTML;
+  document.getElementById('ticket-print-area').style.display = 'block';
+  window.print();
+  document.getElementById('ticket-print-area').style.display = 'none';
+}
+
+<script>
+function mostrarDevolucionForm() {
+  const container = document.getElementById('devolucionItemsList');
+  container.innerHTML = '';
+  
+  // Recorrer las filas de la tabla de la venta
+  const rows = document.querySelectorAll('#tableVentaItems tbody tr');
+  rows.forEach(tr => {
+    const prodId = tr.dataset.prodId;
+    const maxCant = parseFloat(tr.dataset.cantComprada);
+    const nombre = tr.dataset.nombre;
+    
+    const div = document.createElement('div');
+    div.style.display = 'grid';
+    div.style.gridTemplateColumns = '1fr 120px';
+    div.style.gap = '10px';
+    div.style.alignItems = 'center';
+    div.style.marginBottom = '8px';
+    div.innerHTML = `
+      <span style="font-size:13px;"><strong>${nombre}</strong> (Comprado: ${maxCant})</span>
+      <input type="number" class="field dev-cant-input" data-prod-id="${prodId}" min="0" max="${maxCant}" step="1" value="0" style="padding:5px 8px; text-align:right;">
+    `;
+    container.appendChild(div);
+  });
+  
+  document.getElementById('devolucionSection').style.display = 'block';
+}
+
+function cancelarDevolucion() {
+  document.getElementById('devolucionSection').style.display = 'none';
+}
+
+async function guardarDevolucion() {
+  const inputs = document.querySelectorAll('.dev-cant-input');
+  const items = [];
+  inputs.forEach(input => {
+    const cant = parseFloat(input.value) || 0;
+    if(cant > 0) {
+      items.push({ producto_id: parseInt(input.dataset.prodId), cantidad: cant });
+    }
+  });
+  
+  if(!items.length) {
+    alert('Debe especificar al menos un producto con cantidad mayor a 0 para devolver.');
+    return;
+  }
+  
+  const motivo = document.getElementById('devMotivo').value.trim();
+  const payload = {
+    items: items,
+    motivo: motivo
+  };
+  
+  try {
+    const res = await fetch(`/pos/ventas/{{ venta.id }}/devolver`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token() }}'
+      },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if(data.success) {
+      alert(`Devolución procesada correctamente con el correlativo: ${data.numero}. Método de reembolso: ${data.reembolso_metodo}`);
+      location.reload();
+    } else {
+      alert('Error: ' + data.error);
+    }
+  } catch(e) {
+    alert('Error al conectar con el servidor.');
+  }
+}
+</script>
+{% endblock %}

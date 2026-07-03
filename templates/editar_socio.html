@@ -469,6 +469,21 @@
           </select>
         </div>
         <div class="form-group">
+          <label>Frecuencia de Crédito POS</label>
+          <select name="frecuencia_credito_pos">
+            <option value="Quincenal" {% if request.form.get('frecuencia_credito_pos', socio.frecuencia_credito_pos or 'Quincenal') == 'Quincenal' %}selected{% endif %}>Quincenal</option>
+            <option value="Catorcenal" {% if request.form.get('frecuencia_credito_pos', socio.frecuencia_credito_pos) == 'Catorcenal' %}selected{% endif %}>Catorcenal</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Cuota Crédito POS</label>
+          <input type="number" name="cuota_credito_pos" value="{{ request.form.get('cuota_credito_pos', socio.cuota_credito_pos or 0) }}" step="0.01" min="0">
+        </div>
+        <div class="form-group">
+          <label>Límite Crédito POS (Máx)</label>
+          <input type="number" name="limite_credito_pos" value="{{ request.form.get('limite_credito_pos', socio.limite_credito_pos or 500) }}" step="0.01" min="0">
+        </div>
+        <div class="form-group">
           <label>Cuota de ahorro</label>
           <input type="number" name="cuota_ahorro" value="{{ request.form.get('cuota_ahorro', socio.cuota_ahorro or 0) }}" step="0.01" min="0">
         </div>

@@ -81,6 +81,8 @@ def create_app():
     from blueprints.promotora import bp as promotora_bp
     from blueprints.movimientos import bp as movimientos_bp
     from blueprints.reportes import bp as reportes_bp
+    from blueprints.pos import bp as pos_bp
+    from blueprints.contabilidad import bp as contabilidad_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
@@ -92,6 +94,8 @@ def create_app():
     app.register_blueprint(promotora_bp)
     app.register_blueprint(movimientos_bp)
     app.register_blueprint(reportes_bp)
+    app.register_blueprint(pos_bp)
+    app.register_blueprint(contabilidad_bp)
 
     # Filtros de Jinja2
     from utils.helpers import formatear_fecha_dmy
@@ -146,6 +150,15 @@ def create_app():
             getattr(g, 'request_id', '-'), duration_ms
         )
         response.headers['X-Request-ID'] = getattr(g, 'request_id', '-')
+
+        # Optimización: Caché de activos estáticos
+        if request.path.startswith('/static/uploads/'):
+            response.cache_control.max_age = 86400 * 30  # 30 días para imágenes subidas
+            response.cache_control.public = True
+        elif request.path.startswith('/static/'):
+            response.cache_control.max_age = 3600  # 1 hora para CSS/JS
+            response.cache_control.public = True
+
         return response
 
     # Cerrar conexión de base de datos automáticamente

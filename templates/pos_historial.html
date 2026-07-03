@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block title %}Historial de Ventas — POS{% endblock %}
+{% block content %}
+<style>
+.pos-page { max-width: 1200px; margin: 0 auto; padding: 24px 20px; }
+.filter-bar { background: var(--c-white); border-radius: 12px; border: 1.5px solid var(--c-border); padding: 16px 18px; margin-bottom: 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; box-shadow: 0 2px 8px rgba(0,30,70,.06); }
+.filter-group { display: flex; flex-direction: column; gap: 4px; }
+.filter-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--c-gray); }
+.filter-input { padding: 8px 12px; border: 1.5px solid var(--c-border); border-radius: 8px; font-size: 13px; font-family: inherit; outline: none; }
+.filter-input:focus { border-color: #0057a3; }
+.filter-btn { padding: 8px 16px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+.filter-btn-primary { background: #003b74; color: #fff; }
+.g-table-wrap { background: var(--c-white); border-radius: 14px; border: 1.5px solid var(--c-border); overflow: hidden; box-shadow: 0 2px 12px rgba(0,30,70,.07); }
+.g-table-header { padding: 16px 20px; border-bottom: 1px solid var(--c-border); display: flex; justify-content: space-between; align-items: center; }
+.g-table-title { font-family: 'Fraunces', serif; font-size: 16px; font-weight: 600; color: #002a50; }
+.g-table { width: 100%; border-collapse: collapse; }
+.g-table th { padding: 10px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--c-gray); font-weight: 600; text-align: left; border-bottom: 1px solid var(--c-border); background: #f8fafb; }
+.g-table td { padding: 11px 14px; font-size: 13px; border-bottom: 1px solid #f3f4f6; }
+.g-table tr:hover td { background: #f8fafb; }
+.g-table tr:last-child td { border-bottom: none; }
+.badge-completada { background: #d1fae5; color: #047857; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.badge-anulada { background: #fee2e2; color: #dc2626; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.summary-row { display: flex; gap: 16px; margin-bottom: 16px; }
+.summary-pill { background: var(--c-white); border: 1.5px solid var(--c-border); border-radius: 10px; padding: 10px 18px; font-size: 13px; box-shadow: 0 2px 8px rgba(0,30,70,.06); }
+.summary-pill strong { font-family: 'Fraunces', serif; font-size: 18px; color: #002a50; display: block; }
+.btn-anular { padding: 4px 10px; border-radius: 6px; border: 1.5px solid #fca5a5; background: #fef2f2; color: #dc2626; font-size: 11px; font-weight: 600; cursor: pointer; }
+.btn-anular:hover { background: #fee2e2; }
+</style>
+
+<div class="pos-page">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+    <h1 style="font-family:'Fraunces',serif; font-size:24px; font-weight:700; color:#002a50;">Historial de Ventas</h1>
+  </div>
+
+  <!-- Filtros -->
+  <form class="filter-bar" method="get">
+    <div class="filter-group">
+      <label class="filter-label">Desde</label>
+      <input type="date" name="fecha_desde" class="filter-input" value="{{ fecha_desde }}">
+    </div>
+    <div class="filter-group">
+      <label class="filter-label">Hasta</label>
+      <input type="date" name="fecha_hasta" class="filter-input" value="{{ fecha_hasta }}">
+    </div>
+    <div class="filter-group">
+      <label class="filter-label">Estado</label>
+      <select name="estado" class="filter-input">
+        <option value="todas" {% if estado_filtro=='todas' %}selected{% endif %}>Todas</option>
+        <option value="completada" {% if estado_filtro=='completada' %}selected{% endif %}>Completadas</option>
+        <option value="anulada" {% if estado_filtro=='anulada' %}selected{% endif %}>Anuladas</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label class="filter-label">Buscar</label>
+      <input type="text" name="q" class="filter-input" placeholder="# venta, cliente…" value="{{ q }}">
+    </div>
+    <button type="submit" class="filter-btn filter-btn-primary">Filtrar</button>
+    <button type="button" onclick="exportarHistorial()" class="filter-btn" style="background:#059669; color:#fff; border:none;">📊 Exportar CSV</button>
+  </form>
+
+  <!-- Resumen -->
+  {% if totales %}
+  <div class="summary-row">
+    <div class="summary-pill"><strong>{{ totales.cant }}</strong> Ventas</div>
+    <div class="summary-pill"><strong>Q{{ "%.2f"|format(totales.monto|float) }}</strong> Ingreso total</div>
+  </div>
+  {% endif %}
+
+  <!-- Tabla -->
+  <div class="g-table-wrap">
+    <div class="g-table-header">
+      <div class="g-table-title">Ventas ({{ ventas|length }})</div>
+    </div>
+    <table class="g-table">
+      <thead>
+        <tr>
+          <th>#</th><th>Fecha</th><th>Cliente</th><th>Ítems</th><th>Total</th><th>Método</th><th>Estado</th><th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for v in ventas %}
+        <tr>
+          <td><a href="{{ url_for('pos.detalle_venta', vid=v.id) }}" style="font-weight:600; color:#002a50; text-decoration:none;">{{ v.numero }}</a></td>
+          <td style="color:var(--c-gray);">{{ v.fecha[:16] }}</td>
+          <td>{{ v.nombre_cliente }}</td>
+          <td style="text-align:center;">{{ v.num_items }}</td>
+          <td><strong>Q{{ "%.2f"|format(v.total|float) }}</strong></td>
+          <td style="font-size:12px; color:var(--c-gray);">
+            {% if v.metodo_pago=='efectivo' %}💵 Efectivo
+            {% elif v.metodo_pago=='debito_ahorro' %}🏦 Débito
+            {% elif v.metodo_pago=='credito_interno' %}💳 Crédito
+            {% elif v.metodo_pago=='nota_credito' %}🔄 Nota Crédito
+            {% else %}💳 Tarjeta{% endif %}
+          </td>
+          <td>
+            {% if v.estado=='completada' %}<span class="badge-completada">Completada</span>
+            {% else %}<span class="badge-anulada">Anulada</span>{% endif %}
+          </td>
+          <td>
+            <a href="{{ url_for('pos.detalle_venta', vid=v.id) }}" style="font-size:12px; color:#0057a3; text-decoration:none; margin-right:6px;">Ver</a>
+            {% if v.estado=='completada' %}
+            <form method="post" action="{{ url_for('pos.anular_venta', vid=v.id) }}" style="display:inline;"
+                  data-confirm="¿Anular la venta {{ v.numero }}? Se revertirán todos los efectos.">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn-anular">Anular</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" style="text-align:center; padding:32px; color:var(--c-gray);">No se encontraron ventas para los filtros seleccionados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function exportarHistorial() {
+  const form = document.querySelector('.filter-bar');
+  const params = new URLSearchParams(new FormData(form)).toString();
+  window.location.href = `/pos/historial/exportar?` + params;
+}
+</script>
+{% endblock %}
